@@ -49,3 +49,7 @@ const C=[["Mở đầu",[[1,"Nhận biết một số dụng cụ, hoá chất. 
 const done={1:"bai-01.html",2:"bai-02.html",3:"bai-03.html",11:"bai-11.html",12:"bai-12.html",13:"bai-13.html",14:"bai-14.html",15:"bai-15.html",16:"bai-16.html",17:"bai-17.html"};
 document.getElementById("L").innerHTML=C.map(([t,ls])=>`<h2>${t}</h2><div class="g">${ls.map(([n,x])=>done[n]?`<a class="c" href="${done[n]}">Bài ${n}. ${x}<span>Đã có</span></a>`:`<div class="c">Bài ${n}. ${x}<span>Sắp có</span></div>`).join("")}</div>`).join("");
 </script></body></html>
+<footer style="text-align: center; padding: 20px; margin-top: 30px; border-top: 1px solid #ddd; font-size: 14px; color: #555;">
+    <p>© 2026 Đấu trường KHTN - Nền tảng học tập Khoa học Tự nhiên online.</p>
+    <p>Liên hệ hỗ trợ: Lê Đình Dũng | Email: led8512@gmail.com</p>
+</footer>
