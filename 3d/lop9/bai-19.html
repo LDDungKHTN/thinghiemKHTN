@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 19. Dãy hoạt động hoá học</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 19. Dãy hoạt động hoá học', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<h3>Sắp xếp mức độ hoạt động hoá học của Na, Fe, H, Cu, Ag</h3>
+<ol><li><b>Với nước:</b> cho đinh sắt vào ống 1, dây đồng vào ống 2 đựng nước (natri + nước: xem Bài 18).</li>
+<li><b>Với dung dịch HCl:</b> cho đinh sắt vào ống 3, dây đồng vào ống 4 đựng dd HCl cùng nồng độ.</li>
+<li><b>Cu với dd AgNO₃ 2%:</b> cho dây đồng uốn lò xo vào ống 5 đựng dd AgNO₃.</li></ol>
+<div id="ui"></div><div id="obs" class="note"></div>
+<h3>Sắp xếp dãy hoạt động</h3><p class="sm">Bấm lần lượt các kí hiệu theo thứ tự mức độ hoạt động <b>giảm dần</b>.</p>
+<div class="row" id="ord"></div><div id="ordR" class="sm"></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<div class="eq" style="font-size:17px;text-align:center">K, Na, Ca, Mg, Al, Zn, Fe, Pb, <b style="color:#1c7ed6">H</b>, Cu, Ag, Au</div>
+<ul><li>Kim loại hoạt động hoá học mạnh (K, Na, Ca…) phản ứng với nước ở điều kiện thường tạo base và khí hydrogen.</li>
+<li>Kim loại đứng trước H phản ứng với dung dịch acid (HCl, H₂SO₄ loãng…) giải phóng khí hydrogen.</li>
+<li>Kim loại đứng trước (trừ K, Na, Ca…) đẩy kim loại đứng sau ra khỏi dung dịch muối: Cu + 2AgNO₃ → Cu(NO₃)₂ + 2Ag.</li>
+<li>Mạnh: K, Na, Ca, Mg, Al · Trung bình: Zn, Fe, Pb · Yếu: Cu, Ag, Au.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const lab = createLab(stage, { cam: [0, .26, .5], target: [0, .07, -.02], table: 'bench', tableSize: [1.4, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [
+  { id: 'h2o', n: 'Nước', c: 0xdff1fa, k: 'liq' }, { id: 'hcl', n: 'dd HCl', c: 0xeef6f8, k: 'liq' }, { id: 'agno3', n: 'dd AgNO₃ 2%', c: 0xf4f4f4, k: 'liq', tag: '#f1e8ff' },
+  { id: 'fe', n: 'Đinh sắt', c: 0x8f969c, k: 'sol', solid: { kind: 'nail', c: 0x8f969c, metal: true }, max: 1 },
+  { id: 'cu', n: 'Dây đồng', c: 0xc06a3a, k: 'sol', solid: { kind: 'wire', c: 0xc06a3a, metal: true }, max: 1 }];
+const has = (it, id) => it.find(x => x.id == id), mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), clamp(t, 0, 1)).getHex();
+function react(it, heat, age) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s;
+  const w = has(it, 'h2o'), h = has(it, 'hcl'), ag = has(it, 'agno3'), met = has(it, 'fe') ? 'fe' : has(it, 'cu') ? 'cu' : null;
+  s.color = 0xeef6f8; s.op = .32;
+  if (met) { const r = REAG.find(x => x.id == met); s.solid = { ...r.solid, amt: 1 }; }
+  if (!met) { s.notes.push('Dung dịch không màu.'); return s; }
+  if (!w && !h && !ag) { s.notes.push('Chưa có dung dịch trong ống.'); return s; }
+  const k = clamp(age / 20, 0, 1);
+  if (h && met == 'fe') { s.bubbles = .35; s.color = mix(0xeef6f8, 0xd8efd0, k * .8); s.notes.push('Có <b>bọt khí</b> thoát ra trên bề mặt đinh sắt: sắt đẩy được hydrogen ra khỏi acid.'); s.eq.push('Fe + 2HCl → FeCl₂ + H₂↑'); }
+  else if (h && met == 'cu') s.notes.push('<b>Không có hiện tượng</b>: đồng không đẩy được hydrogen ra khỏi dung dịch acid.');
+  else if (ag && met == 'cu') {
+    s.color = mix(0xf4f4f4, 0x4f9be6, k); s.op = .32 + .25 * k;
+    s.solid.c = mix(0xc06a3a, 0xb9bec4, clamp(age / 6, 0, 1)); s.solid.metal = true;
+    s.cloud = .25 * clamp(age / 4, 0, 1) * (1 - k * .5); s.cloudC = 0xc8ccd0;
+    s.notes.push('Có <b>lớp chất rắn màu xám bạc</b> bám quanh dây đồng (bạc); dung dịch chuyển dần sang <b>màu xanh lam</b>.', 'Đồng hoạt động hoá học mạnh hơn bạc.'); s.eq.push('Cu + 2AgNO₃ → Cu(NO₃)₂ + 2Ag↓');
+  }
+  else if (w) s.notes.push(`${met == 'fe' ? 'Đinh sắt' : 'Dây đồng'} <b>không phản ứng</b> với nước ở nhiệt độ thường (khác với natri phản ứng mãnh liệt).`);
+  return s;
+}
+const tubes = ['Ống 1', 'Ống 2', 'Ống 3', 'Ống 4', 'Ống 5'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 4, cap: 16, heat: false, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG, heat: false });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bAuto">Chuẩn bị nhanh 5 ống</button><button class="btn" id="bLbl">Tên</button>`;
+$('#bAuto').onclick = () => { const plan = [['h2o', 'fe'], ['h2o', 'cu'], ['hcl', 'fe'], ['hcl', 'cu'], ['agno3', 'cu']]; plan.forEach((p, i) => { bench.T[i].items = [{ id: p[0], amt: 8 }, { id: p[1], amt: 1 }]; bench.T[i].age = 0; }); bench.redraw(); toast('Đã chuẩn bị 5 ống nghiệm theo SGK'); };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+// sắp xếp
+const ANS = ['Na', 'Fe', 'H', 'Cu', 'Ag']; let pick = [];
+const ord = $('#ord'); ord.innerHTML = ['Cu', 'Ag', 'Na', 'H', 'Fe'].map(x => `<button class="btn g" data-x="${x}">${x}</button>`).join('') + '<button class="btn g" id="ordC">Làm lại</button>';
+ord.querySelectorAll('[data-x]').forEach(b => b.onclick = () => { if (pick.includes(b.dataset.x)) return; pick.push(b.dataset.x); b.disabled = true; $('#ordR').innerHTML = pick.join(' > ') + (pick.length == 5 ? (pick.join() == ANS.join() ? ' <span class="ok">Chính xác!</span>' : ' <span class="er">Chưa đúng, thử lại.</span>') : ''); });
+$('#ordC').onclick = () => { pick = []; ord.querySelectorAll('[data-x]').forEach(b => b.disabled = false); $('#ordR').innerHTML = ''; };
+quiz($('#qz'), [
+  { q: 'Dãy kim loại nào được sắp xếp theo chiều hoạt động hoá học giảm dần?', o: ['Cu, Fe, Zn, Al', 'K, Mg, Fe, Cu', 'Ag, Cu, Fe, Na', 'Fe, K, Cu, Ag'], a: 1 },
+  { q: 'Kim loại nào đẩy được đồng ra khỏi dung dịch CuSO₄?', o: ['Ag', 'Au', 'Zn', 'Cu'], a: 2 },
+  { q: 'Kim loại nào tác dụng với nước ở nhiệt độ thường?', o: ['Fe', 'Cu', 'Ca', 'Ag'], a: 2 },
+  { q: 'Cho dây đồng vào dung dịch AgNO₃, dung dịch chuyển dần sang màu', o: ['hồng', 'xanh lam', 'vàng', 'đen'], a: 1, e: 'Tạo ra Cu(NO₃)₂ có màu xanh lam.' },
+  { q: 'Kim loại đứng trước H trong dãy hoạt động hoá học thì', o: ['tác dụng với dd HCl giải phóng H₂', 'không tác dụng với acid', 'luôn tác dụng với nước', 'không tác dụng với oxygen'], a: 0 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

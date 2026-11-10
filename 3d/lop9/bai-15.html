@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 15. Tác dụng của dòng điện xoay chiều</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { supply, bulb, knife, wire, coil, board } from '../core/elec.js';
+import { vessel, thermometer } from '../core/chem.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 15. Tác dụng của dòng điện xoay chiều', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p>Ba mạch điện cùng dùng một <b>nguồn điện xoay chiều</b>. Bật nguồn (nút đỏ), rồi bấm vào từng khoá K để đóng mạch.</p>
+<h3>1. Tác dụng nhiệt</h3><p>Dây điện trở (dây nung) nhúng trong cốc nước, có nhiệt kế. Đóng khoá K<sub>1</sub>, quan sát nhiệt độ nước.</p>
+<h3>2. Tác dụng phát sáng</h3><p>Đóng khoá K<sub>2</sub>: bóng đèn sợi đốt sáng.</p>
+<h3>3. Tác dụng từ (Hình 15.4)</h3><p>Đóng khoá K<sub>3</sub>: cuộn dây có lõi sắt hút đinh sắt lên. Kim nam châm đặt cạnh cuộn dây <b>dao động</b> (vì dòng điện đổi chiều liên tục). Bấm “Dòng một chiều” để so sánh.</p>
+<div class="warn"><b>Tác dụng sinh lí:</b> dòng điện xoay chiều qua cơ thể người gây co giật cơ, có thể làm tim ngừng đập. Tuyệt đối không chạm vào dây điện trần, ổ cắm điện!</div>` },
+    { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Đóng các khoá K để quan sát.</div>
+<ul><li><b>Tác dụng nhiệt:</b> dòng điện xoay chiều chạy qua vật dẫn làm vật dẫn nóng lên (bàn là, ấm điện, máy sấy tóc…).</li>
+<li><b>Tác dụng phát sáng:</b> làm đèn sợi đốt, đèn huỳnh quang, đèn LED phát sáng.</li>
+<li><b>Tác dụng từ:</b> dòng điện xoay chiều chạy qua cuộn dây sinh ra từ trường, hút được vật bằng sắt (nam châm điện, rơ le, động cơ điện…). Từ trường này đổi chiều theo dòng điện.</li>
+<li><b>Tác dụng sinh lí:</b> gây nguy hiểm cho cơ thể người (cũng được dùng trong y học với dòng điện rất nhỏ).</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+
+const HOME = [[0, .5, .85], [0, .06, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.5, .9], minDist: .08 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const S = { ac: true, T: 22, nail: 0, ang: 0 };
+board(lab, [0, 0, 0], .8, .34, 0xd6e4ee);
+const ps = supply(lab, [-.05, .008, -.12], { label: 'Nguồn điện xoay chiều', onToggle: () => upd() }); ps.setV(12);
+const K = [knife(lab, [-.27, .008, -.04], { label: 'K₁' }), knife(lab, [-.02, .008, .02], { label: 'K₂' }), knife(lab, [.2, .008, -.04], { label: 'K₃' })];
+K.forEach(k => { const f = k.g.userData; void f; });
+
+/* 1. Cốc nước + dây nung + nhiệt kế */
+const bk = vessel(lab, { kind: 'beaker', R: .035, H: .1, label: 'Cốc nước' }); bk.g.position.set(-.3, .008, .09); lab.scene.add(bk.g); bk.set({ level: .7, color: 0xd6eef8, op: .35 });
+const heaterPts = []; for (let i = 0; i <= 240; i++) { const t = i / 240 * Math.PI * 12; heaterPts.push(new THREE.Vector3(Math.cos(t) * .008, .015 + i / 240 * .03, Math.sin(t) * .008)); }
+const heaterM = new THREE.MeshStandardMaterial({ color: 0x7a6a5a, metalness: .7, roughness: .4, emissive: 0xff3300, emissiveIntensity: 0 });
+const heater = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(heaterPts), 240, .0008, 6), heaterM); heater.position.set(-.31, .008, .09); lab.scene.add(heater);
+for (const s of [-1, 1]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(.0009, .0009, .08, 8), heaterM); l.position.set(-.31 + s * .008, .008 + .085, .09); lab.scene.add(l); }
+lab.label(heater, 'Dây nung', [.0, .1, -.02]);
+const th = thermometer(lab, lab.scene, [-.29, .02, .1]); th.g.rotation.z = -.12;
+/* 2. Bóng đèn */
+const Lb = bulb(lab, [-.02, .008, .12], { Unom: 12, Pnom: 6, label: 'Bóng đèn' });
+/* 3. Nam châm điện + đinh + kim nam châm */
+const stand = new THREE.Group(); stand.position.set(.24, .008, .09); lab.scene.add(stand);
+const rodM = MAT.metal(0x2d3136, .45);
+const sb = roundBox(.1, .012, .08, .003, rodM); sb.position.y = .006; stand.add(sb);
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .2, 16), MAT.metal(0xc8cdd2, .25)); rod.position.set(-.04, .1, -.02); stand.add(rod);
+const arm = new THREE.Mesh(new THREE.BoxGeometry(.06, .008, .012), rodM); arm.position.set(-.012, .16, -.02); stand.add(arm);
+const cl = coil(.016, .05, 22, { color: 0xb87333 }); cl.rotation.z = Math.PI / 2; cl.position.set(.01, .13, -.0); stand.add(cl);
+const core = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .065, 20), MAT.metal(0x8f969c, .45)); core.position.set(.01, .13, 0); stand.add(core);
+lab.label(cl, 'Cuộn dây có lõi sắt', [0, .045, 0]);
+const nails = [0, 1, 2].map(i => { const n = new THREE.Group(); const sh = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0012, .03, 10), MAT.metal(0x9aa0a6, .35)); n.add(sh); const hd = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .0012, 14), MAT.metal(0x9aa0a6, .35)); hd.position.y = .015; n.add(hd); n.rotation.z = Math.PI / 2; n.position.set(.0 + i * .006, .02, .005 + i * .006); stand.add(n); n.userData.p0 = n.position.clone(); n.castShadow = true; return n; });
+lab.label(nails[1], 'Đinh sắt', [0, .02, .02]);
+const comp = new THREE.Group(); comp.position.set(.07, .02, .02); stand.add(comp);
+const cb = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .008, 32), MAT.plastic(0x222222, .5)); comp.add(cb);
+const face = new THREE.Mesh(new THREE.CircleGeometry(.016, 32), new THREE.MeshStandardMaterial({ map: canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#f4f1e6'; c.beginPath(); c.arc(64, 64, 64, 0, 7); c.fill(); c.fillStyle = '#222'; c.font = 'bold 18px Arial'; c.textAlign = 'center'; c.fillText('N', 64, 22); c.fillText('S', 64, 120); c.fillText('E', 116, 70); c.fillText('W', 12, 70); }) })); face.rotation.x = -Math.PI / 2; face.position.y = .0042; comp.add(face);
+const needle = new THREE.Group(); needle.position.y = .006; comp.add(needle);
+const nr = new THREE.Mesh(new THREE.ConeGeometry(.0025, .014, 4), MAT.plastic(0xc92a2a, .4)); nr.rotation.x = -Math.PI / 2; nr.position.z = -.007; needle.add(nr);
+const nb = new THREE.Mesh(new THREE.ConeGeometry(.0025, .014, 4), MAT.plastic(0x1c5fb8, .4)); nb.rotation.x = Math.PI / 2; nb.position.z = .007; needle.add(nb);
+lab.label(comp, 'Kim nam châm', [0, .03, 0]);
+lab.shadow(stand);
+// dây nối
+const P = ps.term(0), N = ps.term(1);
+wire(lab, P, K[0].term(0)); wire(lab, K[0].term(1), new THREE.Vector3(-.32, .17, .09), { color: 0xe67700 }); wire(lab, new THREE.Vector3(-.30, .17, .09), N, { color: 0x1b1b1b });
+wire(lab, P, K[1].term(0)); wire(lab, K[1].term(1), Lb.term(0), { color: 0xe67700 }); wire(lab, Lb.term(1), N, { color: 0x1b1b1b });
+wire(lab, P, K[2].term(0)); wire(lab, K[2].term(1), new THREE.Vector3(.24, .17, .09), { color: 0xe67700 }); wire(lab, new THREE.Vector3(.27, .17, .09), N, { color: 0x1b1b1b });
+
+let lastT = '';
+function upd() {}
+lab.onTick((dt, t) => {
+  const on = ps.on, c = K.map(k => on && k.closed);
+  // nhiệt: 6 W đun ~150 g nước, có toả nhiệt ra môi trường; tăng tốc 10 lần cho dễ quan sát
+  S.T += ((c[0] ? 26 * .055 : 0) - (S.T - 22) * .006) * dt * 10 / 2.4; th.set(S.T);
+  heaterM.emissiveIntensity = c[0] ? .25 : 0; bk.set({ bubbles: c[0] ? clamp((S.T - 55) / 40, 0, .4) : 0 });
+  Lb.set(c[1] ? 6 * (S.ac ? 1 : 1) : 0);
+  // tác dụng từ
+  S.nail += ((c[2] ? 1 : 0) - S.nail) * Math.min(1, dt * (c[2] ? 6 : 9));
+  nails.forEach((n, i) => { const p0 = n.userData.p0, top = new THREE.Vector3(.01 + (i - 1) * .004, .13 - .045 - i * .006, 0); n.position.lerpVectors(p0, top, S.nail * S.nail); n.rotation.z = Math.PI / 2 * (1 - S.nail); n.rotation.x = S.nail * .1 * (i - 1); });
+  const target = c[2] ? (S.ac ? Math.sin(t * 2 * Math.PI * 7) * .9 : 1.2) : 0;   // xoay chiều: kim rung; một chiều: lệch hẳn
+  S.ang += (target - S.ang) * Math.min(1, dt * 18); needle.rotation.y = S.ang;
+  const txt = !on ? 'Bấm nút đỏ trên nguồn để bật nguồn điện xoay chiều.' : [
+    c[0] ? `Nhiệt kế: <b>${fmt(S.T, 1)} °C</b> – nước nóng dần (tác dụng nhiệt).` : 'K₁ mở.',
+    c[1] ? 'Bóng đèn <b>sáng</b> (tác dụng phát sáng).' : 'K₂ mở.',
+    c[2] ? `Đinh sắt bị <b>hút</b> lên cuộn dây (tác dụng từ). Kim nam châm ${S.ac ? '<b>dao động</b> qua lại' : 'lệch hẳn về một phía'}.` : 'K₃ mở.'].join('<br>');
+  if (txt != lastT) { lastT = txt; hud.innerHTML = `<b>Nguồn ${S.ac ? 'xoay chiều' : 'một chiều'}</b><br>${txt}`; $('#obs').innerHTML = txt; }
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" id="bAC">Dòng một chiều</button><button class="btn" id="b1">Nhìn cốc nước</button><button class="btn" id="b3">Nhìn nam châm điện</button><button class="btn" id="bH">Toàn cảnh</button><button class="btn" id="bLbl">Tên</button>`;
+$('#bAC').onclick = () => { S.ac = !S.ac; $('#bAC').textContent = S.ac ? 'Dòng một chiều' : 'Dòng xoay chiều'; toast(S.ac ? 'Đã chuyển sang nguồn xoay chiều' : 'Đã chuyển sang nguồn một chiều'); };
+$('#b1').onclick = () => lab.view([-.24, .2, .3], [-.3, .07, .08]); $('#b3').onclick = () => lab.view([.3, .2, .32], [.25, .09, .08]); $('#bH').onclick = () => lab.view(...HOME);
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
+quiz($('#qz'), [
+  { q: 'Máy sấy tóc thổi ra hơi nóng chứng tỏ dòng điện xoay chiều có tác dụng', o: ['từ', 'nhiệt', 'sinh lí', 'hoá học'], a: 1 },
+  { q: 'Dòng điện xoay chiều qua đèn sợi đốt làm đèn sáng, đó là tác dụng', o: ['phát sáng', 'từ', 'sinh lí', 'cơ học'], a: 0 },
+  { q: 'Khi cho dòng điện xoay chiều chạy qua cuộn dây có lõi sắt, đinh sắt bị hút lên. Đó là tác dụng', o: ['nhiệt', 'phát sáng', 'từ', 'sinh lí'], a: 2 },
+  { q: 'Kim nam châm đặt gần cuộn dây có dòng điện xoay chiều sẽ', o: ['đứng yên', 'lệch hẳn về một phía', 'dao động qua lại vì từ trường đổi chiều liên tục', 'quay tròn mãi'], a: 2 },
+  { q: 'Thiết bị nào hoạt động chủ yếu dựa vào tác dụng từ của dòng điện xoay chiều?', o: ['Bàn là', 'Bóng đèn sợi đốt', 'Quạt điện (động cơ điện)', 'Ấm điện'], a: 2 },
+  { q: 'Để an toàn khi dùng điện xoay chiều trong gia đình, cần', o: ['chạm tay ướt vào ổ cắm để kiểm tra', 'không chạm vào dây trần, ổ điện; dùng thiết bị có vỏ cách điện', 'dùng dây điện bị hở', 'sửa điện khi chưa ngắt cầu dao'], a: 1 },
+]);
+ready();
+window.dbg = { S, lab, ps, K };
+</script></body></html>

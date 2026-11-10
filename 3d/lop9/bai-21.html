@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 21. Sự khác nhau cơ bản giữa phi kim và kim loại</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, canvasTex, clamp } from '../core/lab3d.js';
+import { vessel, burner } from '../core/chem.js';
+import { bulb, wire } from '../core/elec.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 21. Sự khác nhau cơ bản giữa phi kim và kim loại', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<h3>1. Tính hấp phụ của than gỗ (Hình 21.1)</h3><p>Rót từ từ nước màu pha loãng vào phễu, cho nước màu chảy qua lớp bột than gỗ. Quan sát màu dung dịch thu được trong cốc. Bấm <b>“Rót nước màu”</b>.</p>
+<h3>2. Tính dẫn điện</h3><p>Bấm <b>“Thử dẫn điện”</b>, rồi bấm vào từng mẫu chất trên khay để đặt giữa hai que đo. Quan sát bóng đèn.</p>
+<h3>3. Phản ứng với oxygen</h3><p>Bấm <b>“Đốt Mg / S”</b>: đốt băng magnesium và lưu huỳnh, hoà tan sản phẩm vào nước rồi thử bằng giấy quỳ tím.</p>
+<div class="row"><button class="btn g" data-b="mg">Đốt magnesium</button><button class="btn g" data-b="s">Đốt lưu huỳnh</button></div>
+<div id="obs" class="note">Chọn thí nghiệm trên thanh công cụ.</div>` },
+    { id: 'p2', title: 'Kết luận', html: `<table class="dt"><thead><tr><th>Tính chất</th><th>Kim loại</th><th>Phi kim</th></tr></thead><tbody>
+<tr><td>Dẫn điện</td><td>Tốt</td><td>Thường không dẫn điện (than chì dẫn điện kém hơn kim loại)</td></tr>
+<tr><td>Nhiệt độ nóng chảy, sôi</td><td>Cao (trừ Hg)</td><td>Phần lớn thấp hơn</td></tr>
+<tr><td>Khối lượng riêng</td><td>Lớn</td><td>Phần lớn nhỏ</td></tr>
+<tr><td>Phản ứng với phi kim</td><td>Nhường electron → ion dương</td><td>Nhận electron → ion âm</td></tr>
+<tr><td>Với oxygen</td><td>Tạo oxide base: 2Mg + O₂ → 2MgO</td><td>Tạo oxide acid: S + O₂ → SO₂</td></tr></tbody></table>
+<p>Than gỗ, than hoạt tính có <b>tính hấp phụ</b>: giữ được trên bề mặt các chất khí, chất tan → dùng làm mặt nạ phòng độc, khử màu, khử mùi, lọc nước.</p>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const H = { ads: [[-.4, .3, .55], [-.42, .2, 0]], cond: [[.05, .3, .45], [.05, .05, 0]], ox: [[.5, .3, .45], [.5, .07, 0]] };
+const lab = createLab(stage, { cam: H.ads[0], target: H.ads[1], table: 'bench', tableSize: [1.7, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+const S = { mode: 'ads', pour: -1, sample: null, burn: null };
+
+/* ===== 1. Cột than gỗ ===== */
+const A = new THREE.Group(); A.position.set(-.42, 0, 0); scene.add(A);
+const dk = MAT.metal(0x2d3136, .45);
+const sb = roundBox(.16, .012, .12, .003, dk); sb.position.set(-.03, .006, -.02); A.add(sb);
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .5, 14), MAT.metal(0xc8cdd2, .25)); rod.position.set(-.09, .25, -.05); A.add(rod);
+for (const y of [.2, .4]) { const c = new THREE.Mesh(new THREE.BoxGeometry(.1, .008, .012), dk); c.position.set(-.045, y, -.03); A.add(c); }
+const colR = .011, colY0 = .13, colH = .26;
+const col = new THREE.Mesh(lathe([[.002, colY0 - .04], [.003, colY0 - .04], [.003, colY0 - .01], [colR, colY0], [colR, colY0 + colH], [colR + .0012, colY0 + colH], [colR + .0012, colY0], [.0042, colY0 - .01], [.0042, colY0 - .04]], 32), MAT.glassLite({ opacity: .25 })); col.renderOrder = 4; A.add(col);
+const funnel = new THREE.Mesh(lathe([[.004, colY0 + colH - .01], [.005, colY0 + colH + .02], [.03, colY0 + colH + .055], [.031, colY0 + colH + .056]], 32), MAT.glassLite({ opacity: .25 })); funnel.renderOrder = 4; A.add(funnel);
+const layer = (y0, y1, mat) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(colR * .97, colR * .97, y1 - y0, 24), mat); m.position.y = (y0 + y1) / 2; A.add(m); return m; };
+const cotton = new THREE.MeshStandardMaterial({ color: 0xf6f6f2, roughness: 1 });
+layer(colY0 + .002, colY0 + .022, cotton); const coal = layer(colY0 + .022, colY0 + .11, new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 1 })); layer(colY0 + .11, colY0 + .125, cotton);
+const red = new THREE.MeshPhysicalMaterial({ color: 0xd6336c, transparent: true, opacity: .75, roughness: .1, depthWrite: false });
+const redCol = new THREE.Mesh(new THREE.CylinderGeometry(colR * .96, colR * .96, 1, 24), red); redCol.renderOrder = 2; A.add(redCol); redCol.visible = false;
+const drip = new THREE.Mesh(new THREE.SphereGeometry(.0018, 10, 8), new THREE.MeshPhysicalMaterial({ color: 0xeaf6fb, transparent: true, opacity: .7 })); A.add(drip); drip.visible = false;
+const bk = vessel(lab, { kind: 'beaker', R: .028, H: .06 }); bk.g.position.set(0, .012, 0); A.add(bk.g);
+const btl = new THREE.Group(); A.add(btl); btl.position.set(.08, .012, .03);
+const cupR = vessel(lab, { kind: 'beaker', R: .022, H: .07 }); btl.add(cupR.g); cupR.set({ level: .8, color: 0xd6336c, op: .75 });
+lab.label(funnel, 'Phễu', [.04, colY0 + colH + .05, 0]); lab.label(coal, 'Bột than gỗ', [.03, 0, 0]); lab.label(bk.g, 'Cốc hứng', [0, .08, 0]); lab.label(btl, 'Nước màu', [0, .1, 0]);
+lab.shadow(A);
+
+/* ===== 2. Thử tính dẫn điện ===== */
+const Bc = new THREE.Group(); Bc.position.set(.05, 0, 0); scene.add(Bc);
+const bat = new THREE.Group(); bat.position.set(-.1, .012, -.05); Bc.add(bat);
+const hold = roundBox(.08, .02, .055, .003, MAT.plastic(0x222222, .5)); hold.position.y = .01; bat.add(hold);
+for (const z of [-.013, .013]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(.0072, .0072, .05, 20), MAT.plastic(0x1f3fa8, .4)); c.rotation.z = Math.PI / 2; c.position.set(0, .022, z); bat.add(c); const t = new THREE.Mesh(new THREE.CylinderGeometry(.0072, .0072, .012, 20), MAT.metal(0xc4c8cc, .25)); t.rotation.z = Math.PI / 2; t.position.set(.019, .022, z); bat.add(t); }
+lab.label(bat, 'Pin 3 V', [0, .05, 0]);
+const L = bulb(lab, [0, .0, -.06], { Unom: 3, Pnom: .9, label: 'Bóng đèn' }); Bc.add(L.g);
+const probe = (x) => { const g = new THREE.Group(); g.position.set(x, 0, .05); const r = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .07, 12), MAT.plastic(x < 0 ? 0xc92a2a : 0x111111, .4)); r.position.y = .05; g.add(r); const tip = new THREE.Mesh(new THREE.ConeGeometry(.002, .012, 10), MAT.metal(0xcccccc, .3)); tip.rotation.x = Math.PI; tip.position.y = .009; g.add(tip); Bc.add(g); return g; };
+const pr = [probe(-.025), probe(.025)];
+const tray = roundBox(.26, .006, .07, .002, new THREE.MeshStandardMaterial({ color: 0xf2f2ee, roughness: .8 })); tray.position.set(0, .003, .13); Bc.add(tray);
+const SAMP = [
+  { id: 'cu', n: 'Dây đồng', geo: new THREE.CylinderGeometry(.0015, .0015, .06, 10), c: 0xc06a3a, metal: true, k: 1 },
+  { id: 'al', n: 'Lá nhôm', geo: new THREE.BoxGeometry(.06, .001, .02), c: 0xd8dce0, metal: true, k: .95 },
+  { id: 'fe', n: 'Đinh sắt', geo: new THREE.CylinderGeometry(.0018, .0018, .06, 10), c: 0x8f969c, metal: true, k: .8 },
+  { id: 'c', n: 'Than chì (ruột bút chì)', geo: new THREE.CylinderGeometry(.002, .002, .06, 10), c: 0x2b2b2b, metal: false, k: .35 },
+  { id: 's', n: 'Lưu huỳnh', geo: new THREE.DodecahedronGeometry(.01, 0), c: 0xe8cf2c, metal: false, k: 0 },
+  { id: 'wd', n: 'Than gỗ', geo: new THREE.BoxGeometry(.04, .012, .015), c: 0x1a1a1a, metal: false, k: 0 }];
+SAMP.forEach((s, i) => { const m = new THREE.Mesh(s.geo, new THREE.MeshStandardMaterial({ color: s.c, metalness: s.metal ? .9 : 0, roughness: s.metal ? .35 : .9 })); if (s.geo.type == 'CylinderGeometry') m.rotation.z = Math.PI / 2; s.home = new THREE.Vector3(-.11 + i * .044, .012, .13); m.position.copy(s.home); m.castShadow = true; Bc.add(m); s.m = m; lab.label(m, s.n, [0, .02, 0]); lab.clickable(m, () => putSample(s)); });
+function putSample(s) {
+  SAMP.forEach(x => x.m.position.copy(x.home)); S.sample = s; s.m.position.set(0, .012, .05); if (S.mode != 'cond') setMode('cond');
+  L.set(s.k * s.k * .9);
+  say(`<b>${s.n}</b>: bóng đèn ${s.k > .7 ? '<b>sáng</b> – ' + s.n.toLowerCase() + ' dẫn điện tốt (kim loại)' : s.k > .1 ? '<b>sáng yếu</b> – than chì dẫn điện nhưng kém hơn kim loại' : '<b>không sáng</b> – ' + s.n.toLowerCase() + ' không dẫn điện (phi kim)'}.`);
+}
+const pA = bat.localToWorld(new THREE.Vector3(-.03, .03, 0)), pB = bat.localToWorld(new THREE.Vector3(.03, .03, 0));
+Bc.updateMatrixWorld(true);
+wire(lab, pA, L.term(0)); wire(lab, L.term(1), pr[0].localToWorld(new THREE.Vector3(0, .085, 0)), { color: 0xc92a2a }); wire(lab, pB, pr[1].localToWorld(new THREE.Vector3(0, .085, 0)), { color: 0x1b1b1b });
+lab.shadow(Bc);
+
+/* ===== 3. Đốt Mg, S ===== */
+const C = new THREE.Group(); C.position.set(.5, 0, 0); scene.add(C);
+const lamp = burner(lab, [0, 0, 0]); C.add(lamp.g);
+const tongs = new THREE.Group(); C.add(tongs);
+const tg = new THREE.Mesh(new THREE.BoxGeometry(.14, .003, .006), MAT.metal(0x9aa0a6, .3)); tg.position.x = -.07; tongs.add(tg);
+const mgRib = new THREE.Mesh(new THREE.BoxGeometry(.04, .0005, .004), MAT.metal(0xd0d3d6, .3)); mgRib.position.x = .02; tongs.add(mgRib);
+const sSpoon = new THREE.Group(); C.add(sSpoon);
+const ss = new THREE.Mesh(new THREE.CylinderGeometry(.0015, .0015, .16, 8), MAT.metal(0x8a8f95, .4)); ss.position.y = .08; sSpoon.add(ss);
+const sCup = new THREE.Mesh(new THREE.SphereGeometry(.008, 16, 8, 0, 6.3, Math.PI / 2, Math.PI / 2), MAT.metal(0x8a8f95, .4)); sSpoon.add(sCup);
+const sPow = new THREE.Mesh(new THREE.SphereGeometry(.006, 12, 8), new THREE.MeshStandardMaterial({ color: 0xe8cf2c, roughness: .9 })); sPow.scale.y = .4; sPow.position.y = -.002; sSpoon.add(sPow);
+const flash = new THREE.Mesh(new THREE.SphereGeometry(.01, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); C.add(flash);
+const flashL = new THREE.PointLight(0xffffff, 0, .8, 2); C.add(flashL);
+const tube = vessel(lab, { kind: 'beaker', R: .025, H: .07 }); tube.g.position.set(.12, 0, .02); C.add(tube.g); tube.set({ level: .6, color: 0xe6f3fa, op: .3 });
+const litmus = new THREE.Mesh(new THREE.BoxGeometry(.008, .05, .0006), new THREE.MeshStandardMaterial({ color: 0x8e5bd6, roughness: .9 })); litmus.position.set(.12, .07, .02); C.add(litmus);
+lab.label(tube.g, 'Cốc nước + giấy quỳ', [0, .1, 0]); lab.label(lamp.g, 'Đèn cồn', [0, .11, 0]);
+function resetC() { tongs.visible = sSpoon.visible = false; flash.material.opacity = 0; flashL.intensity = 0; tube.set({ color: 0xe6f3fa, gas: null, cloud: 0 }); litmus.material.color.set(0x8e5bd6); lamp.set(false); }
+
+/* ===== Vòng lặp ===== */
+lab.onTick((dt, t) => {
+  if (S.pour >= 0) {
+    S.pour += dt; const p = S.pour;
+    if (p < 1.2) { btl.position.set(.08 - .065 * Math.min(1, p), .012 + .3 * Math.min(1, p), .03 - .03 * Math.min(1, p)); btl.rotation.z = Math.min(1, p) * 1.6; }
+    const top = colY0 + .125 + Math.min(.12, Math.max(0, p - 1) * .05), bot = colY0 + .125 - clamp((p - 1.5) * .02, 0, .1);
+    redCol.visible = p > 1; redCol.position.y = (top + bot) / 2; redCol.scale.y = Math.max(.001, top - bot);
+    coal.material.color.set(0x1b1b1b);
+    drip.visible = p > 6; if (drip.visible) { const f = (t * 1.5) % 1; drip.position.set(0, colY0 - .04 - f * (colY0 - .04 - .03), 0); }
+    if (p > 6) bk.set({ level: clamp((p - 6) / 25, .02, .7), color: 0xeef7fb, op: .3 });
+    if (p > 2.5 && p < 3) say('Nước màu thấm dần qua lớp bột than gỗ…');
+    if (p > 6 && p < 6.5) say('Dung dịch chảy xuống cốc <b>không màu</b>: than gỗ đã <b>hấp phụ</b> (giữ lại) chất màu trên bề mặt.');
+    if (p > 1.2 && p < 2.4) { btl.rotation.z = 1.6; } if (p >= 2.4 && p < 3.4) { const k = p - 2.4; btl.rotation.z = 1.6 * (1 - k); btl.position.set(.015 + .065 * k, .312 - .3 * k, .0 + .03 * k); }
+    if (p > 40) S.pour = -1;
+  }
+  if (S.burn) {
+    const b = S.burn; b.t += dt; const mg = b.k == 'mg';
+    if (b.t < 1.5) { const o = mg ? tongs : sSpoon; o.position.set(0, .09 + (1.5 - b.t) * .04, 0); }
+    if (b.t > 1.5 && b.t < 6) { flash.position.set(mg ? .02 : 0, .095, 0); const fl = mg ? 1 : .5; flash.material.color.set(mg ? 0xffffff : 0x4d6bff); flash.material.opacity = fl * (.7 + .3 * Math.sin(t * 40)); flash.scale.setScalar(mg ? 1.5 : 1); flashL.position.copy(flash.position); flashL.color.set(mg ? 0xffffff : 0x6070ff); flashL.intensity = mg ? 2.5 : .4; if (mg) mgRib.scale.x = Math.max(.1, 1 - (b.t - 1.5) / 4.5); else sPow.scale.setScalar(Math.max(.2, 1 - (b.t - 1.5) / 5)); }
+    if (b.t > 6 && !b.d1) { b.d1 = 1; flash.material.opacity = 0; flashL.intensity = 0; lamp.set(false); if (mg) mgRib.material.color.set(0xf4f4f0); say(mg ? 'Magnesium cháy với <b>ngọn lửa sáng chói</b>, tạo bột màu trắng magnesium oxide (MgO). 2Mg + O₂ → 2MgO<br>Cho MgO vào nước…' : 'Lưu huỳnh cháy với <b>ngọn lửa màu xanh</b>, tạo khí mùi hắc sulfur dioxide (SO₂). S + O₂ → SO₂<br>Dẫn khí SO₂ vào nước…'); }
+    if (b.t > 7 && b.t < 12) { const k = (b.t - 7) / 5; tube.set(mg ? { cloud: .3 * (1 - k * .5), cloudC: 0xffffff } : { gas: { c: 0xf0f0f0, amt: .4 * (1 - k) }, bubbles: .2 * (1 - k) }); litmus.material.color.set(new THREE.Color(0x8e5bd6).lerp(new THREE.Color(mg ? 0x2f66d6 : 0xd6334c), k)); }
+    if (b.t > 12 && !b.d2) { b.d2 = 1; say(mg ? 'Giấy quỳ tím chuyển <b>xanh</b>: dung dịch có tính base → kim loại tác dụng với oxygen tạo <b>oxide base</b>.' : 'Giấy quỳ tím chuyển <b>đỏ</b>: dung dịch có tính acid → phi kim tác dụng với oxygen tạo <b>oxide acid</b>.'); }
+  }
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn on" data-m="ads">Hấp phụ</button><button class="btn" data-m="cond">Thử dẫn điện</button><button class="btn" data-m="ox">Đốt Mg / S</button><button class="btn p" id="bPour">Rót nước màu</button><button class="btn" id="bLbl">Tên</button>`;
+function setMode(m) { S.mode = m; tb.querySelectorAll('[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m == m)); $('#bPour').style.display = m == 'ads' ? '' : 'none'; lab.view(...H[m]);
+  say(m == 'ads' ? 'Bấm “Rót nước màu”.' : m == 'cond' ? 'Bấm vào một mẫu chất trên khay để thử.' : 'Chọn “Đốt magnesium” hoặc “Đốt lưu huỳnh” trong bảng bên phải.'); }
+tb.querySelectorAll('[data-m]').forEach(b => b.onclick = () => setMode(b.dataset.m));
+$('#bPour').onclick = () => { S.pour = 0; bk.set({ level: 0 }); btl.position.set(.08, .012, .03); btl.rotation.z = 0; };
+document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { if (S.mode != 'ox') setMode('ox'); resetC(); const mg = b.dataset.b == 'mg'; (mg ? tongs : sSpoon).visible = true; mgRib.scale.x = 1; mgRib.material.color.set(0xd0d3d6); sPow.scale.set(1, .4, 1); lamp.set(true); S.burn = { k: b.dataset.b, t: 0 }; say(mg ? 'Đưa băng magnesium vào ngọn lửa đèn cồn…' : 'Đốt lưu huỳnh trong muỗng sắt…'); });
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Than hoạt tính được dùng trong mặt nạ phòng độc vì có tính', o: ['dẫn điện', 'hấp phụ', 'cháy được', 'cứng'], a: 1 },
+  { q: 'Chất nào sau đây dẫn điện?', o: ['Lưu huỳnh', 'Than chì', 'Than gỗ', 'Nước cất'], a: 1 },
+  { q: 'Đốt lưu huỳnh trong không khí rồi dẫn khí tạo thành vào nước, nhúng quỳ tím thì quỳ tím', o: ['hoá xanh', 'hoá đỏ', 'không đổi màu', 'mất màu'], a: 1 },
+  { q: 'Trong phản ứng 2Na + Cl₂ → 2NaCl, nguyên tử chlorine', o: ['nhường electron', 'nhận electron tạo ion âm', 'không thay đổi', 'tạo ion dương'], a: 1 },
+  { q: 'Kim loại tác dụng với oxygen thường tạo thành', o: ['oxide acid', 'oxide base', 'muối', 'acid'], a: 1 },
+]);
+setMode('ads'); ready(); window.dbg = { lab, S };
+</script></body></html>

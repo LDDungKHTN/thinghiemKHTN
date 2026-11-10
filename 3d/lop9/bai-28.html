@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 28. Lipid</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 28. Lipid', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<h3>1. Tính chất vật lí của chất béo</h3><p>Cho dầu ăn vào ống đựng nước và vào ống đựng xăng. Quan sát: chất béo có tan không? nổi hay chìm?</p>
+<h3>2. Phản ứng xà phòng hoá (làm xà phòng thủ công)</h3><p>Cho dầu ăn và dung dịch NaOH vào ống nghiệm, đun nóng, lắc đều. Để nguội rồi thêm dung dịch muối ăn bão hoà: xà phòng tách ra nổi lên trên.</p>
+<div id="ui"></div><div id="obs" class="note"></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<ul><li>Lipid gồm chất béo, sáp, steroid…; không tan trong nước, tan trong dung môi hữu cơ (xăng, benzene).</li><li>Chất béo nhẹ hơn nước, không tan trong nước; tan trong xăng, benzene.</li><li>Chất béo là triester của glycerol và acid béo: (RCOO)₃C₃H₅.</li><li>Phản ứng xà phòng hoá: (RCOO)₃C₃H₅ + 3NaOH → 3RCOONa + C₃H₅(OH)₃ (t°)<br>Muối sodium của acid béo là thành phần chính của xà phòng.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const lab = createLab(stage, { cam: [.05, .28, .55], target: [.05, .07, -.02], table: 'bench', tableSize: [1.5, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'oil', n: 'Dầu ăn', c: 0xf0c844, k: 'liq', tag: '#fff6d0' }, { id: 'h2o', n: 'Nước', c: 0xdff1fa, k: 'liq' }, { id: 'xang', n: 'Xăng', c: 0xf6f1de, k: 'liq' }, { id: 'naoh', n: 'NaOH 30%', c: 0xf2f6f8, k: 'liq' }, { id: 'nacl', n: 'NaCl bão hoà', c: 0xeef4f6, k: 'liq' }];
+const has = (it, id) => it.find(x => x.id == id), mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), clamp(t, 0, 1)).getHex();
+const sap = new Set();
+function react(it, heat, age, i) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s;
+  const O = has(it, 'oil'), W = has(it, 'h2o'), X = has(it, 'xang'), B = has(it, 'naoh'), N = has(it, 'nacl');
+  const tot = it.reduce((a, x) => a + x.amt, 0);
+  s.color = 0xeaf4f8; s.op = .28;
+  if (!O) { s.notes.push('Chất lỏng không màu.'); return s; }
+  if (B && heat && age > 6) sap.add(i);
+  if (sap.has(i)) {
+    s.color = 0xf3ead0; s.op = .55; s.cloud = .25; s.cloudC = 0xfff8e6;
+    s.notes.push('Sau khi đun nóng với NaOH, hỗn hợp trở thành <b>đồng nhất</b>, sánh như keo (không còn lớp dầu riêng).');
+    if (N) { s.layer = { h: .05, c: 0xfffcf0, op: .95 }; s.cloud = .1; s.notes.push('Thêm dd muối ăn bão hoà: có <b>lớp chất rắn màu trắng</b> nổi lên trên – đó là <b>xà phòng</b>.'); }
+    s.eq.push('(RCOO)₃C₃H₅ + 3NaOH → 3RCOONa + C₃H₅(OH)₃');
+    return s;
+  }
+  if (X && !W && !B) { s.color = mix(0xf6f1de, 0xf0c844, O.amt / tot); s.op = .45; s.notes.push('Dầu ăn <b>tan</b> trong xăng tạo dung dịch đồng nhất màu vàng nhạt.'); return s; }
+  if (W || B) { const h = O.amt / tot * .85 * (tot / 12); s.layer = { h: Math.min(.6, h), c: 0xf0c844, op: .7 }; s.notes.push(`Dầu ăn <b>không tan</b> trong ${B ? 'dung dịch NaOH (khi chưa đun)' : 'nước'}, <b>nổi lên trên</b> thành lớp riêng (nhẹ hơn nước).`); if (B && !heat) s.notes.push('Hãy đun nóng ống nghiệm và lắc đều.'); if (heat) s.notes.push('Đang đun nóng…'); return s; }
+  s.color = 0xf0c844; s.op = .7; s.notes.push('Dầu ăn: chất lỏng màu vàng, sánh.'); return s;
+}
+const tubes = ['Ống 1', 'Ống 2', 'Ống 3'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 3, cap: 15, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG });
+quiz($('#qz'), [
+  { q: 'Đặc trưng tính chất vật lí của chất béo là', o: ['tan tốt trong nước', 'nhẹ hơn nước, không tan trong nước, tan trong xăng, benzene', 'nặng hơn nước', 'có màu đỏ'], a: 1 },
+  { q: 'Khi đun chất béo với dung dịch NaOH ta thu được', o: ['glycerol và muối sodium của acid béo', 'ethylic alcohol', 'glucose', 'acetic acid'], a: 0 },
+  { q: 'Phản ứng của chất béo với NaOH được gọi là phản ứng', o: ['ester hoá', 'xà phòng hoá', 'trùng hợp', 'cộng'], a: 1 },
+  { q: 'Để giặt sạch vết dầu mỡ bám trên quần áo, có thể dùng', o: ['nước lạnh', 'xà phòng hoặc xăng', 'giấm', 'muối ăn'], a: 1 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 2. Động năng. Thế năng</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, TEX, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 2. Động năng. Thế năng', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm 1: Động năng phụ thuộc vào gì?</h3>
+<p>Viên bi lăn xuống máng nghiêng, đến chân máng va vào khúc gỗ B và đẩy khúc gỗ đi một đoạn s. Động năng của bi càng lớn thì s càng lớn.</p>
+<div class="row"><b>Viên bi:</b><button class="btn on" data-m="0">Bi thép nhỏ (50 g)</button><button class="btn g" data-m="1">Bi thép lớn (100 g)</button></div>
+<div class="sl">Độ cao thả bi <input type="range" id="h" min="5" max="25" step="5" value="10"><span id="vh">10 cm</span></div>
+<p class="sm">Thả cùng một viên bi ở độ cao lớn hơn → tốc độ ở chân máng lớn hơn. Thả hai viên bi khác khối lượng ở cùng độ cao → cùng tốc độ.</p>
+<h3>Thí nghiệm 2: Thế năng phụ thuộc vào gì?</h3>
+<p>Thả quả nặng từ độ cao h rơi xuống đầu cọc, cọc lún sâu vào cát một đoạn d. Thế năng của quả nặng càng lớn thì cọc lún càng sâu.</p>
+<div class="row"><b>Quả nặng:</b><button class="btn on" data-w="0">200 g</button><button class="btn g" data-w="1">400 g</button></div>
+<div class="sl">Độ cao thả <input type="range" id="hw" min="10" max="40" step="10" value="20"><span id="vhw">20 cm</span></div>` },
+    { id: 'p2', title: 'Kết quả', html: `
+<h3>Thí nghiệm 1</h3><table class="dt"><thead><tr><th>m (g)</th><th>h (cm)</th><th>v (m/s)</th><th>W<sub>đ</sub> (J)</th><th>s (cm)</th></tr></thead><tbody id="t1"></tbody></table>
+<h3>Thí nghiệm 2</h3><table class="dt"><thead><tr><th>m (g)</th><th>h (cm)</th><th>W<sub>t</sub> = Ph (J)</th><th>d (cm)</th></tr></thead><tbody id="t2"></tbody></table>
+<div class="note"><b>Kết luận:</b> Động năng phụ thuộc khối lượng và tốc độ của vật: <span class="eq" style="display:inline-block">W<sub>đ</sub> = ½mv²</span><br>Thế năng trọng trường phụ thuộc trọng lượng và độ cao: <span class="eq" style="display:inline-block">W<sub>t</sub> = P·h</span></div>
+<div class="row"><button class="btn g" id="clr">Xoá bảng</button></div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME1 = [[-.28, .42, .9], [-.3, .09, 0]], HOME2 = [[.5, .4, .5], [.55, .12, -.05]];
+const lab = createLab(stage, { cam: HOME1[0], target: HOME1[1], table: 'wood', tableSize: [1.8, .9], minDist: .08 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const g = 9.8, BALLS = [{ m: .05, r: .0115 }, { m: .1, r: .0145 }], WS = [.2, .4];
+const S = { mi: 0, h: .1, phase: 'idle', x: 0, v: 0, bx: 0, bv: 0, wi: 0, hw: .2, wy: 0, wv: 0, peg: 0, pegT: 0, ph2: 'idle', mode: 1 };
+
+/* ===== TN1: máng nghiêng + bi + khúc gỗ ===== */
+const ANG = 22 * Math.PI / 180, LR = .7, X0 = -.25;   // chân máng tại x = X0
+const ramp = new THREE.Group(); scene.add(ramp);
+const plank = roundBox(LR, .012, .05, .002, new THREE.MeshStandardMaterial({ map: TEX.wood(), roughness: .5 })); plank.position.set(-LR / 2, -.006, 0);
+const rG = new THREE.Group(); rG.add(plank); rG.position.set(X0, .008, 0); rG.rotation.z = -ANG; ramp.add(rG);
+for (const s of [-1, 1]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(LR, .008, .004), MAT.metal(0xb8bcc2, .35)); rail.position.set(-LR / 2, .004, s * .009); rG.add(rail); }
+const legH = Math.sin(ANG) * LR; const leg = new THREE.Mesh(new THREE.BoxGeometry(.03, legH, .06), new THREE.MeshStandardMaterial({ color: 0x5b4022, roughness: .7 })); leg.position.set(X0 - Math.cos(ANG) * LR + .02, legH / 2, 0); ramp.add(leg);
+const track = roundBox(.7, .008, .07, .002, new THREE.MeshStandardMaterial({ color: 0xece6d6, roughness: .8 })); track.position.set(X0 + .35, .004, 0); ramp.add(track);
+const rul = new THREE.Mesh(new THREE.PlaneGeometry(.5, .018), new THREE.MeshStandardMaterial({ map: TEX.ruler(500, { px: 8, h: 64 }), roughness: .6 })); rul.rotation.x = -Math.PI / 2; rul.position.set(X0 + .06 + .25, .0085, .028); ramp.add(rul);
+lab.shadow(ramp);
+const ballM = MAT.metal(0xd7dbe0, .12);
+let ball = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 30), ballM); ball.castShadow = true; scene.add(ball);
+const block = roundBox(.06, .04, .05, .003, new THREE.MeshStandardMaterial({ color: 0xc58a4a, roughness: .6, map: TEX.wood() })); block.castShadow = true; scene.add(block);
+const BX0 = X0 + .06 + .03;   // vị trí ban đầu của mép khúc gỗ = 6 cm từ chân máng (vạch 0 thước)
+lab.label(block, 'Khúc gỗ B', [0, .04, 0]); lab.label(rG, 'Máng nghiêng', [-.45, .03, 0]);
+const hMark = new THREE.Mesh(new THREE.BoxGeometry(.002, .002, .06), new THREE.MeshBasicMaterial({ color: 0xe8590c })); scene.add(hMark);
+const hTag = lab.label(hMark, 'h', [0, .015, 0], 'read');
+
+function placeBall1() {
+  const r = BALLS[S.mi].r; ball.scale.setScalar(r);
+  if (S.phase == 'idle' || S.phase == 'ramp') {
+    const d = S.phase == 'idle' ? S.h / Math.sin(ANG) : S.x;   // quãng đường còn lại trên máng tới chân
+    ball.position.set(X0 - Math.cos(ANG) * d + Math.sin(ANG) * r, .008 + Math.sin(ANG) * d + Math.cos(ANG) * r, 0);
+  } else ball.position.set(X0 + S.x, r + .008, 0);
+  hMark.position.set(X0 - Math.cos(ANG) * S.h / Math.sin(ANG), S.h, -.04); hMark.visible = S.phase == 'idle';
+  block.position.set(BX0 + S.bx, .028, 0);
+}
+let last1 = null;
+function step1(dt) {
+  const m = BALLS[S.mi].m, r = BALLS[S.mi].r, a = 5 / 7 * g * Math.sin(ANG);   // bi lăn không trượt
+  if (S.phase == 'ramp') { S.v += a * dt; S.x -= S.v * dt; ball.rotation.z -= S.v * dt / r; if (S.x <= 0) { S.phase = 'flat'; S.x = 0; S.vb = S.v; } }
+  else if (S.phase == 'flat') { S.x += S.v * dt; ball.rotation.z -= S.v * dt / r; if (X0 + S.x + r >= BX0 + S.bx - .03) {   // va chạm
+      const W = .5 * m * S.v * S.v * 7 / 5 * (5 / 7);   // động năng tịnh tiến ≈ ½mv² (bỏ qua phần quay khi so sánh)
+      S.Wd = .5 * m * S.v * S.v; S.bv = Math.sqrt(2 * S.Wd * .55 / .25); S.v *= .15; S.phase = 'push'; void W; } }
+  else if (S.phase == 'push') { S.bv = Math.max(0, S.bv - .2 * g * dt); S.bx += S.bv * dt; S.v = Math.max(0, S.v - .3 * dt); S.x += S.v * dt; ball.rotation.z -= S.v * dt / r;
+    if (S.bv <= 0) { S.phase = 'done'; last1 = { m: m * 1000, h: S.h * 100, v: S.vb, W: S.Wd, s: S.bx * 100 }; toast(`Khúc gỗ dịch chuyển s ≈ ${fmt(S.bx * 100, 1)} cm`); } }
+  placeBall1();
+}
+
+/* ===== TN2: quả nặng rơi đóng cọc vào cát ===== */
+const t2 = new THREE.Group(); t2.position.set(.55, 0, -.05); scene.add(t2);
+const box = new THREE.Group(); t2.add(box); const wood = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: .65 });
+for (const [w, h, d, x, y, z] of [[.16, .008, .16, 0, .004, 0], [.16, .09, .008, 0, .045, -.076], [.16, .09, .008, 0, .045, .076], [.008, .09, .16, -.076, .045, 0], [.008, .09, .16, .076, .045, 0]]) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wood); m.position.set(x, y, z); box.add(m); }
+const sandTex = canvasTex(256, 256, (c, w, h) => { c.fillStyle = '#d8b878'; c.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { c.fillStyle = `rgba(${120 + Math.random() * 90},${90 + Math.random() * 60},${40 + Math.random() * 40},.5)`; c.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5); } });
+const sand = new THREE.Mesh(new THREE.BoxGeometry(.144, .07, .144), new THREE.MeshStandardMaterial({ map: sandTex, roughness: 1 })); sand.position.y = .043; box.add(sand);
+const SAND = .078;
+const peg = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .08, 20), new THREE.MeshStandardMaterial({ color: 0xa0703c, roughness: .6, map: TEX.wood() })); t2.add(peg);
+const tip = new THREE.Mesh(new THREE.ConeGeometry(.008, .015, 20), new THREE.MeshStandardMaterial({ color: 0xa0703c })); tip.rotation.x = Math.PI; peg.add(tip); tip.position.y = -.0475;
+const guide = new THREE.Mesh(new THREE.CylinderGeometry(.002, .002, .55, 10), MAT.metal(0xd0d4d8, .2)); guide.position.set(0, .3, 0); t2.add(guide);
+const gstand = new THREE.Mesh(new THREE.BoxGeometry(.01, .6, .01), MAT.metal(0x3a3f45, .4)); gstand.position.set(-.1, .3, 0); t2.add(gstand);
+const garm = new THREE.Mesh(new THREE.BoxGeometry(.1, .008, .01), MAT.metal(0x3a3f45, .4)); garm.position.set(-.05, .58, 0); t2.add(garm);
+const scale2 = new THREE.Mesh(new THREE.PlaneGeometry(.018, .45), new THREE.MeshStandardMaterial({ map: (() => { const t = TEX.ruler(450, { px: 4, h: 40 }); t.rotation = Math.PI / 2; t.center.set(.5, .5); return t; })(), roughness: .6 })); scale2.position.set(-.094, .32, .006); t2.add(scale2);
+let wt = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .03, 32), MAT.metal(0x6c7178, .3)); t2.add(wt);
+const hole = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .032, 10), new THREE.MeshBasicMaterial({ color: 0x222222 })); wt.add(hole);
+lab.label(wt, 'Quả nặng', [.045, 0, 0]); lab.label(peg, 'Cọc', [.03, .0, 0]); lab.label(sand, 'Thùng cát', [.0, .06, .08]);
+lab.shadow(t2);
+const PEGLEN = .08, pegTop = () => SAND + .03 - S.peg;   // đầu cọc
+function place2() {
+  peg.position.set(0, pegTop() - PEGLEN / 2, 0);
+  const h = WS[S.wi] > .3 ? .04 : .03; wt.scale.set(1, h / .03, 1);
+  if (S.ph2 == 'idle') S.wy = pegTop() + S.hw + h / 2;
+  wt.position.set(0, S.wy, 0);
+}
+let last2 = null;
+function step2(dt) {
+  const h = WS[S.wi] > .3 ? .04 : .03;
+  if (S.ph2 == 'fall') { S.wv += g * dt; S.wy -= S.wv * dt; if (S.wy - h / 2 <= pegTop()) { const W = WS[S.wi] * g * S.hw; S.Wt = W; S.pegT = S.peg + W * .045; S.ph2 = 'sink'; } }
+  else if (S.ph2 == 'sink') { S.peg = Math.min(S.pegT, S.peg + dt * .2); S.wy = pegTop() + h / 2; if (S.peg >= S.pegT) { S.ph2 = 'done'; last2 = { m: WS[S.wi] * 1000, h: S.hw * 100, W: S.Wt, d: (S.pegT - S.peg0) * 100 }; toast(`Cọc lún thêm d ≈ ${fmt(last2.d, 1)} cm`); } }
+  place2();
+}
+
+/* ===== Vòng lặp & HUD ===== */
+lab.onTick(dt => {
+  step1(dt); step2(dt);
+  const m = BALLS[S.mi].m;
+  hud.innerHTML = S.mode == 1 ? `Bi ${m * 1000} g · thả ở độ cao h = ${S.h * 100} cm<br>${S.phase == 'idle' ? 'Bấm “Thả bi”.' : S.phase == 'done' ? `Tốc độ tại chân máng v ≈ <b>${fmt(S.vb, 2)} m/s</b> · W<sub>đ</sub> ≈ <b>${fmt(S.Wd, 3)} J</b><br>Khúc gỗ dịch chuyển <b>s ≈ ${fmt(S.bx * 100, 1)} cm</b>` : 'Viên bi đang chuyển động…'}`
+    : `Quả nặng ${WS[S.wi] * 1000} g · độ cao h = ${S.hw * 100} cm<br>${S.ph2 == 'idle' ? 'Bấm “Thả quả nặng”.' : S.ph2 == 'done' ? `W<sub>t</sub> = Ph ≈ <b>${fmt(S.Wt, 2)} J</b> · cọc lún <b>d ≈ ${fmt(last2.d, 1)} cm</b>` : 'Quả nặng đang rơi…'}`;
+});
+function reset1() { S.phase = 'idle'; S.x = 0; S.v = 0; S.bx = 0; S.bv = 0; placeBall1(); }
+function reset2() { S.ph2 = 'idle'; S.wv = 0; S.peg = 0; place2(); }
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn on" id="bM1">TN1: Động năng</button><button class="btn" id="bM2">TN2: Thế năng</button><button class="btn p" id="bGo">Thả bi</button><button class="btn" id="bRe">Đặt lại</button><button class="btn" id="bRec">Ghi kết quả</button>`;
+function setMode(m) { S.mode = m; $('#bM1').classList.toggle('on', m == 1); $('#bM2').classList.toggle('on', m == 2); $('#bGo').textContent = m == 1 ? 'Thả bi' : 'Thả quả nặng'; lab.view(...(m == 1 ? HOME1 : HOME2)); }
+$('#bM1').onclick = () => setMode(1); $('#bM2').onclick = () => setMode(2);
+$('#bGo').onclick = () => {
+  if (S.mode == 1) { if (S.phase != 'idle') reset1(); S.phase = 'ramp'; S.x = S.h / Math.sin(ANG); S.v = 0; }
+  else { if (S.ph2 != 'idle') { const p = S.peg; reset2(); S.peg = p; } if (S.peg > .045) { S.peg = 0; toast('Đã nhổ cọc lên, đặt lại vị trí ban đầu'); } S.peg0 = S.peg; S.ph2 = 'fall'; S.wv = 0; }
+};
+$('#bRe').onclick = () => { S.mode == 1 ? reset1() : reset2(); };
+let R1 = [], R2 = [];
+$('#bRec').onclick = () => {
+  if (S.mode == 1) { if (!last1) return toast('Hãy thả bi trước.'); R1.push(last1); last1 = null; }
+  else { if (!last2) return toast('Hãy thả quả nặng trước.'); R2.push(last2); last2 = null; }
+  draw(); showPane(1);
+};
+function draw() {
+  $('#t1').innerHTML = R1.map(r => `<tr><td>${r.m}</td><td>${r.h}</td><td>${fmt(r.v, 2)}</td><td>${fmt(r.W, 3)}</td><td>${fmt(r.s, 1)}</td></tr>`).join('');
+  $('#t2').innerHTML = R2.map(r => `<tr><td>${r.m}</td><td>${r.h}</td><td>${fmt(r.W, 2)}</td><td>${fmt(r.d, 1)}</td></tr>`).join('');
+}
+$('#clr').onclick = () => { R1 = []; R2 = []; draw(); };
+document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { S.mi = +b.dataset.m; document.querySelectorAll('[data-m]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); if (S.mode != 1) setMode(1); reset1(); });
+document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { S.wi = +b.dataset.w; document.querySelectorAll('[data-w]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); if (S.mode != 2) setMode(2); reset2(); });
+$('#h').oninput = e => { S.h = +e.target.value / 100; $('#vh').textContent = e.target.value + ' cm'; if (S.mode != 1) setMode(1); reset1(); };
+$('#hw').oninput = e => { S.hw = +e.target.value / 100; $('#vhw').textContent = e.target.value + ' cm'; if (S.mode != 2) setMode(2); reset2(); };
+
+quiz($('#qz'), [
+  { q: 'Động năng của ô tô thay đổi thế nào nếu tốc độ của xe tăng gấp đôi?', o: ['Tăng gấp đôi', 'Tăng gấp bốn', 'Giảm một nửa', 'Không đổi'], a: 1, e: 'W_đ = ½mv² tỉ lệ với v².' },
+  { q: 'Tính động năng của quả bóng đá m = 0,45 kg bay với tốc độ 10 m/s (J).', n: 22.5, u: 'J', e: 'W_đ = ½·0,45·10² = 22,5 J.' },
+  { q: 'Trong thí nghiệm 1, thả bi lớn và bi nhỏ ở cùng độ cao thì', o: ['bi nhỏ đẩy khúc gỗ đi xa hơn', 'bi lớn đẩy khúc gỗ đi xa hơn vì có khối lượng lớn hơn (cùng tốc độ)', 'hai bi đẩy khúc gỗ đi như nhau', 'không bi nào đẩy được'], a: 1 },
+  { q: 'Thế năng trọng trường của vật 2 kg ở độ cao 5 m so với mặt đất (lấy P = 10m) là bao nhiêu jun?', n: 100, u: 'J', e: 'W_t = P·h = 20·5 = 100 J.' },
+  { q: 'Vì sao nhà máy thuỷ điện đặt máy phát thấp hơn nhiều so với mực nước hồ chứa?', o: ['Để dễ bảo dưỡng', 'Để nước có độ cao lớn so với tuabin → thế năng lớn, chuyển thành nhiều động năng làm quay tuabin', 'Để tránh mưa', 'Để nước chảy chậm'], a: 1 },
+  { q: 'Khi chơi xích đu, đi từ vị trí cao A xuống vị trí thấp nhất O thì động năng của người chơi', o: ['giảm dần', 'tăng dần, lớn nhất tại O', 'không đổi', 'bằng 0 tại O'], a: 1 },
+]);
+reset1(); reset2(); ready();
+window.dbg = { S, lab };
+</script></body></html>

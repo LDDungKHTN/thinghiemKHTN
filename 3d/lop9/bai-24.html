@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 24. Alkene</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, tubeAlong, clamp } from '../core/lab3d.js';
+import { vessel } from '../core/chem.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 24. Alkene', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<h3>Điều chế và thử tính chất của ethylene (Hình 24.1)</h3>
+<p><b>Chuẩn bị:</b> bình cầu có nhánh đựng dung dịch cồn 96° và H₂SO₄ đặc đã trộn đều, đá bọt; bình thuỷ tinh đựng dung dịch NaOH; ống dẫn đầu vuốt nhọn; ống dẫn hình chữ L; ống nghiệm chứa khoảng 2 mL nước bromine.</p>
+<ol><li>Bấm <b>“Bật nguồn nhiệt”</b> đun nóng bình cầu đến khi khí ethylene sinh ra.</li><li>Bấm <b>“Châm lửa”</b> dùng que đóm đang cháy để đốt ethylene ở đầu ống vuốt nhọn.</li><li>Bấm <b>“Dẫn vào nước bromine”</b>: thay ống vuốt nhọn bằng ống chữ L, dẫn ethylene vào ống nghiệm đựng nước bromine.</li></ol>
+<div id="obs" class="note">Bấm “Bật nguồn nhiệt”.</div>
+<div class="warn sm">H₂SO₄ đặc và bromine rất nguy hiểm – thí nghiệm do giáo viên thực hiện.</div>` },
+    { id: 'p2', title: 'Kết luận', html: `<ul><li><b>Phản ứng cháy:</b> ethylene cháy với ngọn lửa sáng, toả nhiều nhiệt: C₂H₄ + 3O₂ → 2CO₂ + 2H₂O</li>
+<li><b>Phản ứng cộng:</b> ethylene làm <b>mất màu</b> nước bromine (màu vàng cam): CH₂=CH₂ + Br–Br → CH₂Br–CH₂Br (1,2-dibromoethane).<br>Liên kết kém bền trong liên kết đôi bị phá vỡ, phân tử bromine cộng hợp vào nối đôi.</li>
+<li>Dung dịch NaOH dùng để loại bỏ tạp chất khí (CO₂, SO₂) lẫn trong ethylene.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[-.03, .36, .85], [-.04, .12, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.4, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+const S = { heat: 0, T: 25, flow: 0, lit: false, br: false, brK: 0, t: 0 };
+
+// bếp điện
+const hp = new THREE.Group(); hp.position.set(-.26, 0, 0); scene.add(hp);
+const hb = roundBox(.16, .05, .16, .008, MAT.plastic(0xe9ecef, .4)); hb.position.y = .025; hp.add(hb);
+const plate = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .006, 40), new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: .5, emissive: 0xff3300, emissiveIntensity: 0 })); plate.position.y = .053; hp.add(plate);
+const knob = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, .012, 20), MAT.plastic(0x222222, .4)); knob.rotation.x = Math.PI / 2; knob.position.set(.05, .025, .082); hp.add(knob);
+lab.label(hp, 'Nguồn nhiệt', [0, .0, .1]); lab.shadow(hp);
+// bình cầu
+const fl = vessel(lab, { kind: 'flask', R: .045, H: .15, neck: .011 }); fl.g.position.set(-.26, .056, 0); scene.add(fl.g); fl.set({ level: .5, color: 0xf3f0e6, op: .35, solid: { kind: 'chunk', c: 0xd8d4c8, amt: .4 } });
+lab.label(fl.g, 'Cồn 96° + H₂SO₄ đặc, đá bọt', [-.05, .12, 0]);
+const stopperM = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: .7 });
+const st1 = new THREE.Mesh(new THREE.CylinderGeometry(.012, .01, .018, 20), stopperM); st1.position.set(-.26, .056 + .15 - .004, 0); scene.add(st1);
+const glassT = MAT.glassLite({ opacity: .45 });
+const T1 = new THREE.Mesh(tubeAlong([[-.26, .2, 0], [-.26, .24, 0], [-.23, .25, 0], [-.08, .2, 0], [-.06, .19, 0], [-.06, .07, 0]], .0032), glassT); T1.renderOrder = 4; scene.add(T1);
+// bình rửa NaOH
+const wb = vessel(lab, { kind: 'beaker', R: .03, H: .12 }); wb.g.position.set(-.05, 0, 0); scene.add(wb.g); wb.set({ level: .55, color: 0xeef3f6, op: .35 });
+const st2 = new THREE.Mesh(new THREE.CylinderGeometry(.03, .028, .016, 24), stopperM); st2.position.set(-.05, .12, 0); scene.add(st2);
+lab.label(wb.g, 'Dung dịch NaOH', [0, .15, .02]);
+const T2 = new THREE.Mesh(tubeAlong([[-.04, .1, 0], [-.04, .16, 0], [-.02, .175, 0], [.12, .175, 0], [.14, .17, 0]], .0032), glassT); T2.renderOrder = 4; scene.add(T2);
+// đầu ra 1: ống vuốt nhọn (thẳng đứng)
+const noz = new THREE.Group(); noz.position.set(.15, 0, 0); scene.add(noz);
+const nz = new THREE.Mesh(lathe([[.0032, .08], [.0032, .16], [.0012, .185], [.0006, .186], [.0026, .16], [.0026, .08]], 20), glassT); nz.renderOrder = 4; noz.add(nz);
+const bend = new THREE.Mesh(tubeAlong([[-.01, .17, 0], [0, .165, 0], [0, .15, 0]], .0032), glassT); noz.add(bend);
+const clampS = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .18, 10), MAT.metal(0xc8cdd2, .25)); clampS.position.set(.04, .09, -.03); noz.add(clampS);
+const flameG = new THREE.Group(); flameG.position.y = .187; noz.add(flameG);
+const fprof = [[0, 0], [.004, .004], [.006, .014], [.0045, .026], [.002, .036], [0, .042]];
+const fO = new THREE.Mesh(lathe(fprof, 20), new THREE.MeshBasicMaterial({ color: 0xffb240, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+const fI = new THREE.Mesh(lathe(fprof.map(([a, b]) => [a * .5, b * .45]), 16), new THREE.MeshBasicMaterial({ color: 0x6c8cff, transparent: true, opacity: .7, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+flameG.add(fO, fI); flameG.visible = false;
+const fL = new THREE.PointLight(0xffb060, 0, .6, 2); fL.position.y = .21; noz.add(fL);
+lab.label(nz, 'Ống dẫn đầu vuốt nhọn', [.03, .18, 0]);
+// đầu ra 2: ống chữ L vào nước bromine
+const brG = new THREE.Group(); scene.add(brG); brG.visible = false;
+const bt = vessel(lab, { kind: 'tube', R: .009, H: .15 }); bt.g.position.set(.2, .012, 0); brG.add(bt.g); bt.set({ level: .2, color: 0xf0a020, op: .75 });
+const stand = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .2, 10), MAT.metal(0xc8cdd2, .25)); stand.position.set(.24, .1, -.03); brG.add(stand);
+const Lt = new THREE.Mesh(tubeAlong([[.14, .17, 0], [.2, .17, 0], [.2, .155, 0], [.2, .02, 0]], .0028), glassT); Lt.renderOrder = 4; brG.add(Lt);
+lab.label(bt.g, 'Nước bromine', [.03, .14, 0]);
+lab.shadow(scene.children.find(o => o === noz));
+
+lab.onTick((dt, t) => {
+  S.t += dt;
+  S.T += ((S.heat ? 175 : 25) - S.T) * dt * .05;
+  plate.material.emissiveIntensity = S.heat ? .6 : 0;
+  S.flow = clamp((S.T - 150) / 20, 0, 1);
+  fl.set({ bubbles: S.flow * .6, color: new THREE.Color(0xf3f0e6).lerp(new THREE.Color(0xc9a46a), clamp((S.T - 120) / 200, 0, .4)).getHex() });
+  wb.set({ bubbles: S.flow * .5 });
+  flameG.visible = S.lit && S.flow > .05 && !S.br; fL.intensity = flameG.visible ? .3 : 0;
+  if (flameG.visible) { const k = 1 + Math.sin(t * 17) * .05; flameG.scale.set(1, k * (.5 + .5 * S.flow), 1); }
+  if (S.br) { bt.set({ bubbles: S.flow * .6 }); if (S.flow > .05) S.brK = Math.min(1, S.brK + dt * .07 * S.flow); bt.set({ color: new THREE.Color(0xf0a020).lerp(new THREE.Color(0xf2f2ee), S.brK).getHex(), op: .75 - .45 * S.brK }); }
+  let txt = !S.heat && S.flow < .05 ? 'Bấm “Bật nguồn nhiệt”.' : S.flow < .05 ? `Đang đun nóng hỗn hợp… (≈ ${Math.round(S.T)} °C)` : S.br ? (S.brK < .9 ? 'Khí ethylene sục vào nước bromine: màu vàng cam của nước bromine <b>nhạt dần</b>…' : 'Nước bromine đã <b>mất màu</b> hoàn toàn: ethylene có phản ứng cộng với bromine.<br>C₂H₄ + Br₂ → C₂H₄Br₂') : S.lit ? 'Ethylene <b>cháy</b> ở đầu ống vuốt nhọn với ngọn lửa sáng, toả nhiệt.<br>C₂H₄ + 3O₂ → 2CO₂ + 2H₂O' : 'Khí ethylene đang thoát ra (có bọt khí trong bình NaOH). Bấm “Châm lửa” hoặc “Dẫn vào nước bromine”.';
+  if (txt != S.last) { S.last = txt; say(txt); }
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bH">Bật nguồn nhiệt</button><button class="btn" id="bL">Châm lửa</button><button class="btn" id="bB">Dẫn vào nước bromine</button><button class="btn" id="bR">Làm lại</button><button class="btn" id="bLbl">Tên</button>`;
+$('#bH').onclick = () => { S.heat ^= 1; $('#bH').textContent = S.heat ? 'Tắt nguồn nhiệt' : 'Bật nguồn nhiệt'; };
+$('#bL').onclick = () => { if (S.br) return toast('Đang dẫn khí vào nước bromine.'); if (S.flow < .05) return toast('Chưa có khí ethylene thoát ra. Hãy đun nóng bình cầu.'); S.lit = true; };
+$('#bB').onclick = () => { S.br = !S.br; S.lit = false; noz.visible = !S.br; brG.visible = S.br; $('#bB').textContent = S.br ? 'Dùng ống vuốt nhọn' : 'Dẫn vào nước bromine'; if (S.br) lab.view([.12, .22, .38], [.15, .1, 0]); else lab.view(...HOME); };
+$('#bR').onclick = () => { Object.assign(S, { heat: 0, T: 25, lit: false, brK: 0 }); $('#bH').textContent = 'Bật nguồn nhiệt'; bt.set({ color: 0xf0a020, op: .75 }); };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Dẫn khí ethylene vào nước bromine, hiện tượng quan sát được là', o: ['Nước bromine chuyển màu xanh', 'Nước bromine bị mất màu', 'Có kết tủa trắng', 'Không có hiện tượng'], a: 1 },
+  { q: 'Phản ứng giữa ethylene và bromine thuộc loại phản ứng', o: ['thế', 'cộng', 'cháy', 'trung hoà'], a: 1 },
+  { q: 'Sản phẩm của phản ứng ethylene với bromine là', o: ['C₂H₅Br', 'C₂H₄Br₂ (1,2-dibromoethane)', 'CH₃Br', 'C₂H₆'], a: 1 },
+  { q: 'Đốt cháy hoàn toàn 1 mol ethylene cần bao nhiêu mol O₂?', n: 3, u: 'mol' },
+  { q: 'Chất nào làm mất màu nước bromine?', o: ['CH₄', 'C₂H₆', 'C₂H₄', 'CO₂'], a: 2 },
+]);
+ready(); window.dbg = { lab, S };
+</script></body></html>

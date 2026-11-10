@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 3. Cơ năng</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, TEX, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 3. Cơ năng', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm về sự chuyển hoá động năng – thế năng (Hình 3.2)</h3>
+<p><b>Chuẩn bị:</b> con lắc đơn (vật nặng, sợi dây không dãn) treo vào giá thí nghiệm.</p>
+<ol><li><b>Kéo vật nặng</b> đến vị trí A ở độ cao h rồi thả nhẹ (hoặc bấm “Kéo tới A và thả”).</li><li>Quan sát vật chuyển động đến vị trí thấp nhất O rồi tiếp tục đi lên, rồi dừng lại tại B.</li><li>So sánh độ cao điểm B với độ cao điểm A (dùng thước đo độ cao phía sau).</li><li>Quan sát vật nặng chuyển động qua lại sau một khoảng thời gian.</li></ol>
+<div class="row"><label><input type="checkbox" id="air" checked> Có lực cản của không khí</label></div>
+<div class="sl">Tốc độ hiển thị <input type="range" id="slow" min=".1" max="1" step=".05" value="1"><span id="vs">1×</span></div>
+<p class="sm">Các cột bên phải khung 3D: động năng W<sub>đ</sub>, thế năng W<sub>t</sub>, cơ năng W<sub>c</sub> = W<sub>đ</sub> + W<sub>t</sub> (gốc thế năng tại O).</p>` },
+    { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thả con lắc để quan sát.</div>
+<ul><li>Từ A xuống O: độ cao giảm, tốc độ tăng → <b>thế năng chuyển hoá thành động năng</b>. Tại O động năng lớn nhất.</li><li>Từ O lên B: <b>động năng chuyển hoá thành thế năng</b>. Tại A, B vật dừng lại: thế năng lớn nhất, động năng bằng 0.</li><li>Nếu bỏ qua lực cản, cơ năng được bảo toàn: B cao bằng A.</li><li>Thực tế có lực cản không khí: một phần cơ năng chuyển hoá thành nhiệt năng nên độ cao giảm dần, cuối cùng vật dừng lại ở O.</li></ul>
+<div class="eq">W<sub>c</sub> = W<sub>đ</sub> + W<sub>t</sub> = ½mv² + Ph</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[.0, .38, 1.05], [0, .3, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.4, .8], minDist: .1 });
+const { scene } = lab;
+const g = 9.8, Lp = .4, m = .2, PIV = new THREE.Vector3(0, .58, -.02);
+const S = { th: 0, w: 0, held: false, air: true, slow: 1, hA: 0, maxB: 0, side: -1, trail: [] };
+
+/* Giá treo */
+const dark = MAT.metal(0x2d3136, .45);
+const base = roundBox(.3, .015, .18, .004, dark); base.position.set(0, .0075, -.02); scene.add(base);
+const post = new THREE.Mesh(new THREE.CylinderGeometry(.007, .007, .6, 16), MAT.metal(0xc8cdd2, .25)); post.position.set(-.12, .3, -.06); scene.add(post);
+const arm = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .16, 16), MAT.metal(0xc8cdd2, .25)); arm.rotation.z = Math.PI / 2; arm.position.set(-.05, .585, -.06); scene.add(arm);
+const clampB = new THREE.Mesh(new THREE.BoxGeometry(.03, .02, .05), dark); clampB.position.set(0, .585, -.04); scene.add(clampB);
+[base, post, arm, clampB].forEach(o => lab.shadow(o));
+// thước đo độ cao (bảng phía sau)
+const bd = new THREE.Mesh(new THREE.PlaneGeometry(.6, .26), new THREE.MeshStandardMaterial({ roughness: .8, map: canvasTex(1200, 520, (c, w, h) => { c.fillStyle = '#f4f2ea'; c.fillRect(0, 0, w, h); c.strokeStyle = 'rgba(30,80,140,.25)'; c.lineWidth = 1; for (let y = 0; y <= h; y += 20) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); } c.fillStyle = '#1d3d60'; c.font = 'bold 22px Arial'; for (let k = 0; k <= 12; k++) { const y = h - 20 - k * 40; c.fillText(String(k * 2) + ' cm', 8, y + 7); c.fillRect(70, y, 30, 2); } }) }));
+bd.position.set(0, PIV.y - Lp + .13 - .02 - .0, -.075); scene.add(bd);
+lab.label(bd, 'Bảng đo độ cao', [.24, .14, 0]);
+/* Con lắc */
+const pend = new THREE.Group(); pend.position.copy(PIV); scene.add(pend);
+const str = new THREE.Mesh(new THREE.CylinderGeometry(.0011, .0011, Lp, 6), new THREE.MeshStandardMaterial({ color: 0x333333, roughness: .8 })); str.position.y = -Lp / 2; pend.add(str);
+const bob = new THREE.Mesh(new THREE.SphereGeometry(.022, 40, 30), new THREE.MeshStandardMaterial({ color: 0x2f9e44, roughness: .35, metalness: .1 })); bob.position.y = -Lp; bob.castShadow = true; pend.add(bob);
+const hook = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .008, 10), MAT.metal(0xbbbbbb, .3)); hook.position.y = -Lp + .024; pend.add(hook);
+lab.label(bob, 'Vật nặng', [0, .04, 0]);
+const mkr = (t, c) => { const s = new THREE.Mesh(new THREE.SphereGeometry(.006, 12, 10), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: .7 })); scene.add(s); const l = lab.label(s, t, [0, .02, 0], 'read'); return { s, l }; };
+const MA = mkr('A', 0xe03131), MB = mkr('B', 0x1971c2), MO = mkr('O', 0x555555);
+MO.s.position.set(PIV.x, PIV.y - Lp, PIV.z);
+// vết chuyển động
+const trailGeo = new THREE.BufferGeometry(), TN = 400, tpos = new Float32Array(TN * 3); trailGeo.setAttribute('position', new THREE.BufferAttribute(tpos, 3));
+const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xe8590c, transparent: true, opacity: .6 })); scene.add(trail);
+const hLine = new THREE.Mesh(new THREE.BoxGeometry(.6, .001, .001), new THREE.MeshBasicMaterial({ color: 0xe03131 })); scene.add(hLine); hLine.visible = false;
+
+const posOf = th => new THREE.Vector3(PIV.x + Math.sin(th) * Lp, PIV.y - Math.cos(th) * Lp, PIV.z);
+lab.draggable({ obj: bob, plane: new THREE.Vector3(0, 0, 1), get: () => 0,
+  onStart() { S.held = true; S.w = 0; }, onEnd() { S.held = false; S.hA = Lp * (1 - Math.cos(S.th)); S.side = Math.sign(S.th) || -1; S.maxB = 0; S.trailN = 0; toast('Đã thả vật nặng'); },
+  set(p) { S.th = clamp(Math.atan2(p.x - PIV.x, PIV.y - p.y), -1.2, 1.2); } });
+
+/* Thanh năng lượng (HTML) */
+const bars = document.createElement('div'); bars.className = 'hud hud2'; bars.style.pointerEvents = 'none'; stage.appendChild(bars);
+bars.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-end;height:120px">${['Wđ', 'Wt', 'Wc'].map((n, i) => `<div style="text-align:center;font-size:12px"><div style="height:100px;width:26px;background:rgba(255,255,255,.12);border-radius:4px;display:flex;align-items:flex-end"><div id="bar${i}" style="width:100%;background:${['#ff922b', '#4dabf7', '#69db7c'][i]};border-radius:4px;height:0"></div></div>${n}</div>`).join('')}</div><div id="ev" style="font-size:12px;margin-top:4px"></div>`;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+let Wc0 = .2 * g * Lp * (1 - Math.cos(1.2));
+let tick = 0;
+lab.onTick((dt0, t) => {
+  const dt = dt0 * S.slow;
+  if (!S.held) {
+    const n = 8; for (let i = 0; i < n; i++) { const h = dt / n, c = S.air ? .12 : 0; const a = -(g / Lp) * Math.sin(S.th) - c * S.w; S.w += a * h; S.th += S.w * h; }
+    if (S.hA > .001 && Math.sign(S.th) == -S.side) S.maxB = Math.max(S.maxB, Lp * (1 - Math.cos(S.th)));
+  }
+  pend.rotation.z = S.th;
+  const p = posOf(S.th);
+  const v = Math.abs(S.w) * Lp, Wd = .5 * m * v * v, Wt = m * g * Lp * (1 - Math.cos(S.th)), Wc = Wd + Wt;
+  [Wd, Wt, Wc].forEach((x, i) => $('#bar' + i).style.height = clamp(x / Wc0 * 100, 0, 100) + '%');
+  $('#ev').innerHTML = `W<sub>đ</sub> = ${fmt(Wd * 1000, 0)} mJ<br>W<sub>t</sub> = ${fmt(Wt * 1000, 0)} mJ<br>W<sub>c</sub> = ${fmt(Wc * 1000, 0)} mJ`;
+  MA.s.visible = S.hA > .001; MA.l.visible = MA.s.visible; MB.s.visible = S.maxB > .001; MB.l.visible = MB.s.visible;
+  if (S.held || S.hA > .001) { const thA = Math.acos(1 - S.hA / Lp) * (S.held ? Math.sign(S.th) : S.side); if (!S.held) MA.s.position.copy(posOf(thA)); else MA.s.position.copy(p); }
+  if (S.maxB > .001) MB.s.position.copy(posOf(Math.acos(1 - S.maxB / Lp) * -S.side));
+  hLine.visible = S.hA > .001; hLine.position.set(0, PIV.y - Lp + S.hA, -.072);
+  if (!S.held && (tick++ % 2 == 0)) { S.trail.push(p.clone()); if (S.trail.length > TN) S.trail.shift(); S.trail.forEach((q, i) => tpos.set([q.x, q.y, q.z], i * 3)); trailGeo.setDrawRange(0, S.trail.length); trailGeo.attributes.position.needsUpdate = true; }
+  const sig = S.held ? 'Đang kéo vật nặng tới vị trí A…' : S.hA < .001 ? 'Kéo vật nặng sang một bên rồi thả ra.' :
+    (v > .05 ? (Math.abs(S.th) < .05 ? 'Vật qua vị trí thấp nhất O: <b>động năng lớn nhất</b>, thế năng nhỏ nhất.' : S.th * S.w < 0 ? 'Vật đi xuống: <b>thế năng → động năng</b>.' : 'Vật đi lên: <b>động năng → thế năng</b>.') : 'Vật dừng tức thời ở vị trí cao nhất: thế năng lớn nhất, động năng bằng 0.');
+  hud.innerHTML = `h<sub>A</sub> = <b>${fmt(S.hA * 100, 1)} cm</b>${S.maxB > .001 ? ` · h<sub>B</sub> = <b>${fmt(S.maxB * 100, 1)} cm</b>` : ''}<br>${sig}`;
+  if (S.maxB > .001) $('#obs').innerHTML = S.air ? `B (${fmt(S.maxB * 100, 1)} cm) <b>thấp hơn</b> A (${fmt(S.hA * 100, 1)} cm): một phần cơ năng đã chuyển hoá thành nhiệt năng do lực cản của không khí. Sau một thời gian, vật dừng lại ở O.` : `B cao bằng A (${fmt(S.hA * 100, 1)} cm): khi bỏ qua lực cản, cơ năng được bảo toàn.`;
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bGo">Kéo tới A và thả</button><button class="btn" id="bStop">Giữ vật đứng yên</button><button class="btn" id="bLbl">Tên</button>`;
+$('#bGo').onclick = () => { S.th = -.75; S.w = 0; S.held = false; S.hA = Lp * (1 - Math.cos(S.th)); S.side = -1; S.maxB = 0; S.trail = []; };
+$('#bStop').onclick = () => { S.th = 0; S.w = 0; S.hA = 0; S.maxB = 0; S.trail = []; };
+$('#air').onchange = e => { S.air = e.target.checked; S.maxB = 0; };
+$('#slow').oninput = e => { S.slow = +e.target.value; $('#vs').textContent = fmt(S.slow, 2) + '×'; };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
+quiz($('#qz'), [
+  { q: 'Cơ năng của vật bằng', o: ['hiệu động năng và thế năng', 'tổng động năng và thế năng', 'tích động năng và thế năng', 'chỉ bằng động năng'], a: 1 },
+  { q: 'Vật m = 1,5 kg thả rơi từ độ cao 4 m. Toàn bộ thế năng chuyển thành động năng. Tốc độ ngay trước khi chạm đất là bao nhiêu m/s? (lấy P = 10m; làm tròn 2 chữ số thập phân)', n: 8.94, u: 'm/s', tol: .01, e: 'Ph = ½mv² → v = √(2·10·4) ≈ 8,94 m/s.' },
+  { q: 'Con lắc đi từ A xuống vị trí thấp nhất O thì', o: ['động năng chuyển hoá thành thế năng', 'thế năng chuyển hoá thành động năng', 'cơ năng tăng', 'động năng giảm'], a: 1 },
+  { q: 'Vì sao sau một thời gian dao động, độ cao của vật nặng giảm dần?', o: ['Vì dây dài ra', 'Vì có lực cản của không khí, một phần cơ năng chuyển hoá thành nhiệt năng', 'Vì Trái Đất hút mạnh hơn', 'Vì khối lượng vật giảm'], a: 1 },
+  { q: 'Búa máy đóng cọc: khi đầu búa rơi xuống thì', o: ['động năng giảm, thế năng tăng', 'thế năng giảm, động năng tăng', 'cả hai không đổi', 'cả hai đều tăng'], a: 1 },
+]);
+ready();
+window.dbg = { S, lab };
+</script></body></html>

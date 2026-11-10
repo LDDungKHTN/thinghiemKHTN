@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 29. Carbohydrate. Glucose và saccharose</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 29. Carbohydrate. Glucose và saccharose', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<h3>Phản ứng tráng bạc của glucose</h3>
+<p><b>Chuẩn bị:</b> dd glucose 10%, dd AgNO₃ 1%, dd NH₃ 5%, cốc nước nóng, ống nghiệm.</p>
+<ol><li>Cho khoảng 1 mL dd AgNO₃ 1% vào ống nghiệm.</li><li>Thêm từ từ dd NH₃ 5% (bấm nhiều lần) và lắc đều đến khi kết tủa tan hoàn toàn.</li><li>Cho khoảng 1 mL dd glucose 10%, lắc đều.</li><li>Đặt ống nghiệm vào cốc nước nóng (70–80 °C), để yên khoảng 5 phút (bấm “Đun nóng”).</li></ol>
+<p class="sm">So sánh: làm tương tự với dung dịch saccharose ở ống 2.</p>
+<div id="ui"></div><div id="obs" class="note"></div>
+<div class="row"><button class="btn g" id="auto">Chuẩn bị nhanh</button></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<ul><li>Glucose C₆H₁₂O₆ và saccharose C₁₂H₂₂O₁₁ là chất rắn kết tinh không màu, vị ngọt, tan tốt trong nước.</li><li>Glucose có <b>phản ứng tráng bạc</b>: bạc kim loại sinh ra bám lên thành ống nghiệm tạo lớp sáng như gương.<br>C₆H₁₂O₆ + Ag₂O → C₆H₁₂O₇ + 2Ag (NH₃, t°)</li><li>Saccharose không có phản ứng tráng bạc; khi đun nóng trong dung dịch acid, saccharose bị thuỷ phân tạo glucose và fructose.</li><li>Ứng dụng: tráng gương, tráng ruột phích.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const lab = createLab(stage, { cam: [.08, .28, .55], target: [.1, .08, -.02], table: 'bench', tableSize: [1.5, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'ag', n: 'AgNO₃ 1%', c: 0xf4f4f4, k: 'liq', tag: '#f1e8ff' }, { id: 'nh3', n: 'NH₃ 5%', c: 0xf2f6f8, k: 'drop' }, { id: 'glu', n: 'Glucose 10%', c: 0xf6f8f4, k: 'liq' }, { id: 'sac', n: 'Saccharose', c: 0xf6f8f4, k: 'liq' }];
+const has = (it, id) => it.find(x => x.id == id);
+const mir = {};
+function react(it, heat, age, i) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s;
+  const A = has(it, 'ag'), N = has(it, 'nh3'), G = has(it, 'glu'), Sa = has(it, 'sac');
+  s.color = 0xf2f6f8; s.op = .25;
+  if (!A) { s.notes.push('Dung dịch không màu.'); return s; }
+  const nh = N ? N.amt : 0, need = A.amt * 2;   // cần khoảng 4 lần nhỏ NH₃ cho 1 mL AgNO₃
+  if (nh > 0 && nh < need) { s.ppt = { c: 0x7a6a58, amt: .6 * (1 - nh / need) + .2, settle: .2 }; s.notes.push('Nhỏ NH₃: xuất hiện <b>kết tủa màu nâu xám</b>. Tiếp tục nhỏ thêm NH₃…'); return s; }
+  if (nh >= need) {
+    s.notes.push('Kết tủa <b>tan hết</b>, dung dịch trong suốt.');
+    if (G && heat) mir[i] = Math.min(1, (mir[i] || 0) + .04);
+    if (G) { const m = mir[i] || 0; s.mirror = m; if (m > 0) { s.color = 0x9aa0a6; s.op = .25 + .3 * m; s.notes.push(m < .95 ? 'Đang đặt trong cốc nước nóng: thành ống nghiệm <b>xám dần</b>…' : 'Thành ống nghiệm phủ một <b>lớp bạc sáng như gương</b> – phản ứng tráng bạc.'); s.eq.push('C₆H₁₂O₆ + Ag₂O → C₆H₁₂O₇ + 2Ag↓ (NH₃, t°)'); } else s.notes.push('Đã có glucose. Đặt ống nghiệm vào cốc nước nóng (bấm “Đun nóng”).'); }
+    if (Sa && !G) s.notes.push(heat ? 'Với saccharose: <b>không có lớp bạc</b> – saccharose không có phản ứng tráng bạc.' : 'Đã có saccharose. Đặt vào cốc nước nóng để so sánh.');
+    return s;
+  }
+  s.notes.push('Dung dịch AgNO₃ không màu. Nhỏ từ từ dd NH₃.'); return s;
+}
+const tubes = ['Ống 1', 'Ống 2'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 1, cap: 6, bath: true, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG });
+$('#auto').onclick = () => { bench.T[0].items = [{ id: 'ag', amt: 1 }, { id: 'nh3', amt: 2 }, { id: 'glu', amt: 1 }]; bench.T[1].items = [{ id: 'ag', amt: 1 }, { id: 'nh3', amt: 2 }, { id: 'sac', amt: 1 }]; bench.T.forEach(t => t.age = 0); bench.redraw(); bench.select(0); toast('Đã chuẩn bị 2 ống. Bấm “Đun nóng” để đặt ống vào cốc nước nóng.'); };
+quiz($('#qz'), [
+  { q: 'Glucose có nhiều trong', o: ['quả nho chín', 'cây mía', 'gạo', 'thịt'], a: 0 },
+  { q: 'Phản ứng tráng bạc dùng để nhận biết', o: ['saccharose', 'glucose', 'tinh bột', 'cellulose'], a: 1 },
+  { q: 'Hiện tượng của phản ứng tráng bạc là', o: ['có khí thoát ra', 'có lớp bạc sáng như gương bám trên thành ống nghiệm', 'dung dịch màu xanh tím', 'kết tủa đỏ'], a: 1 },
+  { q: 'Saccharose có nhiều trong', o: ['mía, củ cải đường, thốt nốt', 'nho', 'mật ong', 'sữa'], a: 0 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 31. Protein</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 31. Protein', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<h3>Thí nghiệm về tính chất của protein</h3><p><b>Chuẩn bị:</b> lòng trắng trứng, dung dịch HCl 1 M, 3 ống nghiệm, đèn cồn. Lấy khoảng 2 mL lòng trắng trứng cho vào mỗi ống.</p>
+<ol><li>Thêm vài giọt HCl 1 M vào ống thứ nhất.</li><li>Hơ nóng nhẹ ống thứ hai trên ngọn lửa đèn cồn trong khoảng 1 phút.</li><li>Đun nóng ống thứ ba trên ngọn lửa đèn cồn đến khi thấy có mùi khét.</li></ol>
+<div id="ui"></div><div id="obs" class="note"></div><div class="row"><button class="btn g" id="auto">Chuẩn bị nhanh 3 ống</button></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<ul><li>Protein bị thay đổi tính chất dưới tác dụng của acid, base hoặc nhiệt độ – có thể bị <b>đông tụ</b> (ống 1, ống 2: xuất hiện chất rắn màu trắng).</li><li>Khi bị đun nóng ở nhiệt độ cao và không có nước, protein bị phân huỷ hoặc cháy, tạo ra chất bay hơi có <b>mùi khét</b> (ống 3).</li><li>Protein bị thuỷ phân (acid, base, enzyme) tạo các amino acid.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const lab = createLab(stage, { cam: [.08, .28, .55], target: [.1, .08, -.02], table: 'bench', tableSize: [1.5, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'egg', n: 'Lòng trắng trứng', c: 0xf3edc8, k: 'liq', tag: '#fffbea' }, { id: 'hcl', n: 'HCl 1 M', c: 0xeef6f8, k: 'drop' }];
+const has = (it, id) => it.find(x => x.id == id);
+const heatT = {};
+function react(it, heat, age, i) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s;
+  const E = has(it, 'egg'), H = has(it, 'hcl');
+  if (!E) { s.color = 0xeef6f8; s.op = .3; s.notes.push('Dung dịch HCl không màu.'); return s; }
+  s.color = 0xf3edc8; s.op = .5;
+  if (heat) heatT[i] = (heatT[i] || 0) + .125;
+  const ht = heatT[i] || 0;
+  if (ht > 14) { s.color = 0x2a1a0e; s.op = .95; s.solid = { kind: 'powder', c: 0x1a120a, amt: 2 }; s.gas = { c: 0x777777, amt: heat ? .6 : .2 }; s.notes.push('Lòng trắng trứng bị <b>cháy đen</b>, có khói và <b>mùi khét</b>: protein bị phân huỷ khi đun ở nhiệt độ cao.'); return s; }
+  if (ht > 3) { const k = clamp((ht - 3) / 4, 0, 1); s.color = 0xfbfaf4; s.op = .55 + .4 * k; s.cloud = .6 * (1 - k); s.cloudC = 0xffffff; s.notes.push(k < 1 ? 'Lòng trắng trứng <b>đục dần</b>…' : 'Lòng trắng trứng <b>đông tụ</b> thành chất rắn màu trắng.'); if (heat && ht > 8) s.notes.push('Tiếp tục đun mạnh…'); return s; }
+  if (H) { const k = clamp(age / 3, 0, 1); s.ppt = { c: 0xffffff, amt: .9 * k, settle: clamp((age - 3) / 20, 0, .6) }; s.notes.push('Xuất hiện <b>kết tủa trắng</b> (protein bị đông tụ dưới tác dụng của acid).'); return s; }
+  if (heat) s.notes.push('Đang hơ nóng…'); else s.notes.push('Lòng trắng trứng: chất lỏng sánh, trong, hơi vàng.');
+  return s;
+}
+const tubes = ['Ống 1', 'Ống 2', 'Ống 3'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 2, cap: 10, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG });
+$('#auto').onclick = () => { bench.T.forEach(t => { t.items = [{ id: 'egg', amt: 2 }]; t.age = 0; }); bench.redraw(); bench.select(0); toast('Mỗi ống có 2 mL lòng trắng trứng. Ống 1: nhỏ HCl; ống 2: hơ nhẹ; ống 3: đun lâu.'); };
+quiz($('#qz'), [
+  { q: 'Khi nhỏ dung dịch HCl vào lòng trắng trứng, hiện tượng là', o: ['có khí thoát ra', 'xuất hiện kết tủa trắng (đông tụ)', 'dung dịch chuyển màu xanh', 'không có hiện tượng'], a: 1 },
+  { q: 'Đun nóng mạnh protein khi không có nước sẽ', o: ['tạo glucose', 'bị cháy, có mùi khét', 'hoá lỏng', 'không thay đổi'], a: 1 },
+  { q: 'Sản phẩm thuỷ phân hoàn toàn protein là', o: ['glucose', 'amino acid', 'acid béo', 'glycerol'], a: 1 },
+  { q: 'Thực phẩm nào giàu protein?', o: ['Dầu ăn', 'Đường mía', 'Trứng, thịt, cá, sữa', 'Gạo'], a: 2 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

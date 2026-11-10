@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 27. Acetic acid</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 27. Acetic acid', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<h3>1. Tính acid của acetic acid</h3>
+<ol><li><b>Chất chỉ thị:</b> cho giấy quỳ vào ống, nhỏ dd acetic acid.</li><li><b>Kim loại:</b> 2 mL acetic acid 10% + mảnh Mg.</li><li><b>Oxide kim loại:</b> bột CuO + 2 mL acetic acid, đun nhẹ.</li><li><b>Base:</b> 1 mL NaOH 10% + vài giọt phenolphthalein, nhỏ từ từ acetic acid đến khi mất màu.</li><li><b>Đá vôi:</b> đá vôi đập nhỏ + 1 mL acetic acid.</li></ol>
+<h3>2. Phản ứng ester hoá</h3><p>2 mL ethylic alcohol + 2 mL acetic acid đặc + 1 mL H₂SO₄ đặc; đun cách thuỷ (60–70 °C) khoảng 5 phút; để nguội rồi đổ sang ống chứa dd muối ăn bão hoà.</p>
+<div id="ui"></div><div id="obs" class="note"></div>
+<div class="row"><button class="btn g" id="auto1">Chuẩn bị nhanh TN tính acid (5 ống)</button><button class="btn g" id="auto2">Chuẩn bị nhanh TN ester hoá</button></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<ul><li>Làm quỳ tím hoá <b>đỏ</b>.</li><li>2CH₃COOH + Mg → (CH₃COO)₂Mg + H₂↑</li><li>2CH₃COOH + CuO → (CH₃COO)₂Cu + H₂O (dung dịch màu xanh)</li><li>CH₃COOH + NaOH → CH₃COONa + H₂O (màu hồng biến mất)</li><li>2CH₃COOH + CaCO₃ → (CH₃COO)₂Ca + CO₂↑ + H₂O</li><li>Ester hoá: CH₃COOH + C₂H₅OH ⇌ CH₃COOC₂H₅ + H₂O (xúc tác H₂SO₄ đặc, t°) – ethyl acetate là chất lỏng không màu, mùi thơm, nhẹ hơn nước, nổi lên trên.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const lab = createLab(stage, { cam: [.05, .28, .58], target: [.05, .07, -.02], table: 'bench', tableSize: [1.5, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [
+  { id: 'ac', n: 'CH₃COOH 10%', c: 0xf4f9fb, k: 'liq' }, { id: 'ach', n: 'CH₃COOH đặc', c: 0xf7fbfc, k: 'liq' }, { id: 'et', n: 'C₂H₅OH', c: 0xf4f9fb, k: 'liq' },
+  { id: 'naoh', n: 'NaOH 10%', c: 0xf2f6f8, k: 'liq' }, { id: 'nacl', n: 'NaCl bão hoà', c: 0xeef4f6, k: 'liq' }, { id: 'h2so4', n: 'H₂SO₄ đặc', c: 0xf6f6f0, k: 'drop' }, { id: 'php', n: 'Phenolphthalein', c: 0xf8f8f8, k: 'drop' },
+  { id: 'q', n: 'Giấy quỳ', c: 0x8e5bd6, k: 'sol', solid: { kind: 'strip', c: 0x8e5bd6 }, max: 1 }, { id: 'mg', n: 'Mg', c: 0xcfd2d6, k: 'sol', solid: { kind: 'strip', c: 0xcfd2d6, metal: true }, max: 1 },
+  { id: 'cuo', n: 'Bột CuO', c: 0x1c1c1c, k: 'sol', solid: { kind: 'powder', c: 0x1c1c1c } }, { id: 'caco3', n: 'Đá vôi', c: 0xe9e4d8, k: 'sol', solid: { kind: 'chunk', c: 0xe9e4d8 } }];
+const has = (it, id) => it.find(x => x.id == id), mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), clamp(t, 0, 1)).getHex();
+const done = new Set();
+function react(it, heat, age, i) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s;
+  const A = has(it, 'ac'), AH = has(it, 'ach'), acid = (A ? A.amt : 0) + (AH ? AH.amt : 0), B = has(it, 'naoh'), P = has(it, 'php'), E = has(it, 'et'), Hs = has(it, 'h2so4'), Nc = has(it, 'nacl');
+  s.color = 0xf2f8fb; s.op = .28;
+  const solid = ['q', 'mg', 'cuo', 'caco3'].find(x => has(it, x)), sr = solid && REAG.find(r => r.id == solid);
+  if (solid) s.solid = { ...sr.solid, amt: has(it, solid).amt };
+  if (solid == 'q') { s.solid.c = acid && (!B || acid > B.amt) ? 0xd6334c : B ? 0x2f66d6 : 0x8e5bd6; s.notes.push(acid && (!B || acid > B.amt) ? 'Giấy quỳ tím chuyển sang màu <b>đỏ</b>: acetic acid có tính acid.' : 'Giấy quỳ tím.'); }
+  if (solid == 'mg' && acid) { const left = 1 - clamp(age / 25, 0, 1); s.solid.amt = left; s.bubbles = .5 * left; s.notes.push('Mảnh Mg tan dần, có <b>bọt khí</b> (H₂) thoát ra.'); s.eq.push('2CH₃COOH + Mg → (CH₃COO)₂Mg + H₂↑'); }
+  if (solid == 'cuo' && acid) { const k = clamp(age / (heat ? 8 : 40), 0, 1); s.solid.amt = 1 - k * .85; s.color = mix(0xf2f8fb, 0x4f9be6, k); s.op = .3 + .3 * k; s.notes.push(heat ? 'Đun nhẹ: bột CuO màu đen <b>tan dần</b>, dung dịch chuyển sang <b>màu xanh</b>.' : 'CuO tan chậm; hãy đun nhẹ ống nghiệm.'); s.eq.push('2CH₃COOH + CuO → (CH₃COO)₂Cu + H₂O'); }
+  if (solid == 'caco3' && acid) { const left = 1 - clamp(age / 30, 0, 1); s.solid.amt = .3 + .7 * left; s.bubbles = .6 * left; s.gas = { c: 0xffffff, amt: .1 * left }; s.notes.push('Đá vôi tan dần, <b>sủi bọt khí</b> (CO₂).'); s.eq.push('2CH₃COOH + CaCO₃ → (CH₃COO)₂Ca + CO₂↑ + H₂O'); }
+  if (B && P) { const pink = Math.max(0, B.amt - acid) / B.amt; s.color = mix(0xf2f8fb, 0xe64aa8, pink); s.op = .3 + .4 * pink; s.notes.push(pink > 0 ? (acid ? 'Màu hồng nhạt dần khi nhỏ acetic acid…' : 'Dung dịch NaOH + phenolphthalein có <b>màu hồng</b>.') : 'Dung dịch <b>mất màu hồng</b>: acetic acid đã trung hoà hết NaOH.'); if (acid) s.eq.push('CH₃COOH + NaOH → CH₃COONa + H₂O'); }
+  if (E && AH && Hs) {
+    if (heat && age > 6) done.add(i);
+    if (heat) s.notes.push(done.has(i) ? 'Đã đun đủ thời gian. Thôi đun, để nguội rồi thêm dd NaCl bão hoà.' : 'Đang đun cách thuỷ 60–70 °C: phản ứng ester hoá xảy ra…'); else if (!done.has(i)) s.notes.push('Hỗn hợp đồng nhất, không màu. Hãy đun cách thuỷ.');
+    if (Nc && done.has(i)) { s.layer = { h: .05, c: 0xfff6d0, op: .5 }; s.notes.push('Đổ vào dd muối ăn bão hoà: xuất hiện <b>lớp chất lỏng ở phía trên</b>, không màu, có <b>mùi thơm</b> – ethyl acetate.'); s.eq.push('CH₃COOH + C₂H₅OH ⇌ CH₃COOC₂H₅ + H₂O  (H₂SO₄ đặc, t°)'); }
+  }
+  if (!s.notes.length) s.notes.push(acid ? 'Dung dịch acetic acid không màu, mùi chua.' : 'Chưa có hiện tượng.');
+  return s;
+}
+const tubes = ['Ống 1', 'Ống 2', 'Ống 3', 'Ống 4', 'Ống 5'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 2, cap: 12, bath: true, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG });
+$('#auto1').onclick = () => { [[['q', 1], ['ac', 2]], [['ac', 2], ['mg', 1]], [['cuo', 1], ['ac', 2]], [['naoh', 1], ['php', .5]], [['caco3', 1], ['ac', 1]]].forEach((p, i) => { bench.T[i].items = p.map(([id, amt]) => ({ id, amt })); bench.T[i].age = 0; }); bench.redraw(); toast('Đã chuẩn bị 5 ống. Ống 3: bấm “Đun nóng”. Ống 4: nhỏ thêm CH₃COOH 10%.'); };
+$('#auto2').onclick = () => { bench.T[0].items = [{ id: 'et', amt: 2 }, { id: 'ach', amt: 2 }, { id: 'h2so4', amt: .5 }]; bench.T[0].age = 0; bench.select(0); bench.redraw(); toast('Ống 1: hỗn hợp ester hoá. Bấm “Đun nóng”, sau đó thêm dd NaCl bão hoà.'); };
+quiz($('#qz'), [
+  { q: 'Giấm ăn là dung dịch acetic acid có nồng độ khoảng', o: ['0,2–0,5%', '2–5%', '20–50%', '90%'], a: 1 },
+  { q: 'Acetic acid không tác dụng với chất nào?', o: ['Zn', 'KOH', 'NaCl', 'MgCO₃'], a: 2 },
+  { q: 'Có thể dùng giấm ăn để làm sạch lớp cặn CaCO₃ trong ấm đun nước vì', o: ['giấm hoà tan CaCO₃ tạo muối tan và khí CO₂', 'giấm làm lạnh ấm', 'giấm là base', 'giấm có màu'], a: 0 },
+  { q: 'Sản phẩm của phản ứng ester hoá giữa acetic acid và ethylic alcohol là', o: ['ethyl acetate và nước', 'sodium acetate', 'ethylene', 'carbon dioxide'], a: 0 },
+  { q: 'Ethyl acetate nổi lên trên dung dịch muối ăn vì', o: ['nặng hơn nước, tan tốt', 'nhẹ hơn nước và ít tan trong nước', 'có màu', 'là chất rắn'], a: 1 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

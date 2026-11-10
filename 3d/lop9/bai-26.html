@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 26. Ethylic alcohol</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, lathe, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 26. Ethylic alcohol', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<h3>1. Phản ứng cháy của ethylic alcohol</h3><p>Lấy khoảng 1 mL ethylic alcohol cho vào bát sứ, dùng que đóm dài để đốt. Bấm <b>“Đốt cồn trong bát sứ”</b>.</p>
+<h3>2. Phản ứng giữa natri và ethylic alcohol</h3><p>Cho khoảng 5 mL ethylic alcohol tuyệt đối vào ống nghiệm, dùng panh kẹp mẩu natri bằng hạt ngô đưa vào ống. So sánh với ống chỉ có nước.</p>
+<div id="ui"></div><div id="obs" class="note"></div>
+<div class="warn sm">Chỉ lấy một lượng nhỏ cồn; không dùng diêm, bật lửa để đốt trực tiếp. Dùng panh kẹp natri, không cầm tay.</div>` },
+    { id: 'p2', title: 'Kết luận', html: `<ul><li>Ethylic alcohol là chất lỏng không màu, sôi ở 78,3 °C, nhẹ hơn nước, tan vô hạn trong nước. Độ cồn = số mL ethylic alcohol nguyên chất trong 100 mL dung dịch.</li>
+<li>Cháy với <b>ngọn lửa màu xanh</b> nhạt, toả nhiều nhiệt: C₂H₅OH + 3O₂ → 2CO₂ + 3H₂O</li>
+<li>Tác dụng với natri giải phóng khí hydrogen (do nguyên tử H trong nhóm –OH): 2C₂H₅OH + 2Na → 2C₂H₅ONa + H₂↑</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const lab = createLab(stage, { cam: [.05, .28, .55], target: [.05, .07, -.02], table: 'bench', tableSize: [1.5, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'et', n: 'Cồn tuyệt đối', c: 0xf4f9fb, k: 'liq' }, { id: 'h2o', n: 'Nước cất', c: 0xdff1fa, k: 'liq' }, { id: 'na', n: 'Natri', c: 0xd6d9dc, k: 'sol', solid: { kind: 'chunk', c: 0xd6d9dc, metal: true }, max: 1 }];
+const has = (it, id) => it.find(x => x.id == id);
+function react(it, heat, age) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s; const et = has(it, 'et'), w = has(it, 'h2o'), na = has(it, 'na');
+  s.color = 0xf2f8fb; s.op = .25;
+  if (na) { s.solid = { kind: 'chunk', c: 0xd6d9dc, metal: true, amt: 1 }; }
+  if (!na) { s.notes.push(et ? 'Ethylic alcohol: chất lỏng không màu, mùi đặc trưng.' : 'Nước cất không màu.'); return s; }
+  if (!et && !w) { s.notes.push('Natri trong ống khô: chưa có hiện tượng.'); return s; }
+  if (w && !et) { const left = 1 - clamp(age / 4, 0, 1); s.solid.amt = left; s.bubbles = left; s.gas = { c: 0xffffff, amt: .4 * left }; s.notes.push('Natri phản ứng <b>rất mãnh liệt</b> với nước, chạy trên mặt nước, tan nhanh, có khí thoát ra.'); s.eq.push('2Na + 2H₂O → 2NaOH + H₂↑'); return s; }
+  const left = 1 - clamp(age / 30, 0, 1); s.solid.amt = .3 + .7 * left; s.bubbles = .35 * left + .05;
+  s.notes.push('Mẩu natri <b>tan dần</b>, có <b>bọt khí</b> thoát ra từ bề mặt natri (khí hydrogen); phản ứng <b>êm dịu hơn</b> so với natri tác dụng với nước.'); s.eq.push('2C₂H₅OH + 2Na → 2C₂H₅ONa + H₂↑');
+  return s;
+}
+const tubes = ['Ống 1', 'Ống 2'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 5, cap: 15, heat: false, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG, heat: false });
+// bát sứ đốt cồn
+const dish = new THREE.Group(); dish.position.set(.32, 0, .04); lab.scene.add(dish);
+const bowl = new THREE.Mesh(lathe([[0, 0], [.02, 0], [.035, .01], [.045, .025], [.047, .027], [.044, .027], [.032, .012], [.018, .004], [0, .004]], 40), new THREE.MeshStandardMaterial({ color: 0xf6f4ee, roughness: .35 })); dish.add(bowl);
+const alc = new THREE.Mesh(new THREE.CylinderGeometry(.026, .02, .004, 32), new THREE.MeshPhysicalMaterial({ color: 0xf0f7fa, transparent: true, opacity: .5, roughness: .05 })); alc.position.y = .007; dish.add(alc);
+lab.label(dish, 'Bát sứ + 1 mL cồn', [0, .06, 0]);
+const fl = new THREE.Group(); fl.position.y = .01; dish.add(fl); fl.visible = false;
+for (let i = 0; i < 5; i++) { const a = i * 1.26, m = new THREE.Mesh(lathe([[0, 0], [.008, .004], [.009, .014], [.005, .028], [0, .036]], 16), new THREE.MeshBasicMaterial({ color: 0x5a7dff, transparent: true, opacity: .28, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); m.position.set(Math.cos(a) * .012, 0, Math.sin(a) * .012); m.userData.ph = i; fl.add(m); }
+const fL = new THREE.PointLight(0x7090ff, 0, .5, 2); fL.position.y = .04; dish.add(fL);
+const S = { burn: -1 };
+lab.onTick((dt, t) => {
+  if (S.burn < 0) return; S.burn += dt; const left = 1 - clamp(S.burn / 14, 0, 1);
+  fl.visible = left > 0; fL.intensity = left > 0 ? .25 : 0; alc.scale.set(1, Math.max(.05, left), 1); alc.visible = left > .02;
+  fl.children.forEach(m => { const k = 1 + .25 * Math.sin(t * 9 + m.userData.ph * 2); m.scale.set(1, k * (.4 + .6 * left), 1); });
+  if (left <= 0 && S.burn < 15) hud.innerHTML = 'Cồn cháy hết, bát sứ còn lại sạch, không có cặn: sản phẩm cháy là khí CO₂ và hơi nước.';
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bB">Đốt cồn trong bát sứ</button><button class="btn" id="bLbl">Tên</button>`;
+$('#bB').onclick = () => { S.burn = 0; alc.scale.set(1, 1, 1); alc.visible = true; lab.view([.32, .16, .25], [.32, .03, .04]); hud.innerHTML = 'Ethylic alcohol cháy với <b>ngọn lửa màu xanh nhạt</b>, khó nhìn thấy, toả nhiều nhiệt.<br>C₂H₅OH + 3O₂ → 2CO₂ + 3H₂O'; };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Cồn y tế 70° nghĩa là', o: ['nhiệt độ 70 °C', 'trong 100 mL cồn có 70 mL ethylic alcohol nguyên chất', '70 g ethylic alcohol trong 100 g nước', 'cồn sôi ở 70 °C'], a: 1 },
+  { q: 'Ethylic alcohol tác dụng được với natri vì trong phân tử có', o: ['nguyên tử carbon', 'nhóm –OH', 'liên kết đôi', 'nguyên tử oxygen'], a: 1 },
+  { q: 'Chất nào sau đây tác dụng được với Na?', o: ['CH₃–CH₃', 'CH₂=CH₂', 'CH₃–CH₂–OH', 'CH₄'], a: 2 },
+  { q: 'Ethylic alcohol cháy với ngọn lửa màu', o: ['đỏ', 'vàng', 'xanh nhạt', 'tím'], a: 2 },
+  { q: 'Trong 500 mL rượu 40° có bao nhiêu mL ethylic alcohol nguyên chất?', n: 200, u: 'mL' },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

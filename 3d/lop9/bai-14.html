@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 14. Cảm ứng điện từ. Nguyên tắc tạo ra dòng điện xoay chiều</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { meter, knife, wire, led, coil, barMagnet } from '../core/elec.js';
+import { powerSupply } from '../core/kit.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 14. Cảm ứng điện từ. Nguyên tắc tạo ra dòng điện xoay chiều', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p>Chọn thí nghiệm trên thanh công cụ phía dưới khung 3D.</p>
+<h3>TN1. Thanh nam châm vĩnh cửu (Hình 14.1)</h3><p>Kéo thanh nam châm (hoặc bấm “Đưa lại gần”, “Đưa ra xa”) đưa cực Bắc lại gần hoặc ra xa cuộn dây. Quan sát kim điện kế. Giữ yên nam châm thì sao?</p>
+<h3>TN2. Nam châm điện (Hình 14.3)</h3><p>Bật nguồn, rồi bấm khoá K để đóng, mở mạch nam châm điện. Quan sát kim điện kế ngay khi đóng, khi mở và khi giữ khoá đóng.</p>
+<h3>TN3. Nam châm quay (Hình 14.4)</h3><p>Bấm “Quay nam châm” hoặc kéo để quay nam châm. Quan sát hai đèn LED đỏ và vàng mắc song song, ngược cực.</p>
+<h3>TN4. Thay đổi tiết diện cuộn dây (Hình 14.6)</h3><p>Bấm “Bóp cuộn dây”, “Thả ra”. Quan sát kim điện kế.</p>
+<h3>Mô hình máy phát điện xoay chiều (Hình 14.8)</h3><p>Kéo tay quay hoặc dùng thanh trượt tốc độ. Quay chậm: hai LED sáng, tối luân phiên; quay nhanh: khó phân biệt.</p>
+<div class="sl">Tốc độ quay <input type="range" id="sp" min="0" max="12" step=".5" value="1.5"><span id="vsp">1,5 vòng/s</span></div>` },
+    { id: 'p2', title: 'Kết luận', html: `
+<div id="obs" class="note">Thực hiện thí nghiệm để ghi nhận xét.</div>
+<h3>Hiện tượng cảm ứng điện từ</h3>
+<ul><li>Khi <b>số đường sức từ xuyên qua tiết diện</b> của cuộn dây dẫn kín <b>biến thiên</b> thì trong cuộn dây xuất hiện <b>dòng điện cảm ứng</b>.</li>
+<li>Đưa nam châm lại gần: số đường sức từ tăng; đưa ra xa: giảm – dòng điện cảm ứng đổi chiều. Nam châm đứng yên: không có dòng điện cảm ứng.</li>
+<li>Đóng hoặc ngắt mạch nam châm điện, bóp cuộn dây… đều làm số đường sức từ biến thiên.</li></ul>
+<h3>Dòng điện xoay chiều</h3>
+<ul><li>Cho cuộn dây quay trong từ trường (hoặc nam châm quay trước cuộn dây), số đường sức từ xuyên qua tiết diện cuộn dây <b>luân phiên tăng, giảm</b> → dòng điện cảm ứng <b>luân phiên đổi chiều</b>: dòng điện xoay chiều.</li>
+<li>Dòng điện xoay chiều 50 Hz đổi chiều 100 lần trong 1 giây.</li></ul>
+<canvas id="gr" width="600" height="200" style="width:100%;background:#0f1a24;border-radius:8px"></canvas><p class="sm">Đồ thị cường độ dòng điện cảm ứng theo thời gian (đo trên điện kế / LED).</p>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+
+const lab = createLab(stage, { cam: [0, .3, .5], target: [0, .05, 0], table: 'wood', tableSize: [1.4, .8], minDist: .08 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const S = { st: 1, i: 0, flip: false, auto: 0, k2: false, I2: 0, th3: 0, w3: 0, sq: 1, sqT: 1, th5: 0, sp: 1.5, hist: [] };
+
+/* Điện kế chung */
+const G = meter(lab, [.15, 0, -.06], { kind: 'G', max: 5, step: .5, center: true, label: 'Điện kế' });
+const stations = {};
+function stand(g, x, z, w = .09) { const b = roundBox(w, .02, .06, .003, new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: .6 })); b.position.set(x, .01, z); g.add(b); return b; }
+function posts(g, x, z) { const p = []; for (const s of [-1, 1]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.004, .005, .012, 16), MAT.plastic(s < 0 ? 0xc92a2a : 0x1b1b1b, .4)); m.position.set(x + s * .015, .026, z + .025); g.add(m); p.push(new THREE.Vector3(x + s * .015, .034, z + .025)); } return p; }
+
+/* ---------- TN1 ---------- */
+const s1 = new THREE.Group(); scene.add(s1); stations[1] = s1;
+const C1 = { x: -.04, y: .045, z: .02, R: .025, L: .06, n: 24 };
+const c1 = coil(C1.R, C1.L, C1.n); c1.position.set(C1.x, C1.y, C1.z); s1.add(c1); stand(s1, C1.x, C1.z);
+const sup1 = new THREE.Mesh(new THREE.BoxGeometry(.05, .02, .02), new THREE.MeshStandardMaterial({ color: 0x6b4423 })); sup1.position.set(C1.x, .028, C1.z); s1.add(sup1);
+const p1 = posts(s1, C1.x, C1.z);
+const mag = barMagnet(.1, .016); mag.position.set(-.3, C1.y, C1.z); s1.add(mag);
+lab.label(c1, 'Cuộn dây dẫn', [0, .045, 0]); lab.label(mag, 'Nam châm (kéo)', [0, .03, 0]);
+s1.userData.wires = () => [wire(lab, p1[0], G.term(0), { sag: .0 }), wire(lab, p1[1], G.term(1), { color: 0x1b1b1b, sag: .0 })];
+lab.draggable({ obj: mag, axis: new THREE.Vector3(1, 0, 0), min: -.42, max: C1.x - .015, get: () => mag.position.x, set(v) { S.auto = 0; mag.position.x = v; } });
+function flux1() {      // mô hình hai cực từ (góc khối) qua từng vòng dây
+  const xm = mag.position.x, sg = S.flip ? -1 : 1, pN = xm + .05 * sg, pS = xm - .05 * sg; let F = 0;
+  for (let k = 0; k < C1.n; k++) { const xi = C1.x - C1.L / 2 + C1.L * (k + .5) / C1.n; for (const [p, q] of [[pN, 1], [pS, -1]]) { const d = xi - p; F += q * .5 * (1 - d / Math.hypot(d, C1.R)) * Math.sign(1); } }
+  return F;
+}
+
+/* ---------- TN2 ---------- */
+const s2 = new THREE.Group(); scene.add(s2); stations[2] = s2;
+const c2 = coil(.03, .07, 26); c2.position.set(-.02, .05, .03); s2.add(c2); stand(s2, -.02, .03, .1);
+const sup2 = new THREE.Mesh(new THREE.BoxGeometry(.06, .02, .02), new THREE.MeshStandardMaterial({ color: 0x6b4423 })); sup2.position.set(-.02, .028, .03); s2.add(sup2);
+const em = coil(.012, .06, 30, { color: 0xc08040, wire: .001, core: false }); em.position.set(-.07, .05, .03); s2.add(em);
+const core2 = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, .085, 24), MAT.metal(0x8f969c, .45)); core2.rotation.z = Math.PI / 2; core2.position.set(-.075, .05, .03); s2.add(core2);
+const p2 = posts(s2, -.02, .03);
+lab.label(c2, 'Cuộn dây dẫn (1)', [.02, .05, 0]); lab.label(em, 'Nam châm điện (2)', [-.03, .04, 0]);
+const ps2 = powerSupply(lab, [-.32, 0, -.12], { label: 'Nguồn điện (3)' }); s2.add(ps2.g);
+const k2 = knife(lab, [-.24, 0, .1], { label: 'Công tắc (5)', onToggle: c => { S.k2 = c; } }); s2.add(k2.g);
+s2.userData.wires = () => { const a = ps2.post(0), b = ps2.post(1), e1 = new THREE.Vector3(-.11, .05, .03), e2 = new THREE.Vector3(-.105, .05, .045);
+  return [wire(lab, p2[0], G.term(0), { sag: 0 }), wire(lab, p2[1], G.term(1), { color: 0x1b1b1b, sag: 0 }), wire(lab, a, k2.term(0)), wire(lab, k2.term(1), e1, { color: 0xe67700 }), wire(lab, e2, b, { color: 0x1b1b1b })]; };
+
+/* ---------- TN3 ---------- */
+const s3 = new THREE.Group(); scene.add(s3); stations[3] = s3;
+const b3 = roundBox(.26, .015, .14, .004, new THREE.MeshStandardMaterial({ color: 0xd9822b, roughness: .55 })); b3.position.set(0, .0075, 0); s3.add(b3);
+const c3 = coil(.028, .05, 30); c3.rotation.y = Math.PI / 2; c3.position.set(.04, .045, 0); s3.add(c3);
+const blk3 = new THREE.Mesh(new THREE.BoxGeometry(.06, .015, .06), new THREE.MeshStandardMaterial({ color: 0x5b3a1a })); blk3.position.set(.04, .022, 0); s3.add(blk3);
+const L3 = [led(lab, s3, [.03, .076, -.01], { color: 0xff2020 }), led(lab, s3, [.05, .076, -.01], { color: 0xffc400 })];
+const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .1, 12), MAT.metal(0xbfc4c9, .25)); shaft.position.set(-.07, .055, 0); s3.add(shaft);
+const rot3 = new THREE.Group(); rot3.position.set(-.07, .06, 0); s3.add(rot3);
+const m3 = barMagnet(.1, .016); rot3.add(m3);
+lab.label(c3, 'Cuộn dây + 2 LED (1)', [0, .06, 0]); lab.label(rot3, 'Nam châm quay (2)', [0, .04, 0]);
+lab.draggable({ obj: rot3, plane: new THREE.Vector3(0, 1, 0), get: () => 0, onStart() { S.drag3 = null; }, set(p) { const a = Math.atan2(-(p.z - 0), p.x + .07); if (S.drag3 != null) { let d = a - S.drag3; d = Math.atan2(Math.sin(d), Math.cos(d)); S.th3 += d; S.w3 = d / .016; } S.drag3 = a; } });
+
+/* ---------- TN4 ---------- */
+const s4 = new THREE.Group(); scene.add(s4); stations[4] = s4;
+const c4 = coil(.03, .05, 12, { color: 0xc9772e, wire: .0018, core: false }); c4.position.set(-.02, .05, .02); s4.add(c4);
+const m4 = barMagnet(.1, .016); m4.position.set(-.02, .05, .02); s4.add(m4);
+const holder = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .05, 12), MAT.metal(0x9aa0a6, .3)); holder.position.set(-.08, .025, .02); s4.add(holder);
+const jaw = [0, 1].map(i => { const j = new THREE.Mesh(new THREE.BoxGeometry(.03, .006, .02), MAT.plastic(0x2a2a2a, .4)); s4.add(j); return j; });
+stand(s4, -.02, .02, .14);
+lab.label(c4, 'Cuộn dây mềm (1)', [0, .06, 0]); lab.label(jaw[0], 'Kẹp (4)', [0, .015, 0]);
+const p4 = [new THREE.Vector3(.01, .05, .05), new THREE.Vector3(.01, .05, -.01)];
+s4.userData.wires = () => [wire(lab, p4[0], G.term(0), { sag: 0 }), wire(lab, p4[1], G.term(1), { color: 0x1b1b1b, sag: 0 })];
+
+/* ---------- Máy phát (Hình 14.8) ---------- */
+const s5 = new THREE.Group(); scene.add(s5); stations[5] = s5;
+const b5 = roundBox(.3, .015, .16, .004, new THREE.MeshStandardMaterial({ color: 0x1b1d20, roughness: .5 })); b5.position.set(0, .0075, 0); s5.add(b5);
+const yoke = new THREE.Mesh(new THREE.BoxGeometry(.012, .1, .1), MAT.metal(0x3a3f45, .4)); yoke.position.set(.07, .065, 0); s5.add(yoke);
+const poleN = new THREE.Mesh(new THREE.BoxGeometry(.04, .05, .02), MAT.plastic(0xc92a2a, .35)); poleN.position.set(.05, .065, .045); s5.add(poleN);
+const poleS = new THREE.Mesh(new THREE.BoxGeometry(.04, .05, .02), MAT.plastic(0x1c5fb8, .35)); poleS.position.set(.05, .065, -.045); s5.add(poleS);
+lab.label(poleN, 'Nam châm', [0, .04, 0]);
+const rotor = new THREE.Group(); rotor.position.set(.05, .065, 0); s5.add(rotor);
+const frame = new THREE.Mesh(new THREE.BoxGeometry(.03, .05, .006), MAT.plastic(0x222222, .5)); rotor.add(frame);
+for (let k = 0; k < 10; k++) { const t = new THREE.Mesh(new THREE.TorusGeometry(.024, .0012, 6, 4, Math.PI * 2), new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: .8, roughness: .3 })); t.rotation.z = Math.PI / 4; t.scale.set(.85, 1.2, 1); t.position.z = -.003 + k * .0007; rotor.add(t); }
+lab.label(rotor, 'Cuộn dây dẫn', [0, -.05, .03]);
+const axle = new THREE.Mesh(new THREE.CylinderGeometry(.0025, .0025, .2, 12), MAT.metal(0xbfc4c9, .25)); axle.rotation.z = Math.PI / 2; axle.position.set(-.03, .065, 0); s5.add(axle);
+for (const x of [-.03, -.045]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .006, 24), MAT.metal(0xd4b26a, .25)); r.rotation.z = Math.PI / 2; r.position.set(x, .065, 0); s5.add(r); }
+lab.label(axle, 'Vành khuyên + chổi quét', [-.0, .03, 0]);
+const wheel = new THREE.Group(); wheel.position.set(-.12, .065, 0); s5.add(wheel);
+const wh = new THREE.Mesh(new THREE.TorusGeometry(.05, .006, 12, 48), MAT.plastic(0x111111, .4)); wh.rotation.y = Math.PI / 2; wheel.add(wh);
+for (let k = 0; k < 6; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(.004, .1, .006), MAT.plastic(0x111111, .4)); sp.rotation.x = k * Math.PI / 6; wheel.add(sp); }
+const crank = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .025, 12), MAT.plastic(0xc92a2a, .4)); crank.rotation.z = Math.PI / 2; crank.position.set(-.012, .04, 0); wheel.add(crank);
+const post5 = new THREE.Mesh(new THREE.BoxGeometry(.01, .07, .02), MAT.metal(0x777c82, .4)); post5.position.set(-.12, .035, 0); s5.add(post5);
+lab.label(wheel, 'Tay quay', [0, .065, 0]);
+const L5 = [led(lab, s5, [-.06, .015, .06], { color: 0xff2020 }), led(lab, s5, [-.04, .015, .06], { color: 0x30ff60 })];
+lab.label(L5[0].g, 'Đèn LED', [.01, .02, 0]);
+lab.draggable({ obj: wheel, plane: new THREE.Vector3(1, 0, 0), get: () => 0, onStart() { S.drag5 = null; }, set(p) { const a = Math.atan2(p.y - .065, p.z); if (S.drag5 != null) { let d = a - S.drag5; d = Math.atan2(Math.sin(d), Math.cos(d)); S.th5 += d; S.dragW = d / .016; } S.drag5 = a; } });
+
+/* ---------- Chạy ---------- */
+let wires = [], prevF = null, emfS = 0;
+const VIEWS = { 1: [[-.08, .2, .38], [-.05, .04, 0]], 2: [[-.08, .24, .44], [-.08, .04, 0]], 3: [[.0, .25, .32], [0, .05, 0]], 4: [[-.0, .2, .34], [0, .04, 0]], 5: [[.02, .24, .34], [-.02, .05, 0]] };
+const NAMES = { 1: 'TN1', 2: 'TN2', 3: 'TN3', 4: 'TN4', 5: 'Máy phát' };
+function setSt(n) {
+  S.st = n; prevF = null; emfS = 0; S.hist = [];
+  Object.entries(stations).forEach(([k, g]) => g.visible = +k == n);
+  wires.forEach(w => lab.remove(w)); wires = stations[n].userData.wires ? stations[n].userData.wires() : [];
+  G.g.visible = n == 1 || n == 2 || n == 4;
+  document.querySelectorAll('.tb [data-s]').forEach(b => b.classList.toggle('on', +b.dataset.s == n));
+  ['bNear', 'bFar', 'bFlip'].forEach(id => $('#' + id).style.display = n == 1 ? '' : 'none');
+  $('#bSpin').style.display = n == 3 ? '' : 'none'; $('#bSq').style.display = n == 4 ? '' : 'none';
+  lab.view(...VIEWS[n]);
+}
+function flux() {
+  if (S.st == 1) return flux1();
+  if (S.st == 2) return S.I2 * 4;
+  if (S.st == 4) return 14 * (1 + .9 * (1 - S.sq));
+  return 0;
+}
+const gr = $('#gr'), gx = gr.getContext('2d');
+let obsT = '';
+lab.onTick((dt, t) => {
+  if (dt <= 0) return;
+  // TN1 tự động
+  if (S.st == 1 && S.auto) { mag.position.x = clamp(mag.position.x + S.auto * .22 * dt, -.42, C1.x - .015); if (mag.position.x <= -.42 || mag.position.x >= C1.x - .015) S.auto = 0; }
+  // TN2: dòng nam châm điện
+  const on2 = ps2.on && S.k2; S.I2 += ((on2 ? 1 : 0) - S.I2) * Math.min(1, dt / .06);
+  // TN4
+  S.sq += (S.sqT - S.sq) * Math.min(1, dt * 9); c4.scale.set(1, S.sq, S.sq);
+  jaw[0].position.set(-.02, .05 + .03 * S.sq + .006, .02); jaw[1].position.set(-.02, .05 - .03 * S.sq - .006, .02);
+  let emf = 0;
+  if (S.st == 1 || S.st == 2 || S.st == 4) { const F = flux(); if (prevF != null) emf = -(F - prevF) / dt; prevF = F; emfS += (emf * .07 - emfS) * Math.min(1, dt * 18); G.set(clamp(emfS, -5.3, 5.3)); }
+  if (S.st == 3) {
+    if (S.spin3) S.w3 = 2 * Math.PI * S.sp; else S.w3 *= Math.pow(.6, dt);
+    if (S.drag3 == null || !S.spin3) S.th3 += S.w3 * dt;
+    rot3.rotation.y = S.th3; emf = S.w3 * Math.sin(S.th3) * .25;
+    L3[0].set(emf > .15 ? (emf - .15) * 2 : 0); L3[1].set(emf < -.15 ? (-emf - .15) * 2 : 0); emfS = emf;
+  }
+  if (S.st == 5) {
+    const w = (S.dragW && Math.abs(S.dragW) > .1) ? S.dragW : 2 * Math.PI * S.sp; S.dragW = (S.dragW || 0) * Math.pow(.02, dt);
+    if (!(S.dragW && Math.abs(S.dragW) > .1)) S.th5 += w * dt;
+    wheel.rotation.x = S.th5; rotor.rotation.x = S.th5 * 3;      // bánh xe truyền động: tỉ số 3
+    emf = w * 3 * Math.sin(S.th5 * 3) * .05;
+    const pers = k => k;    // mắt lưu ảnh ~ 1/16 s → LED trông sáng liên tục khi quay nhanh
+    L5[0].set(pers(emf > .1 ? (emf - .1) * 1.4 : 0)); L5[1].set(pers(emf < -.1 ? (-emf - .1) * 1.4 : 0)); emfS = emf;
+  }
+  // đồ thị
+  S.hist.push(emfS); if (S.hist.length > 300) S.hist.shift();
+  if ((t * 30 | 0) % 2 == 0) {
+    gx.fillStyle = '#0f1a24'; gx.fillRect(0, 0, 600, 200); gx.strokeStyle = 'rgba(255,255,255,.15)'; gx.beginPath(); gx.moveTo(0, 100); gx.lineTo(600, 100); gx.stroke();
+    const m = Math.max(1, ...S.hist.map(Math.abs)); gx.strokeStyle = '#ffd43b'; gx.lineWidth = 2; gx.beginPath();
+    S.hist.forEach((v, i) => { const x = i * 2, y = 100 - v / m * 85; i ? gx.lineTo(x, y) : gx.moveTo(x, y); }); gx.stroke();
+    gx.fillStyle = '#9fb3c8'; gx.font = '14px Arial'; gx.fillText('i', 6, 16); gx.fillText('t', 586, 94);
+  }
+  // HUD
+  const a = Math.abs(emfS), dir = emfS > 0 ? 'lệch sang phải' : 'lệch sang trái';
+  let txt = '';
+  if (S.st == 1) { const v = S.auto || 0; txt = a > .25 ? `Kim điện kế <b>${dir}</b> → có <b>dòng điện cảm ứng</b>.` : 'Kim điện kế chỉ số 0: nam châm đứng yên → <b>không có</b> dòng điện cảm ứng.'; void v; }
+  if (S.st == 2) txt = !ps2.on ? 'Bấm nút đỏ trên hộp nguồn để bật nguồn.' : a > .25 ? `Kim điện kế <b>${dir}</b> (số đường sức từ đang ${emfS > 0 ? 'tăng' : 'giảm'}…)` : (S.k2 ? 'Khoá K đóng, dòng điện ổn định: kim điện kế trở về 0.' : 'Khoá K mở: kim điện kế chỉ 0. Bấm khoá K để đóng mạch.');
+  if (S.st == 3) txt = Math.abs(S.w3) < .3 ? 'Nam châm đứng yên: hai đèn LED không sáng.' : 'Nam châm quay: hai đèn LED <b>đỏ và vàng sáng luân phiên</b> → dòng điện cảm ứng đổi chiều liên tục.';
+  if (S.st == 4) txt = a > .25 ? `Đang thay đổi tiết diện cuộn dây: kim điện kế <b>${dir}</b>.` : 'Tiết diện cuộn dây không đổi: kim điện kế chỉ 0.';
+  if (S.st == 5) txt = S.sp < .01 && !(S.dragW && Math.abs(S.dragW) > .1) ? 'Quay tay quay (kéo) hoặc tăng tốc độ.' : S.sp > 6 ? 'Quay nhanh: hai đèn LED dường như sáng liên tục, khó phân biệt sáng tối.' : 'Quay chậm: hai đèn LED <b>sáng, tối luân phiên</b> → dòng điện xoay chiều.';
+  if (txt != obsT) { obsT = txt; hud.innerHTML = `<b>${NAMES[S.st]}</b><br>${txt}`; $('#obs').innerHTML = txt; }
+});
+
+/* ---------- Thanh công cụ ---------- */
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = [1, 2, 3, 4, 5].map(n => `<button class="btn" data-s="${n}">${NAMES[n]}</button>`).join('') +
+  `<button class="btn p" id="bNear">Đưa lại gần</button><button class="btn p" id="bFar">Đưa ra xa</button><button class="btn" id="bFlip">Đổi cực</button><button class="btn p" id="bSpin">Quay nam châm</button><button class="btn p" id="bSq">Bóp cuộn dây</button><button class="btn" id="bLbl">Tên</button>`;
+tb.querySelectorAll('[data-s]').forEach(b => b.onclick = () => setSt(+b.dataset.s));
+$('#bNear').onclick = () => S.auto = 1; $('#bFar').onclick = () => S.auto = -1;
+$('#bFlip').onclick = () => { S.flip = !S.flip; mag.rotation.y = S.flip ? Math.PI : 0; prevF = null; toast(S.flip ? 'Cực Nam hướng về cuộn dây' : 'Cực Bắc hướng về cuộn dây'); };
+$('#bSpin').onclick = () => { S.spin3 = !S.spin3; $('#bSpin').textContent = S.spin3 ? 'Dừng quay' : 'Quay nam châm'; };
+$('#bSq').onclick = () => { S.sqT = S.sqT == 1 ? .55 : 1; $('#bSq').textContent = S.sqT < 1 ? 'Thả ra' : 'Bóp cuộn dây'; };
+$('#sp').oninput = e => { S.sp = +e.target.value; $('#vsp').textContent = fmt(S.sp, 1) + ' vòng/s'; };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
+quiz($('#qz'), [
+  { q: 'Đưa cực Bắc của nam châm lại gần cuộn dây, số đường sức từ xuyên qua tiết diện cuộn dây', o: ['tăng', 'giảm', 'không đổi', 'bằng 0'], a: 0 },
+  { q: 'Giữ nam châm đứng yên trong lòng cuộn dây thì', o: ['có dòng điện cảm ứng lớn nhất', 'không có dòng điện cảm ứng', 'dòng điện cảm ứng đổi chiều liên tục', 'đèn LED sáng'], a: 1 },
+  { q: 'Điều kiện xuất hiện dòng điện cảm ứng trong cuộn dây dẫn kín là', o: ['có nam châm đặt gần cuộn dây', 'số đường sức từ xuyên qua tiết diện cuộn dây biến thiên', 'cuộn dây có lõi sắt', 'cuộn dây có nhiều vòng'], a: 1 },
+  { q: 'Trong thí nghiệm với nam châm điện, kim điện kế lệch khi', o: ['khoá K luôn đóng', 'vừa đóng hoặc vừa ngắt khoá K', 'khoá K luôn mở', 'không bao giờ'], a: 1 },
+  { q: 'Vì sao trong thí nghiệm nam châm quay, hai đèn LED mắc song song ngược cực sáng luân phiên?', o: ['Vì nguồn điện thay đổi', 'Vì dòng điện cảm ứng luân phiên đổi chiều', 'Vì đèn hỏng', 'Vì nam châm nóng lên'], a: 1 },
+  { q: 'Dòng điện xoay chiều có tần số 50 Hz đổi chiều bao nhiêu lần trong 1 giây?', n: 100, u: 'lần' },
+  { q: 'Nguyên tắc tạo ra dòng điện xoay chiều là', o: ['cho dòng điện một chiều qua điện trở', 'làm cho số đường sức từ xuyên qua tiết diện cuộn dây dẫn kín luân phiên tăng, giảm', 'nối pin với bóng đèn', 'đặt cuộn dây đứng yên cạnh nam châm'], a: 1 },
+]);
+setSt(1); ready();
+window.dbg = { S, lab, setSt, mag, G, ps2, k2, flux1 };
+</script></body></html>
