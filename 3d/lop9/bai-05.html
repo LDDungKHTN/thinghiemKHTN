@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 5. Khúc xạ ánh sáng</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { shell, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { opticBoard, HOME, NEAR } from './khucxa.js';
+
+const stage = shell({
+  title: 'Bài 5. Khúc xạ ánh sáng', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm 1: Hiện tượng khúc xạ ánh sáng</h3>
+<p><b>Chuẩn bị:</b> bảng thí nghiệm gắn tấm nhựa in vòng tròn chia độ; bản bán trụ bằng thuỷ tinh; đèn 12 V – 21 W có khe cài bản chắn sáng; nguồn điện.</p>
+<ol><li>Bấm nút đỏ trên hộp nguồn để bật đèn.</li><li>Chiếu chùm sáng tới SI (điểm tới I là tâm bản bán trụ).</li><li>Quan sát đường đi của chùm sáng: chùm sáng bị <b>gãy khúc tại mặt phân cách</b> không khí – thuỷ tinh.</li></ol>
+<h3>Thí nghiệm 2: Liên hệ giữa góc khúc xạ và góc tới</h3>
+<ol><li>Kéo đèn trên bảng (hoặc dùng thanh trượt/nút bên dưới) để góc tới i lần lượt là 0°, 20°, 40°, 60°, 80°.</li><li>Đọc góc khúc xạ r trên vòng chia độ (bấm “Nhìn gần” để đọc rõ), bấm <b>“Ghi kết quả”</b>.</li><li>Nhận xét tỉ số sin i / sin r.</li></ol>
+<div class="sl">Góc tới i <input type="range" id="ri" min="0" max="85" step="1" value="40"><span id="vi">40°</span></div>
+<div class="row"><button class="btn g" data-a="0">0°</button><button class="btn g" data-a="20">20°</button><button class="btn g" data-a="40">40°</button><button class="btn g" data-a="60">60°</button><button class="btn g" data-a="80">80°</button></div>
+<div class="note">Quy ước (Hình 5.2): I – điểm tới; SI – tia tới; IK – tia khúc xạ; NN' – pháp tuyến tại I; góc SIN = i (góc tới); góc KIN' = r (góc khúc xạ).</div>
+<h3>Thao tác 3D</h3><ul class="sm"><li>Kéo đèn quanh vòng chia độ để đổi góc tới.</li><li>Kéo vùng trống để xoay; cuộn / chụm hai ngón để phóng to.</li></ul>` },
+    { id: 'p2', title: 'Kết quả', html: `
+<h3>Bảng 5.1</h3>
+<table class="dt"><thead><tr><th>Góc tới i</th><th>Góc khúc xạ r</th><th>sin i / sin r</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="row"><button class="btn g" id="clr">Xoá bảng</button></div>
+<div id="cm" class="note">Ghi ít nhất 3 lần đo (khác 0°) để rút ra nhận xét.</div>
+<h3>Định luật khúc xạ ánh sáng</h3>
+<ul><li>Tia khúc xạ nằm trong mặt phẳng tới và ở phía bên kia pháp tuyến so với tia tới.</li><li>Với hai môi trường trong suốt nhất định, tỉ số giữa sin góc tới và sin góc khúc xạ luôn không đổi: <span class="eq" style="display:inline-block">sin i / sin r = hằng số = n<sub>21</sub></span></li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+let last;
+const B = opticBoard(stage, { mode: 'refr', n: 1.5, onChange(o, S) {
+  last = o;
+  hud.innerHTML = `Góc tới i = <b>${fmt(o.i)}°</b><br>${S.on ? `Góc khúc xạ r ≈ <b>${fmt(Math.round(o.r * 2) / 2)}°</b> ${o.i > 0 ? '(r &lt; i)' : ''}` : 'Đèn đang tắt – bấm nút đỏ trên hộp nguồn.'}`;
+  $('#ri').value = o.i; $('#vi').textContent = fmt(o.i) + '°';
+} });
+window.dbg = B;
+$('#ri').oninput = e => B.setI(+e.target.value);
+document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => B.setI(+b.dataset.a));
+
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bRec">Ghi kết quả</button><button class="btn" id="bView">Nhìn gần</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+let near = false, lbl = true;
+$('#bView').onclick = () => { near = !near; B.lab.view(...(near ? NEAR : HOME)); $('#bView').textContent = near ? 'Toàn cảnh' : 'Nhìn gần'; };
+$('#bLbl').onclick = () => { lbl = !lbl; B.lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+let rows = [];
+$('#bRec').onclick = () => {
+  if (!B.S.on) return toast('Hãy bật đèn trước (nút đỏ trên hộp nguồn).');
+  const i = Math.round(last.i), r = Math.round(last.r);
+  if (rows.some(x => x.i == i)) return toast('Góc tới này đã được ghi.');
+  rows.push({ i, r }); rows.sort((a, b) => a.i - b.i); draw(); showPane(1); toast(`Đã ghi: i = ${i}°, r = ${r}°`);
+};
+$('#clr').onclick = () => { rows = []; draw(); };
+function draw() {
+  $('#tb').innerHTML = rows.map(x => `<tr><td>${x.i}°</td><td>${x.r}°</td><td>${x.i ? fmt(Math.sin(x.i * Math.PI / 180) / Math.sin(x.r * Math.PI / 180), 2) : '–'}</td></tr>`).join('') || '<tr><td colspan="3" class="sm">Chưa có số liệu</td></tr>';
+  const k = rows.filter(x => x.i > 0);
+  $('#cm').innerHTML = k.length >= 3 ? `Nhận xét: tia khúc xạ nằm ở phía bên kia pháp tuyến; góc khúc xạ <b>nhỏ hơn</b> góc tới; khi i tăng thì r cũng tăng; tỉ số sin i / sin r gần như <b>không đổi ≈ ${fmt(k.reduce((s, x) => s + Math.sin(x.i * Math.PI / 180) / Math.sin(x.r * Math.PI / 180), 0) / k.length, 2)}</b> (chiết suất của thuỷ tinh so với không khí).` : 'Ghi ít nhất 3 lần đo (khác 0°) để rút ra nhận xét.';
+}
+draw();
+
+quiz($('#qz'), [
+  { q: 'Hiện tượng khúc xạ ánh sáng là hiện tượng tia sáng', o: ['bị hắt ngược trở lại môi trường cũ', 'bị gãy khúc tại mặt phân cách khi truyền từ môi trường trong suốt này sang môi trường trong suốt khác', 'truyền thẳng qua mặt phân cách', 'bị hấp thụ hoàn toàn'], a: 1 },
+  { q: 'Khi chiếu tia sáng vuông góc với mặt phân cách (i = 0°) thì', o: ['tia sáng bị gãy khúc mạnh nhất', 'tia sáng truyền thẳng, không bị gãy khúc (r = 0°)', 'không có tia khúc xạ', 'r = 90°'], a: 1 },
+  { q: 'Tia sáng truyền từ không khí vào thuỷ tinh. So sánh góc khúc xạ r với góc tới i (i > 0):', o: ['r > i', 'r = i', 'r < i', 'Không so sánh được'], a: 2 },
+  { q: 'Chiếu tia sáng từ không khí vào thuỷ tinh có chiết suất n = 1,5 với góc tới 60°. Góc khúc xạ bằng bao nhiêu độ (làm tròn đến độ)?', n: 35, u: '°', tol: .03, e: 'sin r = sin 60° / 1,5 ≈ 0,577 → r ≈ 35°.' },
+  { q: 'Chiết suất tuyệt đối của một môi trường là n = c/v. Tốc độ ánh sáng trong thuỷ tinh n = 1,5 là bao nhiêu nghìn km/s? (c = 300 000 km/s)', n: 200, u: 'nghìn km/s', e: 'v = c/n = 300 000/1,5 = 200 000 km/s.' },
+  { q: 'Vì sao đổ nước vào cốc ta lại nhìn thấy đồng xu ở đáy cốc (hoạt động mở đầu)?', o: ['Nước phóng to đồng xu', 'Ánh sáng từ đồng xu bị khúc xạ tại mặt nước, lệch xa pháp tuyến khi ra không khí nên tới được mắt', 'Nước phát sáng', 'Đồng xu nổi lên'], a: 1 },
+]);
+</script></body></html>

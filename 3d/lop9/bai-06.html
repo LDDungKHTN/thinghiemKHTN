@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 6. Phản xạ toàn phần</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { shell, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { opticBoard, HOME, NEAR } from './khucxa.js';
+
+const N = 1.5, ITH = Math.asin(1 / N) * 180 / Math.PI;
+const stage = shell({
+  title: 'Bài 6. Phản xạ toàn phần', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm về phản xạ toàn phần</h3>
+<p><b>Chuẩn bị:</b> bảng thí nghiệm có gắn tấm nhựa in vòng tròn chia độ; bản bán trụ bằng thuỷ tinh; đèn 12 V – 21 W có khe cài bản chắn sáng; nguồn điện.</p>
+<ol><li>Bật nguồn (nút đỏ trên hộp nguồn).</li><li>Chiếu chùm sáng hẹp truyền <b>từ bản bán trụ ra không khí</b> (đèn chiếu vào mặt cong, hướng tới tâm I).</li>
+<li>Tăng dần góc tới i, quan sát chùm sáng phản xạ và chùm sáng khúc xạ ra không khí.</li><li>Ghi nhận xét theo mẫu Bảng 6.1. Tìm góc tới i<sub>th</sub> khi tia khúc xạ vừa biến mất, bấm <b>“Ghi i<sub>th</sub>”</b>.</li></ol>
+<div class="sl">Góc tới i <input type="range" id="ri" min="0" max="80" step=".5" value="30"><span id="vi">30°</span></div>
+<div class="row"><button class="btn g" data-a="20">20°</button><button class="btn g" data-a="35">35°</button><button class="btn g" data-a="41">41°</button><button class="btn g" data-a="42">42°</button><button class="btn g" data-a="60">60°</button></div>
+<div class="note">Mở đầu bài học: khi góc tới bằng 41°, tia khúc xạ gần như là là mặt phân cách (r ≈ 90°). Khi tăng góc tới lên 60° thì sao? Hãy thử!</div>` },
+    { id: 'p2', title: 'Kết quả', html: `
+<h3>Bảng 6.1 (quan sát được)</h3>
+<table class="dt"><thead><tr><th>Góc tới</th><th>Tia khúc xạ</th><th>Tia phản xạ</th></tr></thead><tbody id="tb"></tbody></table>
+<h3>Góc tới hạn</h3>
+<div id="ith" class="note">Chưa đo. Tăng dần góc tới, khi tia khúc xạ vừa biến mất thì bấm “Ghi i<sub>th</sub>”.</div>
+<div class="eq">sin i<sub>th</sub> = n<sub>2</sub> / n<sub>1</sub> = 1 / 1,5 → i<sub>th</sub> ≈ ${fmt(ITH, 1)}°</div>
+<h3>Điều kiện để có phản xạ toàn phần</h3>
+<ul><li>Ánh sáng truyền từ môi trường có chiết suất n<sub>1</sub> tới môi trường có chiết suất n<sub>2</sub> nhỏ hơn (n<sub>1</sub> &gt; n<sub>2</sub>).</li><li>Góc tới lớn hơn hoặc bằng góc tới hạn: i ≥ i<sub>th</sub>.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const lv = k => k < .02 ? 'không còn nhìn thấy' : k < .25 ? 'rất mờ' : k < .6 ? 'mờ dần' : 'sáng';
+const lvR = k => k > .97 ? 'rất sáng (toàn bộ)' : k > .3 ? 'sáng' : k > .08 ? 'sáng dần' : 'mờ';
+let last;
+const B = opticBoard(stage, { mode: 'tir', n: N, onChange(o, S) {
+  last = o;
+  hud.innerHTML = `Góc tới i = <b>${fmt(o.i)}°</b><br>${S.on ? (o.r == null ? '<b style="color:#ffa94d">Phản xạ toàn phần</b> – không có tia khúc xạ' : `Góc khúc xạ r ≈ <b>${fmt(Math.round(o.r * 2) / 2)}°</b> (r &gt; i)`) + `<br>Tia khúc xạ: ${lv(o.T)} · Tia phản xạ: ${lvR(o.R)}` : 'Đèn đang tắt – bấm nút đỏ trên hộp nguồn.'}`;
+  $('#ri').value = o.i; $('#vi').textContent = fmt(o.i) + '°';
+} });
+window.dbg = B;
+$('#ri').oninput = e => B.setI(+e.target.value);
+document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => B.setI(+b.dataset.a));
+
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bRec">Ghi quan sát</button><button class="btn o" id="bTh">Ghi i<sub>th</sub></button><button class="btn" id="bView">Nhìn gần</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+let near = false, lbl = true;
+$('#bView').onclick = () => { near = !near; B.lab.view(...(near ? NEAR : HOME)); $('#bView').textContent = near ? 'Toàn cảnh' : 'Nhìn gần'; };
+$('#bLbl').onclick = () => { lbl = !lbl; B.lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+let rows = [];
+$('#bRec').onclick = () => {
+  if (!B.S.on) return toast('Hãy bật đèn trước.');
+  const o = last; if (rows.some(x => x.i == o.i)) return toast('Đã ghi góc tới này.');
+  rows.push({ i: o.i, t: o.r == null ? 'Không còn nhìn thấy' : o.T < .15 ? 'Rất mờ (gần biến mất)' : 'Có, độ sáng giảm khi i tăng', r: o.r == null ? 'Rất sáng' : o.R > .2 ? 'Sáng' : 'Mờ, sáng dần khi i tăng' });
+  rows.sort((a, b) => a.i - b.i); draw(); showPane(1);
+};
+$('#bTh').onclick = () => {
+  if (!B.S.on) return toast('Hãy bật đèn trước.');
+  const o = last;
+  if (o.r != null && o.T > .2) return toast('Tia khúc xạ vẫn còn sáng rõ. Tăng thêm góc tới.');
+  if (o.i > ITH + 2) return toast('Góc tới đã vượt quá xa. Giảm góc tới đến khi tia khúc xạ vừa xuất hiện lại.');
+  $('#ith').innerHTML = `Góc tới hạn đo được: <b>i<sub>th</sub> ≈ ${fmt(Math.round(o.i))}°</b>. So với tính toán ${fmt(ITH, 1)}°: phù hợp (sai lệch do đọc vạch chia).`;
+  showPane(1);
+};
+function draw() { $('#tb').innerHTML = rows.map(x => `<tr><td>${fmt(x.i)}°${Math.abs(x.i - ITH) < 1 ? ' (≈ i<sub>th</sub>)' : ''}</td><td>${x.t}</td><td>${x.r}</td></tr>`).join('') || '<tr><td colspan="3" class="sm">Chưa có số liệu</td></tr>'; }
+draw();
+
+quiz($('#qz'), [
+  { q: 'Khi ánh sáng truyền từ thuỷ tinh ra không khí, góc khúc xạ so với góc tới thì', o: ['nhỏ hơn', 'bằng', 'lớn hơn', 'luôn bằng 90°'], a: 2 },
+  { q: 'Tính góc tới hạn phản xạ toàn phần khi tia sáng đi từ thuỷ tinh (n₁ = 1,5) ra không khí (n₂ = 1). Làm tròn đến độ.', n: 42, u: '°', tol: .03, e: 'sin i_th = 1/1,5 → i_th ≈ 41,8° ≈ 42°.' },
+  { q: 'Điều kiện để xảy ra phản xạ toàn phần là', o: ['n₁ < n₂ và i ≥ i_th', 'n₁ > n₂ và i ≥ i_th', 'n₁ > n₂ và i < i_th', 'chỉ cần i lớn'], a: 1 },
+  { q: 'Chiếu tia sáng từ nước (n = 4/3) ra không khí với góc tới 30°. Góc khúc xạ là bao nhiêu độ? (làm tròn)', n: 42, u: '°', tol: .03, e: 'sin r = (4/3)·sin 30° = 0,667 → r ≈ 41,8°.' },
+  { q: 'Cũng từ nước ra không khí, với góc tới 60° thì', o: ['có tia khúc xạ với r = 30°', 'có tia khúc xạ với r = 90°', 'không có tia khúc xạ vì xảy ra phản xạ toàn phần (i_th ≈ 48,6°)', 'tia sáng truyền thẳng'], a: 2, e: 'sin i_th = 3/4 → i_th ≈ 48,6° < 60°.' },
+  { q: 'Ứng dụng của hiện tượng phản xạ toàn phần là', o: ['Gương phẳng', 'Cáp quang truyền tín hiệu', 'Kính lúp', 'Pin Mặt Trời'], a: 1 },
+]);
+</script></body></html>

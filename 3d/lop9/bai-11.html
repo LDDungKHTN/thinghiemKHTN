@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 11. Điện trở. Định luật Ohm</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE } from '../core/lab3d.js';
+import { supply, meter, bulb, resistor, knife, rheostat, wire, board } from '../core/elec.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 11. Điện trở. Định luật Ohm', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm 1: Tìm hiểu tính chất của điện trở (Hình 11.1)</h3>
+<p><b>Chuẩn bị:</b> nguồn điện một chiều 12 V; một bóng đèn 2,5 V; ba vật dẫn là ba điện trở R<sub>1</sub>, R<sub>2</sub>, R<sub>3</sub>; công tắc, dây nối.</p>
+<ol><li>Bật nguồn điện (nút đỏ trên nguồn), bấm vào <b>khoá K</b> để đóng mạch.</li><li>Quan sát độ sáng bóng đèn với điện trở R<sub>1</sub>.</li><li>Bấm vào điện trở R<sub>2</sub> hoặc R<sub>3</sub> trên khay để thay vào mạch, quan sát độ sáng của đèn.</li></ol>
+<h3>Thí nghiệm 2: Sự phụ thuộc của I vào U</h3>
+<p>Bấm <b>“Thí nghiệm 2”</b>. <b>Chuẩn bị:</b> nguồn 12 V; một biến trở R<sub>b</sub>; một ampe kế và một vôn kế; vật dẫn là một điện trở; công tắc, dây nối.</p>
+<ol><li>Đóng khoá K, kéo con chạy của biến trở để hiệu điện thế giữa hai đầu đoạn mạch AB lần lượt là 0 V, 3 V, 6 V, 9 V, 12 V.</li><li>Đọc số chỉ ampe kế, bấm <b>“Ghi số liệu”</b> mỗi lần đo.</li><li>Vẽ đồ thị I theo U, nhận xét.</li></ol>
+<div class="row"><b>Vật dẫn:</b><button class="btn on" data-r="6">R = 6 Ω</button><button class="btn g" data-r="12">R = 12 Ω</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `
+<h3>Bảng 11.1</h3><table class="dt"><thead><tr><th>Vật dẫn</th><th>Độ sáng của bóng đèn</th></tr></thead><tbody id="t1"></tbody></table>
+<div class="note sm">Kết luận: điện trở có tác dụng cản trở dòng điện; điện trở khác nhau có tác dụng cản trở dòng điện khác nhau.</div>
+<h3>Bảng 11.2</h3><table class="dt"><thead><tr><th>Lần đo</th><th>R (Ω)</th><th>U (V)</th><th>I (A)</th><th>U/I</th></tr></thead><tbody id="t2"></tbody></table>
+<div class="row"><button class="btn g" id="clr">Xoá bảng</button></div>
+<h3>Đồ thị I theo U (Hình 11.2)</h3><svg id="gr" viewBox="0 0 320 230" style="width:100%;max-width:380px;background:var(--cd)"></svg>
+<div id="cm" class="note">Ghi ít nhất 3 lần đo.</div>
+<div class="eq">Định luật Ohm: I = U / R</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+
+const H1 = [[-.3, .46, .62], [-.3, .03, .03]], H2 = [[.32, .42, .55], [.32, .03, -.02]];
+const lab = createLab(stage, { cam: H1[0], target: H1[1], table: 'wood', tableSize: [1.7, .9], minDist: .1 });
+const S = { mode: 1, r1: 0, R2: 6 };
+
+/* ===== Thí nghiệm 1 ===== */
+const RS = [{ R: 33, n: 'R1' }, { R: 56, n: 'R2' }, { R: 100, n: 'R3' }];
+const b1 = board(lab, [-.3, 0, -.03], .5, .34);
+const ps1 = supply(lab, [-.42, .008, -.13], { onToggle: () => solve1() });
+const k1 = knife(lab, [-.18, .008, -.12], { onToggle: c => { solve1(); toast(c ? 'Đã đóng khoá K' : 'Đã mở khoá K'); } });
+const L1 = bulb(lab, [-.17, .008, .05], { Unom: 2.5, Pnom: .75, label: 'Bóng đèn 2,5 V' });
+const slot = new THREE.Vector3(-.38, .008, .06);
+const rs = RS.map((r, i) => resistor(lab, [-.6 + 0, .0, .02 + i * .07], { R: r.R, name: r.n }));
+lab.label(rs[1].g, 'Khay điện trở (bấm để thay)', [-.0, .08, 0]);
+function place() { rs.forEach((r, i) => { if (i == S.r1) r.g.position.copy(slot); else r.g.position.set(-.5 + i * .11, 0, .2); }); }
+place();
+rs.forEach((r, i) => lab.clickable(r.g, () => { if (i == S.r1) return; S.r1 = i; place(); solve1(); toast('Đã mắc ' + r.name + ' = ' + r.R + ' Ω vào mạch'); }));
+// dây: nguồn(+) → K → đèn → R(slot) → nguồn(−). Đầu cốt R cố định tại vị trí ô.
+const slotT = i => new THREE.Vector3(slot.x + (i ? .038 : -.038), slot.y + .012 + .016, slot.z - .012);
+wire(lab, ps1.term(0), k1.term(0)); wire(lab, k1.term(1), L1.term(1), { color: 0xc92a2a });
+wire(lab, L1.term(0), slotT(1), { color: 0x1b1b1b }); wire(lab, slotT(0), ps1.term(1), { color: 0x1b1b1b });
+function solve1() {
+  const on = ps1.on && k1.closed, R = RS[S.r1].R, I = on ? 12 / (R + L1.R) : 0, P = I * I * L1.R;
+  L1.set(P);
+  if (S.mode == 1) hud.innerHTML = on ? `Mạch kín với <b>${RS[S.r1].n} = ${R} Ω</b><br>Đèn ${P > .45 ? 'sáng mạnh' : P > .2 ? 'sáng vừa' : P > .05 ? 'sáng yếu' : 'gần như không sáng'}` : (ps1.on ? 'Khoá K đang mở – bấm vào khoá K để đóng mạch.' : 'Bấm nút đỏ trên nguồn điện để bật nguồn.');
+  if (on) { T1[S.r1] = P > .45 ? 'Sáng mạnh nhất' : P > .2 ? 'Sáng vừa' : 'Sáng yếu nhất'; drawT1(); }
+}
+const T1 = ['?', '?', '?'];
+function drawT1() { $('#t1').innerHTML = RS.map((r, i) => `<tr><td>${r.n} = ${r.R} Ω</td><td>${T1[i]}</td></tr>`).join(''); }
+
+/* ===== Thí nghiệm 2 ===== */
+const b2 = board(lab, [.32, 0, -.03], .56, .34);
+const ps2 = supply(lab, [.15, .008, -.13], { onToggle: () => solve2() });
+const k2 = knife(lab, [.33, .008, -.13], { onToggle: () => solve2() });
+const rh = rheostat(lab, [.5, .008, -.08], { Rmax: 50, label: 'Biến trở Rb', onChange: () => solve2() });
+const A2 = meter(lab, [.14, .008, .07], { kind: 'A', max: 3, label: 'Ampe kế' });
+const V2 = meter(lab, [.5, .008, .085], { kind: 'V', max: 15, step: .5, label: 'Vôn kế' });
+let R2 = resistor(lab, [.32, .008, .05], { R: 6, name: 'R' });
+lab.label(R2.g, 'A', [-.05, .03, 0], 'read'); lab.label(R2.g, 'B', [.05, .03, 0], 'read');
+wire(lab, ps2.term(0), k2.term(0)); wire(lab, k2.term(1), rh.term(0)); wire(lab, rh.term(2), A2.term(0), { color: 0xe67700 });
+wire(lab, A2.term(1), R2.term(0)); wire(lab, R2.term(1), rh.term(1), { color: 0x1b1b1b, sag: .02 }); wire(lab, rh.term(1), ps2.term(1), { color: 0x1b1b1b });
+wire(lab, R2.term(0), V2.term(0), { color: 0xc92a2a, sag: .01 }); wire(lab, R2.term(1), V2.term(1), { color: 0x1b1b1b, sag: .01 });
+let cur2 = { U: 0, I: 0 };
+function solve2() {
+  const on = ps2.on && k2.closed, U = on ? 12 * rh.get() : 0, I = U / S.R2;   // biến trở mắc kiểu phân áp
+  cur2 = { U, I }; A2.set(I); V2.set(U);
+  if (S.mode == 2) hud.innerHTML = on ? `Vôn kế: <b>${fmt(Math.round(U * 2) / 2, 1)} V</b> · Ampe kế: <b>${fmt(Math.round(I * 100) / 100, 2)} A</b><br><span style="opacity:.85">Kéo con chạy của biến trở để thay đổi U.</span>` : (ps2.on ? 'Bấm vào khoá K để đóng mạch.' : 'Bấm nút đỏ trên nguồn điện để bật nguồn.');
+}
+document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
+  S.R2 = +b.dataset.r; document.querySelectorAll('[data-r]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); });
+  lab.remove(R2.g); R2 = resistor(lab, [.32, .008, .05], { R: S.R2, name: 'R' }); lab.label(R2.g, 'A', [-.05, .03, 0], 'read'); lab.label(R2.g, 'B', [.05, .03, 0], 'read');
+  if (S.mode != 2) setMode(2); solve2(); toast('Đã thay vật dẫn R = ' + S.R2 + ' Ω');
+});
+
+/* ===== Bảng, đồ thị ===== */
+let rows = [];
+function drawT2() {
+  $('#t2').innerHTML = rows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.R}</td><td>${fmt(r.U, 1)}</td><td>${fmt(r.I, 2)}</td><td>${r.I ? fmt(r.U / r.I, 1) : '–'}</td></tr>`).join('') || '<tr><td colspan="5" class="sm">Chưa có số liệu</td></tr>';
+  const g = $('#gr'), X = u => 40 + u / 12 * 260, Y = i => 200 - i / 2.2 * 180;
+  let s = `<g stroke="currentColor" stroke-opacity=".15">${[...Array(13)].map((_, i) => `<line x1="${X(i)}" y1="20" x2="${X(i)}" y2="200"/>`).join('')}${[...Array(12)].map((_, i) => `<line x1="40" y1="${Y(i * .2)}" x2="300" y2="${Y(i * .2)}"/>`).join('')}</g>
+  <g stroke="currentColor" stroke-width="1.5"><line x1="40" y1="200" x2="305" y2="200"/><line x1="40" y1="200" x2="40" y2="15"/></g>
+  <g fill="currentColor" font-size="10">${[0, 3, 6, 9, 12].map(u => `<text x="${X(u)}" y="213" text-anchor="middle">${u}</text>`).join('')}${[0, .5, 1, 1.5, 2].map(i => `<text x="34" y="${Y(i) + 3}" text-anchor="end">${fmt(i, 1)}</text>`).join('')}<text x="305" y="225" text-anchor="end">U (V)</text><text x="44" y="14">I (A)</text><text x="34" y="212" text-anchor="end">O</text></g>`;
+  for (const R of [6, 12]) { const p = rows.filter(r => r.R == R).sort((a, b) => a.U - b.U); if (!p.length) continue; const c = R == 6 ? '#e8590c' : '#1971c2';
+    if (p.length > 1) s += `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(12)}" y2="${Y(12 / R)}" stroke="${c}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    s += p.map(r => `<circle cx="${X(r.U)}" cy="${Y(r.I)}" r="3.5" fill="${c}"/>`).join('') + `<text x="${X(12) - 4}" y="${Y(12 / R) - 6}" fill="${c}" font-size="11" text-anchor="end">R = ${R} Ω</text>`; }
+  g.innerHTML = s; g.style.color = getComputedStyle(document.body).color;
+  $('#cm').innerHTML = rows.length >= 3 ? 'Nhận xét: khi U tăng bao nhiêu lần thì I cũng tăng bấy nhiêu lần – <b>I tỉ lệ thuận với U</b>. Đồ thị là <b>đường thẳng đi qua gốc toạ độ</b>. Thương số U/I không đổi đối với mỗi vật dẫn và chính là điện trở R; vật dẫn có R lớn hơn thì I nhỏ hơn.' : 'Ghi ít nhất 3 lần đo.';
+}
+$('#clr').onclick = () => { rows = []; drawT2(); };
+
+/* ===== Giao diện ===== */
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bMode">Thí nghiệm 2</button><button class="btn" id="bRec">Ghi số liệu</button><button class="btn" id="bNear">Nhìn gần đồng hồ</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+function setMode(m) { S.mode = m; $('#bMode').textContent = m == 1 ? 'Thí nghiệm 2' : 'Thí nghiệm 1'; lab.view(...(m == 1 ? H1 : H2)); $('#bRec').style.display = $('#bNear').style.display = m == 2 ? '' : 'none'; m == 1 ? solve1() : solve2(); }
+$('#bMode').onclick = () => setMode(S.mode == 1 ? 2 : 1);
+let near = false;
+$('#bNear').onclick = () => { near = !near; near ? lab.view([.32, .2, .3], [.32, .04, .07]) : lab.view(...H2); $('#bNear').textContent = near ? 'Toàn cảnh' : 'Nhìn gần đồng hồ'; };
+$('#bRec').onclick = () => {
+  if (!(ps2.on && k2.closed)) return toast('Hãy bật nguồn và đóng khoá K.');
+  const U = Math.round(cur2.U * 2) / 2, I = Math.round(cur2.I * 100) / 100;
+  if (rows.some(r => r.R == S.R2 && Math.abs(r.U - U) < .25)) return toast('Giá trị U này đã ghi.');
+  rows.push({ R: S.R2, U, I }); drawT2(); showPane(1); toast(`Đã ghi: U = ${fmt(U, 1)} V, I = ${fmt(I, 2)} A`);
+};
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
+quiz($('#qz'), [
+  { q: 'Thay điện trở R₁ bằng điện trở lớn hơn trong mạch Hình 11.1 thì đèn', o: ['sáng hơn', 'tối hơn', 'sáng như cũ', 'tắt hẳn ngay lập tức'], a: 1, e: 'Điện trở lớn cản trở dòng điện nhiều hơn → I nhỏ hơn → đèn tối hơn.' },
+  { q: 'Đồ thị biểu diễn sự phụ thuộc của I vào U giữa hai đầu một vật dẫn là', o: ['đường cong', 'đường thẳng đi qua gốc toạ độ', 'đường thẳng song song trục U', 'đường thẳng không qua gốc toạ độ'], a: 1 },
+  { q: 'Hoàn thành Bảng 11.2: khi U = 6 V thì I bằng bao nhiêu ampe? (biết U = 3 V thì I = 0,5 A)', n: 1, u: 'A', e: 'I tỉ lệ thuận với U: I = 0,5·6/3 = 1,0 A.' },
+  { q: 'Một bóng đèn xe máy có điện trở 12 Ω, cường độ dòng điện qua dây tóc là 0,5 A. Hiệu điện thế giữa hai đầu dây tóc là bao nhiêu vôn?', n: 6, u: 'V', e: 'U = I·R = 0,5·12 = 6 V.' },
+  { q: 'Khi U = 2 V thì I = 0,4 A. Để I = 0,8 A thì U phải bằng bao nhiêu vôn?', n: 4, u: 'V', e: 'R = 2/0,4 = 5 Ω → U = 0,8·5 = 4 V.' },
+  { q: 'Phát biểu nào đúng với định luật Ohm?', o: ['I tỉ lệ nghịch với U và tỉ lệ thuận với R', 'I tỉ lệ thuận với U và tỉ lệ nghịch với R', 'I tỉ lệ thuận với cả U và R', 'I không phụ thuộc R'], a: 1 },
+  { q: '1 kΩ bằng bao nhiêu Ω?', n: 1000, u: 'Ω' },
+]);
+
+drawT1(); drawT2(); setMode(1); ready();
+window.dbg = { S, lab, ps1, k1, ps2, k2, rh, solve1, solve2 };
+</script></body></html>

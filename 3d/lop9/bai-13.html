@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 13. Năng lượng của dòng điện và công suất điện</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE } from '../core/lab3d.js';
+import { supply, meter, bulb, knife, wire, board } from '../core/elec.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 13. Năng lượng của dòng điện và công suất điện', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Đo công suất và năng lượng điện của bóng đèn</h3>
+<p>Mạch gồm: nguồn điện điều chỉnh được 0 – 12 V, khoá K, ampe kế nối tiếp với bóng đèn, vôn kế mắc song song với bóng đèn.</p>
+<ol><li>Chọn bóng đèn, bật nguồn và đóng khoá K.</li><li>Điều chỉnh hiệu điện thế nguồn. Đọc số chỉ vôn kế U và ampe kế I.</li><li>Tính công suất 𝒫 = U·I. So sánh với công suất định mức ghi trên đèn khi U bằng hiệu điện thế định mức.</li><li>Đồng hồ bấm giờ đo thời gian đèn sáng t; năng lượng điện W = U·I·t.</li></ol>
+<div class="sl">Hiệu điện thế nguồn <input type="range" id="u" min="0" max="12" step=".5" value="6"><span id="vu">6 V</span></div>
+<div class="row"><b>Bóng đèn:</b><button class="btn on" data-b="0">6 V – 3 W</button><button class="btn g" data-b="1">6 V – 6 W</button><button class="btn g" data-b="2">12 V – 6 W</button></div>
+<div class="note">Số ghi trên dụng cụ điện: hiệu điện thế định mức và công suất định mức. Dụng cụ hoạt động bình thường khi được dùng đúng hiệu điện thế định mức; khi đó công suất tiêu thụ bằng công suất định mức.</div>` },
+    { id: 'p2', title: 'Kết quả', html: `<h3>Bảng số liệu</h3><table class="dt"><thead><tr><th>Đèn</th><th>U (V)</th><th>I (A)</th><th>𝒫 = UI (W)</th><th>Độ sáng</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="row"><button class="btn g" id="clr">Xoá bảng</button></div>
+<div class="eq">W = U·I·t &nbsp;&nbsp; 𝒫 = U·I</div><div class="note sm">1 kW·h = 3 600 000 J. Năng lượng điện được chuyển hoá thành nhiệt năng và quang năng ở bóng đèn.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+
+const HOME = [[0, .42, .55], [0, .03, .0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.5, .9], minDist: .1 });
+const BS = [{ U: 6, P: 3 }, { U: 6, P: 6 }, { U: 12, P: 6 }];
+const S = { b: 0, U: 6, t: 0, W: 0 };
+board(lab, [0, 0, 0], .6, .36);
+const ps = supply(lab, [-.17, .008, -.11], { onToggle: () => solve() }); ps.setV(6);
+const k = knife(lab, [.05, .008, -.12], { onToggle: c => { solve(); if (c) { S.t = 0; S.W = 0; } } });
+const A = meter(lab, [-.18, .008, .07], { kind: 'A', max: 1.5, step: .05, label: 'Ampe kế' });
+const Vm = meter(lab, [.2, .008, .07], { kind: 'V', max: 15, step: .5, label: 'Vôn kế' });
+let L = null, wires = [];
+function build() {
+  if (L) lab.remove(L.g); wires.forEach(w => lab.remove(w));
+  L = bulb(lab, [.03, .008, .07], { Unom: BS[S.b].U, Pnom: BS[S.b].P, label: 'Bóng đèn' });
+  wires = [wire(lab, A.term(1), L.term(0), { color: 0xe67700 }), wire(lab, L.term(1), ps.term(1), { color: 0x1b1b1b }), wire(lab, L.term(0), Vm.term(0), { sag: .0 }), wire(lab, L.term(1), Vm.term(1), { color: 0x1b1b1b, sag: .0 })];
+}
+wire(lab, ps.term(0), k.term(0)); wire(lab, k.term(1), A.term(0));
+// đồng hồ bấm giờ (hiển thị số)
+const swc = document.createElement('canvas'); swc.width = 256; swc.height = 128;
+const swT = new THREE.CanvasTexture(swc); swT.colorSpace = THREE.SRGBColorSpace;
+const sw = new THREE.Group(); sw.position.set(.24, 0.008, -.1); lab.scene.add(sw);
+const swb = new THREE.Mesh(new THREE.BoxGeometry(.07, .04, .02), new THREE.MeshStandardMaterial({ color: 0xf4c430, roughness: .45 })); swb.position.y = .025; swb.rotation.x = -.5; sw.add(swb);
+const swd = new THREE.Mesh(new THREE.PlaneGeometry(.056, .028), new THREE.MeshStandardMaterial({ map: swT, emissive: 0xffffff, emissiveMap: swT, emissiveIntensity: .5 })); swd.position.set(0, .03, .0105); swd.rotation.x = -.5; sw.add(swd);
+lab.label(sw, 'Đồng hồ bấm giờ', [0, .07, 0]); lab.shadow(sw);
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+
+function vals() {
+  const on = ps.on && k.closed, b = BS[S.b], R0 = b.U * b.U / b.P;
+  // điện trở dây tóc tăng khi nóng: mô hình R = R0·(0,35 + 0,65·(U/Uđm)^0,5) khi U ≤ Uđm, ở Uđm R = R0
+  const x = Math.min(1.3, S.U / b.U), R = R0 * (.35 + .65 * Math.sqrt(x));
+  const U = on ? S.U : 0, I = on ? U / R : 0; return { on, U, I, P: U * I, R };
+}
+function solve() {
+  const v = vals(); ps.setV(S.U); A.set(v.I); Vm.set(v.U); L.set(v.P);
+  hud.innerHTML = v.on ? `U = <b>${fmt(v.U, 1)} V</b> · I = <b>${fmt(v.I, 2)} A</b> · 𝒫 = UI ≈ <b>${fmt(v.P, 2)} W</b><br>t = <b>${fmt(S.t, 0)} s</b> · W = UIt ≈ <b>${fmt(S.W, 0)} J</b>${Math.abs(v.U - BS[S.b].U) < .01 ? '<br><span style="color:#8ce99a">Đèn hoạt động bình thường: 𝒫 = 𝒫<sub>đm</sub></span>' : v.U > BS[S.b].U ? '<br><span style="color:#ffa8a8">U lớn hơn định mức: đèn sáng quá mức, dễ hỏng!</span>' : ''}`
+    : (ps.on ? 'Bấm vào khoá K để đóng mạch.' : 'Bấm nút đỏ trên nguồn điện để bật nguồn.');
+}
+let acc = 0;
+lab.onTick(dt => {
+  const v = vals(); if (v.on) { S.t += dt; S.W += v.P * dt; }
+  acc += dt; if (acc > .2) { acc = 0; const g = swc.getContext('2d'); g.fillStyle = '#c9d4c0'; g.fillRect(0, 0, 256, 128); g.fillStyle = '#1a1a1a'; g.font = 'bold 62px "Courier New",monospace'; g.textAlign = 'center'; const m = Math.floor(S.t / 60), s = S.t % 60; g.fillText(`${String(m).padStart(2, '0')}:${s.toFixed(1).padStart(4, '0')}`, 128, 84); swT.needsUpdate = true; if (v.on) solve(); }
+});
+$('#u').oninput = e => { S.U = +e.target.value; $('#vu').textContent = fmt(S.U, 1) + ' V'; solve(); };
+document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { S.b = +b.dataset.b; document.querySelectorAll('[data-b]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); build(); solve(); toast('Đã thay bóng đèn ' + b.textContent); });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bRec">Ghi số liệu</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+let rows = [];
+$('#bRec').onclick = () => { const v = vals(); if (!v.on) return toast('Hãy bật nguồn và đóng khoá K.'); const b = BS[S.b]; rows.push([`${b.U} V – ${b.P} W`, fmt(v.U, 1), fmt(v.I, 2), fmt(v.P, 2), v.P / b.P > 1.05 ? 'Sáng quá mức' : v.P / b.P > .9 ? 'Sáng bình thường' : v.P / b.P > .3 ? 'Sáng yếu' : 'Rất mờ/không sáng']); $('#tb').innerHTML = rows.map(r => `<tr>${r.map(x => `<td>${x}</td>`).join('')}</tr>`).join(''); showPane(1); };
+$('#clr').onclick = () => { rows = []; $('#tb').innerHTML = ''; };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
+quiz($('#qz'), [
+  { q: 'Năng lượng điện mà động cơ tiêu thụ trong 30 phút, biết U = 12 V, I = 0,5 A, là bao nhiêu jun?', n: 10800, u: 'J', e: 'W = UIt = 12·0,5·1800 = 10 800 J.' },
+  { q: 'Bóng đèn có U = 3,5 V, R = 12 Ω. Năng lượng điện đèn tiêu thụ trong 4 phút là bao nhiêu jun? (làm tròn)', n: 245, u: 'J', tol: .01, e: 'I = 3,5/12 A; W = U²t/R = 12,25·240/12 = 245 J.' },
+  { q: 'Bóng đèn 220 V, cường độ 0,3 A. Công suất điện của đèn là bao nhiêu oát?', n: 66, u: 'W' },
+  { q: 'Số ghi 220 V – 60 W trên bóng đèn cho biết', o: ['đèn luôn tiêu thụ 60 W', 'khi dùng đúng 220 V thì đèn sáng bình thường với công suất 60 W', 'đèn chịu được tối đa 60 V', 'điện trở của đèn là 60 Ω'], a: 1 },
+  { q: 'Đèn 220 V – 60 W dùng đúng định mức trong 4 giờ tiêu thụ bao nhiêu kW·h?', n: .24, u: 'kW·h', e: 'W = 𝒫t = 0,06 kW · 4 h = 0,24 kW·h.' },
+  { q: 'Bàn là 220 V – 1 000 W hoạt động bình thường thì cường độ dòng điện qua nó là bao nhiêu ampe? (làm tròn 2 chữ số thập phân)', n: 4.55, u: 'A', tol: .01, e: 'I = 𝒫/U = 1000/220 ≈ 4,55 A.' },
+]);
+build(); solve(); ready();
+window.dbg = { S, lab, ps, k, solve };
+</script></body></html>

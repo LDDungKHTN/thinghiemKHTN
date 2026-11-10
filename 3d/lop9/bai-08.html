@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 8. Thấu kính</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, TEX, canvasTex, lathe, roundBox, cable, clamp } from '../core/lab3d.js';
+import { powerSupply } from '../core/kit.js';
+import { Beams } from '../core/optics.js';
+import { candle } from '../core/candle.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 8. Thấu kính', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>1. Đường truyền của chùm sáng qua thấu kính (Hình 8.3, 8.5)</h3>
+<ol><li>Bật nguồn điện (nút đỏ) cho hộp đèn phát ba chùm sáng hẹp song song.</li><li>Chọn thấu kính <b>hội tụ</b> (rìa mỏng) hoặc <b>phân kì</b> (rìa dày). Kéo thấu kính dọc bảng.</li><li>Quan sát chùm tia ló: hội tụ tại tiêu điểm F (thấu kính hội tụ) hay loe rộng ra như xuất phát từ F (thấu kính phân kì).</li></ol>
+<div class="row"><b>Thấu kính:</b><button class="btn on" data-k="1">Hội tụ</button><button class="btn g" data-k="-1">Phân kì</button></div>
+<div class="row"><b>Chùm tới:</b><button class="btn on" data-p="par">Song song trục</button><button class="btn g" data-p="ctr">Qua quang tâm</button><button class="btn g" data-p="foc">Qua tiêu điểm</button></div>
+<div class="row"><button class="btn g" id="bF">Hiện F, F'</button><button class="btn g" id="bExt">Kéo dài tia ló</button></div>
+<h3>2. Sự tạo ảnh của một vật qua thấu kính (Hình 8.9)</h3>
+<ol><li>Bấm <b>“Tạo ảnh”</b> trên thanh công cụ. Châm nến (bấm vào ngọn nến).</li><li>Thấu kính hội tụ: dịch thấu kính trong khoảng giữa nến và màn tới vị trí cho ảnh <b>rõ nét</b> trên màn – ảnh thật, ngược chiều.</li><li>Thấu kính phân kì: không hứng được ảnh trên màn. Bấm <b>“Nhìn qua thấu kính”</b>: thấy ảnh ảo cùng chiều, nhỏ hơn vật.</li></ol>
+<div class="note">Ảnh hứng được trên màn là <b>ảnh thật</b>; ảnh không hứng được trên màn là <b>ảnh ảo</b>.</div>` },
+    { id: 'p2', title: 'Kết quả', html: `<h3>Quan sát</h3><div id="obs" class="note">Bật nguồn điện để bắt đầu.</div>
+<h3>Ghi nhớ</h3><ul><li><b>Quang tâm O</b>: mọi tia sáng tới O đều truyền thẳng.</li><li><b>Trục chính</b>: đường thẳng qua O, vuông góc với mặt thấu kính.</li><li><b>Tiêu điểm chính F</b>: chùm tia tới song song với trục chính cho chùm tia ló hội tụ tại F (TK hội tụ), hoặc có đường kéo dài đi qua F (TK phân kì).</li><li><b>Tiêu cự</b> f = OF.</li><li>Tia tới qua tiêu điểm (TK hội tụ) cho tia ló song song với trục chính.</li></ul>
+<h3>Bảng tạo ảnh</h3><table class="dt"><thead><tr><th>Thấu kính</th><th>d (cm)</th><th>Ảnh</th></tr></thead><tbody id="tb"></tbody></table>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+
+const HOME_A = [[-.28, .48, .56], [-.3, .02, -.03]], HOME_B = [[.33, .33, .62], [.36, .13, 0]];
+const lab = createLab(stage, { cam: HOME_A[0], target: HOME_A[1], table: 'bench', tableSize: [1.7, .9], minDist: .08 });
+const { scene } = lab;
+const S = { k: 1, pat: 'par', on: false, F: false, ext: false, mode: 'A', lx: .02, peek: false };
+const FA = .085;   // tiêu cự thấu kính trên bảng (m)
+
+/* ================== PHẦN A: Bảng chiếu tia ================== */
+const bA = new THREE.Group(); bA.position.set(-.3, 0, -.02); scene.add(bA);
+const sheet = roundBox(.5, .006, .3, .002, new THREE.MeshStandardMaterial({ color: 0x1d2024, roughness: .6 })); sheet.position.y = .003; bA.add(sheet);
+const grid = new THREE.Mesh(new THREE.PlaneGeometry(.48, .28), new THREE.MeshStandardMaterial({ roughness: .9, transparent: true, map: canvasTex(960, 560, (g, w, h) => { g.fillStyle = '#26292d'; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.07)'; for (let x = 0; x <= w; x += 20) { g.lineWidth = x % 100 == 0 ? 2 : 1; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } for (let y = 0; y <= h; y += 20) { g.lineWidth = (y - 280) % 100 == 0 ? 2 : 1; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); } g.strokeStyle = 'rgba(255,255,255,.35)'; g.setLineDash([14, 8]); g.lineWidth = 2; g.beginPath(); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke(); }) }));
+grid.rotation.x = -Math.PI / 2; grid.position.y = .0062; bA.add(grid);
+lab.label(bA, 'Trục chính', [.2, .012, -.01]);
+const pA = new THREE.Group(); pA.rotation.x = -Math.PI / 2; pA.position.y = .0068; bA.add(pA);   // 2D (x,y) → (x, -z)
+const beams = new Beams(pA, 0);
+// hộp đèn 3 khe
+const box = roundBox(.07, .045, .12, .006, MAT.plastic(0x1b1e21, .45)); box.position.set(-.255, .0285, 0); bA.add(box);
+for (const z of [-.03, 0, .03]) { const s = new THREE.Mesh(new THREE.PlaneGeometry(.012, .004), new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff2a10, emissiveIntensity: 0 })); s.rotation.y = Math.PI / 2; s.position.set(-.2195, .012, z); bA.add(s); s.userData.slit = 1; }
+const slits = bA.children.filter(c => c.userData.slit);
+lab.label(box, 'Hộp đèn 3 chùm sáng', [0, .04, 0]);
+lab.shadow(bA); grid.castShadow = false;
+// thấu kính phẳng (tiết diện) đặt đứng trên bảng
+const lensA = new THREE.Group(); bA.add(lensA);
+let lensMeshA;
+function lensShape(k) {
+  const a = .048, t = .0045, e = k > 0 ? .0014 : .006, R = .11, sh = new THREE.Shape(), N = 24;
+  const sag = y => R - Math.sqrt(R * R - y * y);
+  if (k > 0) { // hội tụ: rìa mỏng
+    const c = sag(a); for (let i = 0; i <= N; i++) { const y = -a + 2 * a * i / N, x = e / 2 + (c - sag(y)); i ? sh.lineTo(x, y) : sh.moveTo(x, y); }
+    for (let i = N; i >= 0; i--) { const y = -a + 2 * a * i / N, x = -(e / 2 + (c - sag(y))); sh.lineTo(x, y); }
+  } else { // phân kì: rìa dày
+    for (let i = 0; i <= N; i++) { const y = -a + 2 * a * i / N, x = t / 2 + sag(y) * 1.4; i ? sh.lineTo(x, y) : sh.moveTo(x, y); }
+    for (let i = N; i >= 0; i--) { const y = -a + 2 * a * i / N, x = -(t / 2 + sag(y) * 1.4); sh.lineTo(x, y); }
+  }
+  void e;
+  const g = new THREE.ExtrudeGeometry(sh, { depth: .022, bevelEnabled: false }); g.rotateX(-Math.PI / 2); return g;
+}
+function buildLensA() {
+  if (lensMeshA) { lensA.remove(lensMeshA); lensMeshA.geometry.dispose(); }
+  lensMeshA = new THREE.Mesh(lensShape(S.k), MAT.glassLite({ color: 0xd9f6ff, opacity: .35 })); lensMeshA.position.y = .0065; lensA.add(lensMeshA);
+  const ed = new THREE.LineSegments(new THREE.EdgesGeometry(lensMeshA.geometry, 25), new THREE.LineBasicMaterial({ color: 0xa8e1f0 })); lensMeshA.add(ed);
+}
+lab.label(lensA, 'Thấu kính', [0, .04, -.05]);
+const fDots = [0, 1].map(i => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.0028, .0028, .001, 20), new THREE.MeshBasicMaterial({ color: 0x1c7ed6 })); m.position.y = .0075; bA.add(m); m.userData.l = lab.label(m, i ? "F'" : 'F', [0, .012, 0]); return m; });
+const oDot = new THREE.Mesh(new THREE.CylinderGeometry(.0022, .0022, .001, 16), new THREE.MeshBasicMaterial({ color: 0x2b8a3e })); oDot.position.y = .0076; lensA.add(oDot); const oL = lab.label(oDot, 'O', [0, .03, .012]);
+lab.draggable({ obj: lensA, axis: new THREE.Vector3(1, 0, 0), min: -.1, max: .12, get: () => S.lx, set(v) { S.lx = v; drawA(); } });
+
+function drawA() {
+  lensA.position.set(S.lx, 0, 0);
+  const f = S.k * FA, X0 = -.218, XE = .24, list = [];
+  slits.forEach(s => s.material.emissiveIntensity = S.on ? 3 : 0);
+  fDots[0].position.set(S.lx - FA, .0075, 0); fDots[1].position.set(S.lx + FA, .0075, 0);
+  fDots.forEach(d => { d.visible = S.F; d.userData.l.visible = S.F; }); oL.visible = S.F;
+  let txt = '';
+  if (S.on) {
+    const RED = 0xff2a10, ys = [-.03, 0, .03];
+    ys.forEach(y0 => {
+      let s0 = 0;
+      if (S.pat == 'ctr') s0 = (0 - y0) / (S.lx - X0);
+      if (S.pat == 'foc') s0 = (0 - y0) / (S.lx - FA - X0);
+      const yl = y0 + (S.lx - X0) * s0;
+      if (Math.abs(yl) > .046) { list.push({ a: [X0, y0], b: [XE, y0 + (XE - X0) * s0], c: RED, o: 1.3, w: .0038 }); return; }
+      const s1 = s0 - yl / f;
+      list.push({ a: [X0, y0], b: [S.lx, yl], c: RED, o: 1.3, w: .0038 });
+      let xe = XE, ye = yl + (XE - S.lx) * s1;
+      if (Math.abs(ye) > .14) { ye = Math.sign(ye) * .14; xe = S.lx + (ye - yl) / s1; }
+      list.push({ a: [S.lx, yl], b: [xe, ye], c: RED, o: 1.3, w: .0038 });
+      if (S.ext && S.k < 0 && Math.abs(s1) > 1e-6) {  // đường kéo dài (nét đứt)
+        const xb = S.lx - FA * 1.15; for (let k = 0; k < 9; k++) { const xa = S.lx - (S.lx - xb) * k / 9, xc = S.lx - (S.lx - xb) * (k + .55) / 9; list.push({ a: [xa, yl + (xa - S.lx) * s1], b: [xc, yl + (xc - S.lx) * s1], c: 0xffc078, o: .5, w: .0016 }); }
+      }
+    });
+    txt = S.k > 0 ? { par: 'Chùm tia song song với trục chính, sau khi qua thấu kính hội tụ cho chùm tia ló <b>hội tụ tại tiêu điểm F\'</b>.', ctr: 'Các tia tới qua <b>quang tâm O</b> đều <b>truyền thẳng</b>, không đổi hướng.', foc: 'Các tia tới đi qua <b>tiêu điểm F</b> cho tia ló <b>song song với trục chính</b>.' }[S.pat]
+      : { par: 'Chùm tia song song với trục chính, sau khi qua thấu kính phân kì cho chùm tia ló <b>loe rộng ra</b>; đường kéo dài của các tia ló <b>đi qua tiêu điểm F</b> (bấm “Kéo dài tia ló”).', ctr: 'Các tia tới qua <b>quang tâm O</b> đều <b>truyền thẳng</b>.', foc: 'Với thấu kính phân kì, tia có đường kéo dài hướng tới tiêu điểm phía sau sẽ ló ra song song trục chính.' }[S.pat];
+  } else txt = 'Đèn đang tắt – bấm nút đỏ trên hộp nguồn.';
+  beams.set(list);
+  if (S.mode == 'A') { hud.innerHTML = `${S.k > 0 ? 'Thấu kính <b>hội tụ</b> (rìa mỏng)' : 'Thấu kính <b>phân kì</b> (rìa dày)'} · f = ${S.k * FA * 100} cm<br><span style="opacity:.9">${txt}</span>`; $('#obs').innerHTML = txt; }
+}
+const psuA = powerSupply(lab, [-.62, 0, -.3], { label: 'Nguồn điện', onToggle: on => { S.on = on; drawA(); } });
+{ const a = psuA.post(0), b = psuA.post(1); scene.add(cable([a.x, a.y, a.z], [-.59, .03, -.02], { sag: .02 }), cable([b.x, b.y, b.z], [-.59, .025, .0], { color: 0x222222, sag: .025 })); }
+
+/* ================== PHẦN B: Nến – thấu kính – màn ================== */
+const Y0 = .15, X0B = .07, mxB = R => X0B + R / 1000;   // vạch thước (mm) → x
+const B = { C: 60, L: 260, Sc: 470, k: 1, f: 100 };
+const railB = new THREE.Group(); scene.add(railB);
+const bar = roundBox(.62, .02, .045, .003, MAT.metal(0xc8cdd3, .38)); bar.position.set(X0B + .3, .03, 0); railB.add(bar);
+const scl = new THREE.Mesh(new THREE.PlaneGeometry(.6, .014), new THREE.MeshStandardMaterial({ map: TEX.ruler(600, { px: 8, h: 96 }), roughness: .6 })); scl.position.set(X0B + .3, .03, .0226); railB.add(scl);
+for (const x of [X0B + .02, X0B + .58]) { const ft = roundBox(.05, .02, .14, .004, MAT.plastic(0x2b2f33, .6)); ft.position.set(x, .01, 0); railB.add(ft); }
+lab.shadow(railB);
+function riderB(top) { const g = new THREE.Group(); const b = roundBox(.032, .024, .062, .003, MAT.plastic(0x1f2327, .45)); b.position.y = .052; g.add(b);
+  const mk = new THREE.Mesh(new THREE.PlaneGeometry(.0012, .014), new THREE.MeshBasicMaterial({ color: 0xd9480f })); mk.position.set(0, .03, .0232); g.add(mk);
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, top - .064, 20), MAT.metal(0xd7dbe0, .2)); rod.position.y = .064 + (top - .064) / 2; g.add(rod); scene.add(g); return g; }
+// nến
+const cH = .06, cBase = Y0 - (cH + .014);
+const cG = riderB(cBase - .004); const plate = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .004, 32), MAT.metal(0x9aa0a6, .35)); plate.position.y = cBase - .002; cG.add(plate);
+const cdl = candle(lab, { h: cH }); cdl.g.position.y = cBase; cG.add(cdl.g); cdl.setLit(false);
+lab.label(cG, 'Ngọn nến (bấm để châm)', [0, Y0 + .04, 0]);
+lab.clickable(cdl.g, () => { cdl.setLit(!cdl.lit); drawB(); toast(cdl.lit ? 'Đã châm nến' : 'Đã tắt nến'); });
+// thấu kính
+const lG = riderB(Y0 - .034); const ringB = new THREE.Mesh(new THREE.TorusGeometry(.03, .004, 16, 64), MAT.plastic(0x1d1f22, .35)); ringB.rotation.y = Math.PI / 2; ringB.position.y = Y0; lG.add(ringB);
+let lensB;
+function buildLensB() {
+  if (lensB) { lG.remove(lensB); lensB.geometry.dispose(); }
+  const a = .027, R = .1, z = r => Math.sqrt(R * R - r * r) - Math.sqrt(R * R - a * a), pts = [];
+  if (B.k > 0) { const e = .0012; for (let i = 0; i <= 16; i++) { const r = a * i / 16; pts.push([r, -(e / 2 + z(r))]); } for (let i = 16; i >= 0; i--) { const r = a * i / 16; pts.push([r, e / 2 + z(r)]); } }
+  else { const e = .0016, s = R - Math.sqrt(R * R - a * a); for (let i = 0; i <= 16; i++) { const r = a * i / 16; pts.push([r, -(e / 2 + s - z(r))]); } for (let i = 16; i >= 0; i--) { const r = a * i / 16; pts.push([r, e / 2 + s - z(r)]); } }
+  const geo = lathe(pts, 64); geo.computeVertexNormals();
+  lensB = new THREE.Mesh(geo, MAT.glass({ thickness: .005, roughness: .02, depthWrite: false })); lensB.rotation.z = Math.PI / 2; lensB.position.y = Y0; lG.add(lensB);
+}
+lab.label(lG, 'Thấu kính', [0, Y0 + .05, 0]);
+// màn
+const PPM = 5, SCR = 120, sG = riderB(Y0 - .062);
+const scrT = canvasTex(SCR * PPM, SCR * PPM, () => {});
+const scrM = new THREE.Mesh(new THREE.PlaneGeometry(SCR / 1000, SCR / 1000), new THREE.MeshStandardMaterial({ color: 0xcfcfc8, roughness: .95, emissive: 0xffffff, emissiveMap: scrT, emissiveIntensity: 2 }));
+scrM.rotation.y = -Math.PI / 2; scrM.position.set(-.0025, Y0, 0); sG.add(scrM);
+const scrBk = roundBox(.004, SCR / 1000 + .008, SCR / 1000 + .008, .0015, MAT.plastic(0x30363c, .5)); scrBk.position.set(.0005, Y0, 0); sG.add(scrBk);
+lab.label(sG, 'Màn', [0, Y0 + .075, 0]);
+lab.shadow(cG); lab.shadow(lG); lab.shadow(sG); scrM.castShadow = false;
+
+// Ảnh ảo nhìn qua thấu kính: dùng stencil để chỉ hiện trong vòng thấu kính
+const stencilDisk = new THREE.Mesh(new THREE.CircleGeometry(.026, 48), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp }));
+stencilDisk.rotation.y = Math.PI / 2; stencilDisk.position.y = Y0; stencilDisk.renderOrder = -10; stencilDisk.visible = false; lG.add(stencilDisk);
+cdl.parts.forEach(p => Object.assign(p.material, { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc }));
+const ghost = candle(lab, { h: cH, light: false }); scene.add(ghost.g); ghost.g.visible = false;
+ghost.parts.forEach(p => { Object.assign(p.material, { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.EqualStencilFunc, side: THREE.DoubleSide }); p.renderOrder = 5; });
+
+lab.draggable({ obj: cG, min: -1, max: 1, get: () => mxB(B.C), set(x) { B.C = clamp((x - X0B) * 1000, 20, B.L - 30); drawB(); } });
+lab.draggable({ obj: lG, min: -1, max: 1, get: () => mxB(B.L), set(x) { B.L = clamp((x - X0B) * 1000, B.C + 30, B.Sc - 25); drawB(); } });
+lab.draggable({ obj: sG, min: -1, max: 1, get: () => mxB(B.Sc), set(x) { B.Sc = clamp((x - X0B) * 1000, B.L + 25, 585); drawB(); } });
+
+function optB() {
+  const f = B.k * B.f, d = B.L - B.C, s = B.Sc - B.L, v = Math.abs(d - f) < .01 ? 1e9 : d * f / (d - f), blur = 13 * Math.abs(s - v) / Math.abs(v);
+  return { f, d, s, v, blur, real: v > 0, sharp: v > 0 && blur < .7, m: -v / d };
+}
+function drawB() {
+  cG.position.x = mxB(B.C); lG.position.x = mxB(B.L); sG.position.x = mxB(B.Sc);
+  const o = optB(), g = scrT.image.getContext('2d'), W = scrT.image.width;
+  g.globalCompositeOperation = 'source-over'; g.fillStyle = '#060606'; g.fillRect(0, 0, W, W);
+  if (cdl.lit) {
+    g.globalCompositeOperation = 'lighter';
+    const k = o.s / o.d, r = Math.max(.5, o.blur * PPM), N = r < 1 ? 1 : Math.min(48, Math.round(8 + r)), B0 = clamp(1.1 / (k * k + .2), .05, 1);
+    // ngọn lửa: tâm trên trục, cao 21 mm → ảnh ngược chiều
+    for (let i = 0; i < N; i++) {
+      const rr = N == 1 ? 0 : r * Math.sqrt((i + .5) / N), th = i * 2.39996, ox = rr * Math.cos(th), oy = rr * Math.sin(th);
+      const hgt = 21 * k * PPM, wdt = 9.6 * k * PPM, cx = W / 2 + ox, cy = W / 2 + oy;
+      const gr = g.createRadialGradient(cx, cy - hgt * .1, 0, cx, cy, hgt * .55);
+      gr.addColorStop(0, `rgba(255,240,200,${B0 / N * 1.3})`); gr.addColorStop(.6, `rgba(255,160,50,${B0 / N})`); gr.addColorStop(1, 'rgba(255,120,20,0)');
+      g.fillStyle = gr; g.beginPath(); g.ellipse(cx, cy, wdt / 2, hgt / 2, 0, 0, 7); g.fill();
+    }
+    if (!o.real || o.blur > 6) { const gl = g.createRadialGradient(W / 2, W / 2, 0, W / 2, W / 2, W * .45); gl.addColorStop(0, 'rgba(255,170,80,.08)'); gl.addColorStop(1, 'rgba(255,170,80,0)'); g.fillStyle = gl; g.fillRect(0, 0, W, W); }
+  }
+  scrT.needsUpdate = true;
+  // ảnh ảo / ảnh nhìn qua thấu kính
+  const xl = mxB(B.L), m = o.m;
+  ghost.g.visible = S.peek && cdl.lit; ghost.setLit(cdl.lit); stencilDisk.visible = S.peek;
+  if (S.peek) { ghost.g.position.set(xl + o.v / 1000 * (o.real ? 1 : 1), Y0 + m * (cBase - Y0), 0); ghost.g.scale.set(Math.abs(m), m, Math.abs(m)); }
+  sG.visible = !S.peek;
+  if (S.mode == 'B') {
+    let t = !cdl.lit ? 'Nến chưa cháy – bấm vào ngọn nến để châm.' :
+      B.k > 0 ? (o.real ? (o.sharp ? `Ảnh trên màn <b style="color:#8ce99a">rõ nét</b>: ảnh thật, <b>ngược chiều</b>, ${Math.abs(m) > 1.05 ? 'lớn hơn' : Math.abs(m) < .95 ? 'nhỏ hơn' : 'bằng'} vật (k = ${fmt(Math.abs(m), 2)}).` : 'Ảnh trên màn bị nhoè – dịch thấu kính (hoặc màn) để ảnh rõ nét.') : 'Nến nằm trong khoảng tiêu cự (d < f): không hứng được ảnh trên màn. Nhìn qua thấu kính thấy ảnh ảo, cùng chiều, lớn hơn vật.')
+        : 'Thấu kính phân kì: không hứng được ảnh trên màn dù dịch chuyển thế nào. Bấm “Nhìn qua thấu kính” để thấy ảnh ảo, cùng chiều, nhỏ hơn vật.';
+    hud.innerHTML = `${B.k > 0 ? 'TK hội tụ' : 'TK phân kì'} f = ${B.f / 10} cm · d = <b>${fmt(o.d / 10, 1)}</b> cm · màn cách TK <b>${fmt(o.s / 10, 1)}</b> cm<br>${t}`;
+    $('#obs').innerHTML = t;
+  }
+}
+
+/* ================== Giao diện ================== */
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bMode">Tạo ảnh (ngọn nến)</button><button class="btn" id="bPeek">Nhìn qua thấu kính</button><button class="btn" id="bRec">Ghi kết quả</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+const showB = m => { $('#bPeek').style.display = $('#bRec').style.display = m == 'B' ? '' : 'none'; };
+$('#bMode').onclick = () => {
+  S.mode = S.mode == 'A' ? 'B' : 'A'; S.peek = false; $('#bPeek').classList.remove('on');
+  $('#bMode').textContent = S.mode == 'A' ? 'Tạo ảnh (ngọn nến)' : 'Đường truyền tia sáng';
+  lab.view(...(S.mode == 'A' ? HOME_A : HOME_B)); showB(S.mode); S.mode == 'A' ? drawA() : drawB();
+};
+$('#bPeek').onclick = () => {
+  S.peek = !S.peek; $('#bPeek').classList.toggle('on', S.peek); const xl = mxB(B.L); lab.showLabels(!S.peek && lbl);
+  if (S.peek) { lab.view([xl + .2, Y0 + .004, .0], [xl - .1, Y0, 0], 1); toast('Đặt mắt sau thấu kính, nhìn về phía ngọn nến'); }
+  else lab.view(...HOME_B);
+  drawB();
+};
+let rows = [];
+$('#bRec').onclick = () => {
+  if (!cdl.lit) return toast('Hãy châm nến trước.');
+  const o = optB(); let im;
+  if (B.k > 0 && o.real) { if (!o.sharp) return toast('Ảnh chưa rõ nét trên màn.'); im = `Thật, ngược chiều, ${Math.abs(o.m) > 1.05 ? 'lớn hơn' : Math.abs(o.m) < .95 ? 'nhỏ hơn' : 'bằng'} vật`; }
+  else im = B.k > 0 ? 'Ảo, cùng chiều, lớn hơn vật (không hứng được)' : 'Ảo, cùng chiều, nhỏ hơn vật (không hứng được)';
+  rows.push([B.k > 0 ? 'Hội tụ' : 'Phân kì', fmt(o.d / 10, 1), im]); $('#tb').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join(''); toast('Đã ghi vào bảng (tab Kết quả).');
+};
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  S.k = B.k = +b.dataset.k; document.querySelectorAll('[data-k]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); });
+  buildLensA(); buildLensB(); drawA(); drawB();
+});
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
+  S.pat = b.dataset.p; document.querySelectorAll('[data-p]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); });
+  if (S.mode != 'A') $('#bMode').click(); drawA();
+});
+$('#bF').onclick = () => { S.F = !S.F; $('#bF').classList.toggle('on', S.F); drawA(); };
+$('#bExt').onclick = () => { S.ext = !S.ext; $('#bExt').classList.toggle('on', S.ext); drawA(); };
+
+quiz($('#qz'), [
+  { q: 'Thấu kính rìa mỏng là', o: ['thấu kính phân kì', 'thấu kính hội tụ', 'gương cầu', 'lăng kính'], a: 1 },
+  { q: 'Chiếu chùm sáng song song với trục chính qua thấu kính phân kì thì chùm tia ló', o: ['hội tụ tại F', 'song song với trục chính', 'loe rộng ra, đường kéo dài đi qua tiêu điểm F', 'quay ngược trở lại'], a: 2 },
+  { q: 'Tia sáng tới quang tâm O của thấu kính thì', o: ['bị gãy khúc về phía trục chính', 'truyền thẳng, không đổi hướng', 'bị phản xạ', 'đi qua tiêu điểm'], a: 1 },
+  { q: 'Tia tới đi qua tiêu điểm của thấu kính hội tụ cho tia ló', o: ['đi qua quang tâm', 'song song với trục chính', 'đi qua tiêu điểm còn lại', 'truyền thẳng'], a: 1 },
+  { q: 'Ảnh của ngọn nến hứng được trên màn khi dùng thấu kính hội tụ (d > f) là', o: ['ảnh ảo, cùng chiều', 'ảnh thật, ngược chiều', 'ảnh ảo, ngược chiều', 'ảnh thật, cùng chiều'], a: 1 },
+  { q: 'Đặt ngọn nến trước thấu kính phân kì, nhìn qua thấu kính ta thấy', o: ['ảnh thật, ngược chiều, nhỏ hơn vật', 'ảnh ảo, cùng chiều, nhỏ hơn vật', 'ảnh ảo, cùng chiều, lớn hơn vật', 'không thấy ảnh'], a: 1 },
+  { q: 'Khoảng cách từ quang tâm đến tiêu điểm chính của thấu kính gọi là', o: ['trục chính', 'tiêu cự', 'độ phóng đại', 'bán kính'], a: 1 },
+]);
+
+buildLensA(); buildLensB(); showB('A'); drawA(); drawB(); ready();
+window.dbg = { S, B, drawA, drawB, lab, cdl };
+</script></body></html>

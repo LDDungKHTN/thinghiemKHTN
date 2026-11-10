@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 9. Thực hành đo tiêu cự của thấu kính hội tụ</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, TEX, canvasTex, lathe, cable, roundBox, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+/* ---------------- Khung trang ---------------- */
+const stage = shell({
+  title: 'Bài 9. Thực hành đo tiêu cự của thấu kính hội tụ', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Mục tiêu</h3><p>Đo được tiêu cự của thấu kính hội tụ bằng dụng cụ thực hành.</p>
+<h3>Dụng cụ (Hình 9.1)</h3>
+<ul><li>Nguồn sáng (1) và vật sáng bằng kính mờ hình chữ F (2), cao h = 20 mm;</li><li>Thấu kính hội tụ (3);</li><li>Màn chắn (4) có kẻ ô milimét;</li><li>Giá quang học đồng trục có thước (5);</li><li>Nguồn điện, dây nối (6).</li></ul>
+<h3>Phương pháp đối xứng (Silbermann)</h3>
+<p>Khi vật đặt cách thấu kính <b>d = 2f</b> thì ảnh thật hiện rõ trên màn ở <b>d' = 2f</b>, ảnh cao bằng vật. Khi đó</p>
+<div class="eq">f = (d + d') / 4</div>
+<h3>Cách tiến hành</h3>
+<ol><li>Bật công tắc nguồn điện (bấm nút đỏ trên hộp nguồn).</li>
+<li>Bấm <b>“Đặt sát thấu kính”</b> để đưa vật và màn sát thấu kính.</li>
+<li>Bật <b>“Dịch đồng thời”</b>, kéo vật (hoặc màn) ra xa dần cho đến khi ảnh chữ F <b>rõ nét</b> trên màn (bấm <b>“Nhìn màn”</b> để quan sát gần).</li>
+<li>Đọc vị trí trên thước, bấm <b>“Ghi số liệu”</b>. Đo chiều cao ảnh h' bằng các ô mm trên màn.</li>
+<li>Lặp lại thêm 2 lần (bấm “Đặt sát thấu kính” rồi làm lại), tính trung bình.</li></ol>
+<h3>Thao tác 3D</h3>
+<ul class="sm"><li>Kéo con trượt (khối đen dưới mỗi dụng cụ) để dịch chuyển trên giá.</li><li>Kéo vùng trống để xoay; cuộn chuột / chụm 2 ngón để phóng to; kéo 2 ngón (chuột phải) để dời khung nhìn.</li></ul>`},
+    { id: 'p2', title: 'Kết quả', html: `
+<div class="row"><label>Thấu kính: <select id="lens"></select></label></div>
+<h3>Bảng 9.1</h3>
+<table class="dt"><thead><tr><th>Lần đo</th><th>d (mm)</th><th>d' (mm)</th><th>h (mm)</th><th>h' (mm)</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="row"><button class="btn g" id="clr">Xoá bảng</button></div>
+<div id="res" class="note">Chưa có số liệu. Thực hiện thí nghiệm và bấm “Ghi số liệu”.</div>
+<h3>Phương pháp Bessel (mở rộng)</h3>
+<p class="sm">Bấm nút “Bessel” trên thanh công cụ: vật và màn đặt cố định cách nhau L &gt; 4f. Dịch thấu kính tìm <b>hai vị trí</b> cho ảnh rõ nét, bấm “Ghi vị trí TK” ở mỗi vị trí.</p>
+<div class="eq">f = (L² − l²) / (4L)</div>
+<div id="bes" class="note">Chưa có số liệu Bessel.</div>`},
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+
+/* ---------------- Cảnh 3D ---------------- */
+const HOME = [[.12, .5, 1.05], [0, .14, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.7, .9], minDist: .08 });
+const { scene } = lab;
+const Y0 = .2;                          // độ cao trục chính (m)
+const mx = R => R / 1000 - .5;          // vạch thước (mm) → toạ độ x (m)
+const LENSES = [{ n: 'Thấu kính A (ghi f = 100 mm)', nom: 100, f: 101.6 }, { n: 'Thấu kính B (ghi f = 150 mm)', nom: 150, f: 147.8 }, { n: 'Thấu kính C (ghi f = 200 mm)', nom: 200, f: 203.4 }];
+let lens = LENSES[0];
+const S = { O: 380, L: 500, S: 620, on: false, link: true, mode: 'sil', rays: false };
+
+/* Giá quang học */
+const rail = new THREE.Group(); scene.add(rail);
+const alu = MAT.metal(0xc9ced4, .38);
+const beam = roundBox(1.04, .022, .05, .003, alu); beam.position.set(0, .031, 0); rail.add(beam);
+const groove = new THREE.Mesh(new THREE.BoxGeometry(1.03, .004, .012), MAT.metal(0x8b9097, .5)); groove.position.set(0, .0425, 0); rail.add(groove);
+const scale = new THREE.Mesh(new THREE.PlaneGeometry(1.0, .016), new THREE.MeshStandardMaterial({ map: TEX.ruler(1000, { px: 8, h: 96, bg: '#f7f3e3' }), roughness: .6 }));
+scale.position.set(0, .031, .0252); rail.add(scale);
+for (const x of [-.47, .47]) {
+  const ft = roundBox(.05, .02, .16, .004, MAT.plastic(0x2b2f33, .6)); ft.position.set(x, .01, 0); rail.add(ft);
+}
+lab.shadow(rail);
+lab.label(rail, 'Giá quang học (5)', [.36, .02, .06]);
+
+/* Con trượt (rider) */
+function rider() {
+  const g = new THREE.Group();
+  const blk = roundBox(.034, .026, .07, .003, MAT.plastic(0x1f2327, .45)); blk.position.y = .055; g.add(blk);
+  const mark = new THREE.Mesh(new THREE.PlaneGeometry(.0012, .016), new THREE.MeshBasicMaterial({ color: 0xd9480f }));
+  mark.position.set(0, .031, .0362); g.add(mark);  // vạch chỉ vị trí, ngay trên thước
+  const knob = new THREE.Mesh(new THREE.CylinderGeometry(.007, .007, .012, 20), MAT.plastic(0x111111, .4)); knob.rotation.x = Math.PI / 2; knob.position.set(0, .055, .041); g.add(knob);
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(.0055, .0055, Y0 - .1, 24), MAT.metal(0xd7dbe0, .2)); rod.position.y = .068 + (Y0 - .1) / 2; g.add(rod);
+  return g;
+}
+
+/* Nguồn sáng + vật F */
+const ppmF = 8;
+const Fmask = canvasTex(512, 512, (g, w, h) => {});
+function drawFTex() {   // vật sáng: tấm kính mờ hình chữ F trên nền đen
+  const c = Fmask.image, g = c.getContext('2d'), k = c.width / 64;   // tấm 64 mm
+  g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = S.on ? '#fff1d6' : '#3a3a3a';
+  F_RECTS.forEach(([u0, v0, u1, v1]) => g.fillRect(c.width / 2 + u0 * k, c.height / 2 - v1 * k, (u1 - u0) * k, (v1 - v0) * k));
+  Fmask.needsUpdate = true;
+}
+const F_RECTS = [[-6, -10, -2.6, 10], [-6, 6.6, 6, 10], [-6, -1.7, 3.5, 1.7]];   // chữ F cao 20 mm, rộng 12 mm (u: phải, v: lên)
+const objG = rider(); scene.add(objG);
+const lamp = roundBox(.07, .07, .075, .006, MAT.plastic(0x2c3238, .5)); lamp.position.set(-.05, Y0, 0); objG.add(lamp);
+const vent = new THREE.Mesh(new THREE.BoxGeometry(.05, .004, .05), MAT.plastic(0x15181b, .6)); vent.position.set(-.05, Y0 + .037, 0); objG.add(vent);
+const plateFrame = roundBox(.008, .08, .08, .002, MAT.plastic(0x23272b, .5)); plateFrame.position.set(-.008, Y0, 0); objG.add(plateFrame);
+const fMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: .7, emissive: 0xffffff, emissiveMap: Fmask, emissiveIntensity: 1.6 });
+const fPlate = new THREE.Mesh(new THREE.PlaneGeometry(.064, .064), fMat); fPlate.rotation.y = Math.PI / 2; fPlate.position.set(-.0035, Y0, 0); objG.add(fPlate);
+const lampLight = new THREE.PointLight(0xffd8a0, 0, .35, 2); lampLight.position.set(.02, Y0, 0); objG.add(lampLight);
+lab.shadow(objG); fPlate.castShadow = false;
+lab.label(objG, 'Nguồn sáng (1) + vật F (2)', [-.03, Y0 + .07, 0]);
+
+/* Thấu kính hội tụ */
+const lensG = rider(); scene.add(lensG);
+const ring = new THREE.Mesh(new THREE.TorusGeometry(.03, .0045, 16, 64), MAT.plastic(0x1d1f22, .35)); ring.rotation.y = Math.PI / 2; ring.position.y = Y0; lensG.add(ring);
+const lensTag = new THREE.Mesh(new THREE.PlaneGeometry(.03, .012), new THREE.MeshStandardMaterial({ roughness: .6 })); lensTag.position.set(0, Y0 - .042, .0071); lensG.add(lensTag);
+const tagBack = roundBox(.032, .014, .006, .001, MAT.plastic(0x1d1f22, .4)); tagBack.position.set(0, Y0 - .042, .0035); lensG.add(tagBack);
+let lensMesh;
+function buildLens() {
+  if (lensMesh) { lensG.remove(lensMesh); lensMesh.geometry.dispose(); }
+  const a = .027, R = lens.f / 1000, e = .0012, pts = [], z = r => Math.sqrt(R * R - r * r) - Math.sqrt(R * R - a * a);
+  for (let i = 0; i <= 16; i++) { const r = a * i / 16; pts.push([r, -(e / 2 + z(r))]); }
+  for (let i = 16; i >= 0; i--) { const r = a * i / 16; pts.push([r, e / 2 + z(r)]); }
+  const geo = lathe(pts, 64); geo.computeVertexNormals();
+  lensMesh = new THREE.Mesh(geo, MAT.glass({ thickness: .006, roughness: .02, attenuationColor: new THREE.Color(0xd8f0ea), attenuationDistance: .3 }));
+  lensMesh.rotation.z = Math.PI / 2; lensMesh.position.y = Y0; lensG.add(lensMesh);
+  lensTag.material.map = canvasTex(256, 100, (g, w, h) => { g.fillStyle = '#f2f2ee'; g.fillRect(0, 0, w, h); g.fillStyle = '#111'; g.font = 'bold 50px Arial'; g.textAlign = 'center'; g.fillText('f = ' + lens.nom, w / 2, 62); g.font = '28px Arial'; g.fillText('mm', w / 2, 94); });
+  lensTag.material.needsUpdate = true;
+}
+lab.shadow(lensG);
+lab.label(lensG, 'Thấu kính hội tụ (3)', [0, Y0 + .055, 0]);
+
+/* Màn chắn */
+const PPM = 5.5, SCR = 130;     // màn 130 mm, 5,5 px/mm
+const scrG = rider(); scene.add(scrG);
+const paper = canvasTex(SCR * PPM, SCR * PPM, (g, w, h) => {
+  g.fillStyle = '#d6d6cf'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i <= SCR; i++) {
+    const p = i * PPM; g.strokeStyle = i % 10 == 5 ? 'rgba(80,130,190,.45)' : i % 10 == 0 ? 'rgba(60,110,180,.7)' : 'rgba(110,160,210,.22)';
+    g.lineWidth = i % 5 == 0 ? 1.4 : .8;
+    g.beginPath(); g.moveTo(p, 0); g.lineTo(p, h); g.stroke(); g.beginPath(); g.moveTo(0, p); g.lineTo(w, p); g.stroke();
+  }
+  g.strokeStyle = 'rgba(200,40,40,.6)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.moveTo(w / 2, 0); g.lineTo(w / 2, h); g.stroke();
+});
+const img = canvasTex(SCR * PPM, SCR * PPM, () => {});
+const scrMat = new THREE.MeshStandardMaterial({ map: paper, roughness: .9, emissive: 0xffffff, emissiveMap: img, emissiveIntensity: 2.2 });
+const scr = new THREE.Mesh(new THREE.PlaneGeometry(SCR / 1000, SCR / 1000), scrMat); scr.rotation.y = -Math.PI / 2; scr.position.set(-.0025, Y0, 0); scrG.add(scr);
+const scrBack = roundBox(.004, SCR / 1000 + .008, SCR / 1000 + .008, .0015, MAT.plastic(0x30363c, .5)); scrBack.position.set(.0005, Y0, 0); scrG.add(scrBack);
+lab.shadow(scrG); scr.castShadow = false;
+lab.label(scrG, 'Màn chắn (4)', [0, Y0 + .085, 0]);
+
+/* Nguồn điện + công tắc + dây */
+const psu = new THREE.Group(); psu.position.set(-.36, 0, -.27); scene.add(psu);
+const box = roundBox(.2, .085, .13, .008, MAT.plastic(0xdfe3e6, .45)); box.position.y = .0425; psu.add(box);
+const panel = new THREE.Mesh(new THREE.PlaneGeometry(.18, .06), new THREE.MeshStandardMaterial({ map: canvasTex(360, 120, (g, w, h) => { g.fillStyle = '#2f3b46'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = 'bold 20px Arial'; g.fillText('NGUỒN ĐIỆN 12 V', 14, 30); g.font = '15px Arial'; g.fillText('ON / OFF', 210, 98); }), roughness: .5 }));
+panel.position.set(0, .045, .0655); psu.add(panel);
+const sw = new THREE.Mesh(new THREE.BoxGeometry(.03, .022, .012), MAT.plastic(0xc92a2a, .35)); sw.position.set(.055, .035, .071); psu.add(sw);
+const led = new THREE.Mesh(new THREE.SphereGeometry(.004, 16, 12), new THREE.MeshStandardMaterial({ color: 0x331111, emissive: 0xff2200, emissiveIntensity: 0 })); led.position.set(-.06, .03, .068); psu.add(led);
+for (const [x, c] of [[-.02, 0xc0392b], [.0, 0x222222]]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .012, 16), MAT.plastic(c, .4)); t.rotation.x = Math.PI / 2; t.position.set(x, .02, .07); psu.add(t); }
+lab.shadow(psu);
+lab.label(psu, 'Nguồn điện (6)', [0, .11, 0]);
+lab.clickable(sw, () => { S.on = !S.on; update(); toast(S.on ? 'Đã bật nguồn sáng' : 'Đã tắt nguồn sáng'); });
+let wires = [];
+function rewire() {
+  wires.forEach(w => { scene.remove(w); w.geometry.dispose(); });
+  const x = mx(S.O) - .085;
+  wires = [cable([-.38, .02, -.2], [x, Y0 - .02, -.01], { color: 0xc0392b, sag: .14 }), cable([-.36, .02, -.2], [x, Y0 - .03, .01], { color: 0x222222, sag: .16 })];
+  wires.forEach(w => scene.add(w));
+}
+
+/* Đường truyền tia sáng (tuỳ chọn) */
+const rayG = new THREE.Group(); scene.add(rayG);
+const rayMat = new THREE.MeshBasicMaterial({ color: 0xff6b1a, transparent: true, opacity: .9 });
+function seg(a, b) { const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), L = A.distanceTo(B); const m = new THREE.Mesh(new THREE.CylinderGeometry(.0007, .0007, L, 6), rayMat); m.position.copy(A).lerp(B, .5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize()); rayG.add(m); }
+const focusDots = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.SphereGeometry(.0028, 16, 12), new THREE.MeshBasicMaterial({ color: 0x1971c2 })); rayG.add(m); return m; });
+const fLbl = [lab.label(focusDots[0], 'F', [0, .012, 0]), lab.label(focusDots[1], "F'", [0, .012, 0])];
+function drawRays() {
+  [...rayG.children].filter(c => !focusDots.includes(c)).forEach(c => { rayG.remove(c); c.geometry.dispose(); });
+  rayG.visible = S.rays; fLbl.forEach(l => l.visible = S.rays); if (!S.rays) return;
+  const f = lens.f / 1000, xo = mx(S.O), xl = mx(S.L), xs = mx(S.S), d = xl - xo, yB = Y0 + .01, h = .01;
+  focusDots[0].position.set(xl - f, Y0, 0); focusDots[1].position.set(xl + f, Y0, 0);
+  const sy = x => Y0 - h * (x - xl) / d;                           // tia qua quang tâm
+  seg([xo, yB, 0], [xl, Y0, 0]); seg([xl, Y0, 0], [xs, sy(xs), 0]);
+  seg([xo, yB, 0], [xl, yB, 0]); seg([xl, yB, 0], [xs, yB - h * (xs - xl) / f, 0]);   // tia song song → qua F'
+}
+
+/* ---------- Ảnh trên màn ---------- */
+const APER = 30;   // đường kính khẩu độ hiệu dụng (mm)
+function optics() {
+  const f = lens.f, d = S.L - S.O, s = S.S - S.L;
+  let v = Math.abs(d - f) < .01 ? 1e9 : d * f / (d - f);
+  const k = s / d;                                 // độ phóng đại hình chiếu trên màn
+  const blur = APER / 2 * Math.abs(s - v) / Math.abs(v);   // bán kính vòng nhoè (mm)
+  return { f, d, s, v, k, blur, sharp: v > 0 && blur < .55 };
+}
+function drawImage() {
+  const c = img.image, g = c.getContext('2d'), W = c.width, H = c.height;
+  g.globalCompositeOperation = 'source-over'; g.fillStyle = '#080808'; g.fillRect(0, 0, W, H);
+  if (S.on) {
+    const o = optics(), B = clamp(1.25 / (o.k * o.k + .25), .04, 1), r = o.blur * PPM;
+    const N = r < .8 ? 1 : Math.min(72, Math.round(10 + r * 1.2));
+    g.globalCompositeOperation = 'lighter';
+    // quầng sáng mờ do ánh sáng tán xạ qua thấu kính
+    const glowR = Math.min(W, (APER / 2 * (o.s / Math.max(Math.abs(o.v), 1)) + 8) * PPM);
+    const gr = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(glowR, 20));
+    gr.addColorStop(0, `rgba(255,220,160,${.06 * B})`); gr.addColorStop(1, 'rgba(255,220,160,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    g.fillStyle = `rgba(255,205,120,${Math.min(1, B / N * (N > 1 ? 1.15 : 1))})`;
+    for (let i = 0; i < N; i++) {
+      const rr = N == 1 ? 0 : r * Math.sqrt((i + .5) / N), th = i * 2.39996;
+      const ox = rr * Math.cos(th), oy = rr * Math.sin(th);
+      F_RECTS.forEach(([u0, v0, u1, v1]) => {
+        // ảnh thật ngược chiều: u giữ nguyên hướng nhìn từ phía thấu kính, v bị lật
+        const x0 = W / 2 + u0 * o.k * PPM, x1 = W / 2 + u1 * o.k * PPM, y0 = H / 2 + v0 * o.k * PPM, y1 = H / 2 + v1 * o.k * PPM;
+        g.fillRect(Math.min(x0, x1) + ox, Math.min(y0, y1) + oy, Math.abs(x1 - x0), Math.abs(y1 - y0));
+      });
+    }
+  }
+  img.needsUpdate = true;
+}
+
+/* ---------- HUD ---------- */
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+function drawHud() {
+  const o = optics();
+  hud.innerHTML = `Vật F: <b>${Math.round(S.O)}</b> mm · Thấu kính: <b>${Math.round(S.L)}</b> mm · Màn: <b>${Math.round(S.S)}</b> mm<br>
+  d = <b>${Math.round(o.d)}</b> mm · d' = <b>${Math.round(o.s)}</b> mm${S.mode == 'bes' ? ` · L = <b>${Math.round(S.S - S.O)}</b> mm` : ''}<br>
+  <span style="opacity:.85">${!S.on ? 'Nguồn sáng đang tắt – bấm nút đỏ trên hộp nguồn.' : o.sharp ? 'Ảnh trên màn: <b style="color:#8ce99a">rõ nét</b>' : o.v > 0 && o.blur < 2 ? 'Ảnh trên màn: hơi mờ' : 'Ảnh trên màn: mờ / chưa thấy ảnh'}</span>`;
+}
+
+/* ---------- Cập nhật ---------- */
+function place() { objG.position.x = mx(S.O); lensG.position.x = mx(S.L); scrG.position.x = mx(S.S); }
+function update() {
+  place(); drawFTex(); drawImage(); drawHud(); drawRays(); rewire();
+  lampLight.intensity = S.on ? .25 : 0; led.material.emissiveIntensity = S.on ? 3 : 0; sw.rotation.x = S.on ? -.25 : .25;
+}
+const GAP = 22;
+lab.draggable({ obj: objG, min: .1, max: .9, get: () => mx(S.O),
+  set(x) { let R = (x + .5) * 1000; R = clamp(R, 70, S.L - GAP);
+    if (S.link && S.mode == 'sil') { const d = S.L - R; R = S.L - Math.min(d, 1000 - 30 - S.L); S.S = S.L + (S.L - R); }
+    S.O = R; update(); } });
+lab.draggable({ obj: lensG, min: -.5, max: .5, get: () => mx(S.L),
+  set(x) { let R = (x + .5) * 1000;
+    if (S.link && S.mode == 'sil') { const a = S.L - S.O, b = S.S - S.L; R = clamp(R, 70 + a, 970 - b); S.O = R - a; S.S = R + b; }
+    else R = clamp(R, S.O + GAP, S.S - GAP);
+    S.L = R; update(); } });
+lab.draggable({ obj: scrG, min: -.5, max: .5, get: () => mx(S.S),
+  set(x) { let R = (x + .5) * 1000; R = clamp(R, S.L + GAP, 970);
+    if (S.link && S.mode == 'sil') { const d = R - S.L; R = S.L + Math.min(d, S.L - 70); S.O = S.L - (R - S.L); }
+    S.S = R; update(); } });
+
+/* ---------- Thanh công cụ ---------- */
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bRec">Ghi số liệu</button><button class="btn on" id="bLink">Dịch đồng thời</button><button class="btn" id="bNear">Đặt sát thấu kính</button>
+<button class="btn" id="bMode">Bessel</button><button class="btn" id="bView">Nhìn màn</button><button class="btn" id="bRay">Tia sáng</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+let views = 0, lbl = true;
+$('#bLink').onclick = () => { S.link = !S.link; $('#bLink').classList.toggle('on', S.link); toast(S.link ? 'Vật và màn sẽ dịch đồng thời, cách đều thấu kính' : 'Dịch riêng từng dụng cụ'); };
+$('#bNear').onclick = () => {
+  if (S.mode == 'bes') { S.L = (S.O + S.S) / 2; update(); return; }
+  S.O = S.L - 40; S.S = S.L + 40; update(); toast('Vật và màn đã đặt sát thấu kính. Kéo vật ra xa dần.');
+};
+$('#bView').onclick = () => {
+  views = (views + 1) % 3;
+  const xs = mx(S.S), xl = mx(S.L);
+  if (views == 1) lab.view([xs - .2, Y0 + .05, .16], [xs, Y0, 0]);
+  else if (views == 2) lab.view([xl, .1, .2], [xl, .035, .02]);
+  else lab.view(HOME[0], HOME[1]);
+  $('#bView').textContent = ['Nhìn màn', 'Nhìn thước', 'Toàn cảnh'][views];
+};
+$('#bRay').onclick = () => { S.rays = !S.rays; $('#bRay').classList.toggle('on', S.rays); drawRays(); };
+$('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+$('#bMode').onclick = () => {
+  S.mode = S.mode == 'sil' ? 'bes' : 'sil';
+  $('#bMode').classList.toggle('on', S.mode == 'bes');
+  if (S.mode == 'bes') { S.link = false; S.O = 100; S.S = Math.min(950, 100 + Math.ceil(lens.f * 4.6 / 10) * 10); S.L = S.O + 60; bes.p = []; drawBes(); toast('Bessel: vật và màn cố định, chỉ dịch thấu kính để tìm 2 vị trí ảnh rõ nét'); $('#bRec').textContent = 'Ghi vị trí TK'; }
+  else { S.link = true; S.L = 500; S.O = 460; S.S = 540; toast('Phương pháp đối xứng (Silbermann)'); $('#bRec').textContent = 'Ghi số liệu'; }
+  $('#bLink').classList.toggle('on', S.link); update();
+};
+
+/* ---------- Ghi số liệu ---------- */
+let rows = [];
+const bes = { p: [] };
+const rd = v => Math.round(v);      // đọc thước chính xác tới 1 mm
+$('#bRec').onclick = () => {
+  const o = optics();
+  if (!S.on) return toast('Hãy bật nguồn điện trước.');
+  if (!o.sharp) return toast('Ảnh trên màn chưa rõ nét. Hãy dịch chuyển thêm cho đến khi ảnh rõ nhất.');
+  if (S.mode == 'bes') {
+    if (bes.p.length && Math.abs(bes.p[bes.p.length - 1] - rd(S.L)) < 8) return toast('Vị trí này đã ghi. Hãy tìm vị trí rõ nét thứ hai.');
+    if (bes.p.length >= 2) bes.p = [];
+    bes.p.push(rd(S.L)); drawBes(); toast('Đã ghi vị trí thấu kính: ' + rd(S.L) + ' mm'); return;
+  }
+  if (rows.length >= 3) return toast('Bảng đã đủ 3 lần đo. Bấm “Xoá bảng” để đo lại.');
+  if (Math.abs(o.d - o.s) > 6) toast('Lưu ý: d và d\' chưa bằng nhau – kết quả có thể sai lệch.');
+  rows.push({ d: rd(o.d), dp: rd(o.s), h: 20, hp: Math.round(20 * o.k * 2) / 2 });
+  drawTable(); showPane(1); if (Math.abs(o.d - o.s) <= 6) toast(`Đã ghi lần ${rows.length}. Bấm “Đặt sát thấu kính” để đo lần tiếp theo.`);
+};
+function drawTable() {
+  $('#tb').innerHTML = [0, 1, 2].map(i => { const r = rows[i]; return `<tr><td>${i + 1}</td>${r ? `<td>${r.d}</td><td>${r.dp}</td><td>${r.h}</td><td>${fmt(r.hp)}</td>` : '<td>…</td><td>…</td><td>…</td><td>…</td>'}</tr>`; }).join('')
+    + (rows.length ? (() => { const n = rows.length, A = k => rows.reduce((s, r) => s + r[k], 0) / n; return `<tr><th>TB</th><th>${fmt(A('d'))}</th><th>${fmt(A('dp'))}</th><th>${fmt(A('h'))}</th><th>${fmt(A('hp'))}</th></tr>`; })() : '');
+  if (!rows.length) { $('#res').innerHTML = 'Chưa có số liệu. Thực hiện thí nghiệm và bấm “Ghi số liệu”.'; return; }
+  const n = rows.length, d = rows.reduce((s, r) => s + r.d, 0) / n, dp = rows.reduce((s, r) => s + r.dp, 0) / n, fm = (d + dp) / 4;
+  $('#res').innerHTML = `Tiêu cự trung bình: <b>f̄ = (d̄ + d̄') / 4 = (${fmt(d)} + ${fmt(dp)}) / 4 ≈ ${fmt(fm)} mm</b><br>Số liệu ghi trên thấu kính: ${lens.nom} mm (sai lệch ${fmt(Math.abs(fm - lens.nom) / lens.nom * 100)} %).<br><span class="sm">Nhận xét: chiều cao ảnh h' ≈ h – ảnh thật, ngược chiều, cao bằng vật.</span>`;
+}
+function drawBes() {
+  const L = S.S - S.O;
+  if (!bes.p.length) { $('#bes').innerHTML = S.mode == 'bes' ? `L = ${rd(L)} mm. Dịch thấu kính để tìm vị trí ảnh rõ nét thứ nhất.` : 'Chưa có số liệu Bessel.'; return; }
+  if (bes.p.length == 1) { $('#bes').innerHTML = `L = ${rd(L)} mm · Vị trí 1 của thấu kính: ${bes.p[0]} mm. Tìm vị trí thứ hai.`; return; }
+  const l = Math.abs(bes.p[1] - bes.p[0]), f = (L * L - l * l) / (4 * L);
+  $('#bes').innerHTML = `L = ${rd(L)} mm · vị trí 1: ${bes.p[0]} mm · vị trí 2: ${bes.p[1]} mm → l = ${l} mm<br><b>f = (L² − l²)/(4L) ≈ ${fmt(f)} mm</b>`;
+}
+$('#clr').onclick = () => { rows = []; drawTable(); };
+const sel = $('#lens'); sel.innerHTML = LENSES.map((l, i) => `<option value="${i}">${l.n}</option>`).join('');
+sel.onchange = () => { lens = LENSES[+sel.value]; buildLens(); rows = []; bes.p = []; drawTable(); drawBes(); update(); toast('Đã thay ' + lens.n); };
+
+quiz($('#qz'), [
+  { q: 'Trong phương pháp Silbermann, ảnh rõ nét trên màn khi vật và màn cách thấu kính một khoảng bằng nhau. Khoảng đó bằng', o: ['f', '2f', '3f', 'f/2'], a: 1, e: 'd = d\' = 2f.' },
+  { q: 'Khi ảnh rõ nét, ảnh trên màn có đặc điểm', o: ['Ảnh ảo, cùng chiều, lớn hơn vật', 'Ảnh thật, ngược chiều, cao bằng vật', 'Ảnh thật, cùng chiều, nhỏ hơn vật', 'Ảnh thật, ngược chiều, lớn gấp đôi vật'], a: 1, e: 'Với d = 2f: h\' = h, ảnh thật ngược chiều.' },
+  { q: 'Một lần đo được d = 302 mm, d\' = 298 mm. Tiêu cự của thấu kính là bao nhiêu mm?', n: 150, u: 'mm', e: 'f = (302 + 298)/4 = 150 mm.' },
+  { q: 'Ba lần đo cho d lần lượt 400, 404, 398 mm và d\' lần lượt 402, 398, 406 mm. Tính f̄ (mm).', n: 201, u: 'mm', tol: .005, e: 'd̄ = 400,67; d̄\' = 402; f̄ = (400,67 + 402)/4 ≈ 200,7 ≈ 201 mm.' },
+  { q: 'Ưu điểm của phương pháp Silbermann so với đo trực tiếp khoảng cách OF là', o: ['Không cần thấu kính', 'Không phải xác định vị trí tiêu điểm (khó xác định chính xác), chỉ cần quan sát ảnh rõ nét trên màn', 'Không cần nguồn sáng', 'Cho kết quả luôn đúng tuyệt đối'], a: 1, e: 'Rất khó xác định chính xác điểm hội tụ F của chùm sáng song song; việc nhận biết ảnh rõ nét dễ hơn.' },
+  { q: 'Nhược điểm của phương pháp Silbermann là', o: ['Phải dịch đồng thời vật và màn, khó xác định chính xác vị trí ảnh rõ nét nhất nên có sai số', 'Không đo được thấu kính hội tụ', 'Phải biết trước tiêu cự', 'Chỉ dùng được ánh sáng Mặt Trời'], a: 0, e: 'Mắt khó nhận ra vị trí rõ nét nhất, đồng thời thao tác dịch hai dụng cụ cùng lúc gây sai số.' },
+  { q: 'Phương pháp Bessel: L = 800 mm, khoảng cách giữa hai vị trí thấu kính cho ảnh rõ nét l = 400 mm. Tính f (mm).', n: 150, u: 'mm', e: 'f = (800² − 400²)/(4·800) = 150 mm.' },
+]);
+
+buildLens(); update(); drawTable(); drawBes(); ready();
+window.dbg = { S, update, lab, optics };
+</script></body></html>

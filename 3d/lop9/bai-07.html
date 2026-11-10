@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 7. Lăng kính</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, canvasTex, roundBox, cable, clamp } from '../core/lab3d.js';
+import { powerSupply } from '../core/kit.js';
+import { Beams, nGlass, lamRGB, deg, rad } from '../core/optics.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 7. Lăng kính', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm 1: Hiện tượng tán sắc ánh sáng</h3>
+<p><b>Chuẩn bị (Hình 7.4):</b> lăng kính gắn trên giá (1); đèn chiếu ánh sáng trắng có khe hẹp (2); màn hứng chùm sáng (3); nguồn điện và dây nối (4); tấm kính lọc sắc màu đỏ và màu tím (5).</p>
+<ol><li>Bật nguồn điện (nút đỏ).</li><li>Chiếu chùm ánh sáng trắng từ đèn vào mặt bên của lăng kính.</li><li>Kéo <b>màn chắn</b> dịch chuyển phía sau lăng kính để hứng vệt sáng trên màn. Có thể kéo lăng kính để xoay.</li><li>Quan sát dải màu trên màn, ghi thứ tự các màu.</li></ol>
+<h3>Thí nghiệm 2: Ánh sáng đơn sắc</h3>
+<ol><li>Lần lượt chắn kính lọc màu đỏ, màu tím trước khe sáng.</li><li>Dịch màn để hứng vệt sáng. Ánh sáng màu có bị tách thành nhiều màu không? So sánh góc lệch của tia đỏ và tia tím.</li></ol>
+<div class="row"><b>Kính lọc:</b><button class="btn on" data-f="0">Không</button><button class="btn g" data-f="1">Đỏ</button><button class="btn g" data-f="2">Tím</button></div>
+<div class="sl">Xoay lăng kính <input type="range" id="rot" min="-32" max="-14" step="1" value="-25"><span id="vr">0°</span></div>
+<h3>Màu sắc của vật</h3>
+<p>Bấm <b>“Màu sắc vật”</b> trên thanh công cụ: phòng được tắt đèn, chiếu ánh sáng màu vào các vật (quả táo đỏ, lá xanh, quả chanh vàng, tờ giấy trắng, mảnh vải đen) để quan sát.</p>
+<div class="row"><b>Ánh sáng chiếu:</b><button class="btn on" data-l="0">Trắng</button><button class="btn g" data-l="1">Đỏ</button><button class="btn g" data-l="2">Lục</button><button class="btn g" data-l="3">Lam</button><button class="btn g" data-l="4">Tắt</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `
+<h3>Quan sát</h3><div id="obs" class="note">Bật nguồn và hứng vệt sáng trên màn.</div>
+<h3>Kết luận</h3>
+<ul><li>Chùm ánh sáng trắng hẹp đi qua lăng kính bị tách thành dải màu từ <b>đỏ đến tím</b>: đỏ, da cam, vàng, lục, lam, chàm, tím (quang phổ của ánh sáng trắng) – hiện tượng <b>tán sắc ánh sáng</b>.</li>
+<li>Ánh sáng trắng là hỗn hợp của nhiều ánh sáng màu. Chiết suất của lăng kính lớn nhất với ánh sáng tím, nhỏ nhất với ánh sáng đỏ, nên tia tím lệch nhiều nhất.</li>
+<li>Ánh sáng đơn sắc (sau kính lọc) <b>không bị tán sắc</b> khi qua lăng kính; tia tím lệch nhiều hơn tia đỏ.</li>
+<li>Vật màu nào thì phản xạ (tán xạ) tốt ánh sáng màu đó, hấp thụ các màu khác. Vật màu trắng phản xạ tất cả; vật màu đen hấp thụ tất cả.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+
+const HOME = [[-.05, .42, .62], [0, .05, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [2, 1], minDist: .1 });
+const { scene } = lab;
+const NA = 1.60, NB = 12000, nOf = l => nGlass(l, NA, NB);      // thuỷ tinh flint: tán sắc rõ
+const Y = .075;                                                   // độ cao tia sáng
+const S = { on: false, rot: -25, phi: -50, filter: 0, mode: 'prism', light: 0 };
+
+/* Đế gỗ + tờ giấy trắng để thấy vệt sáng */
+const base = roundBox(.72, .02, .36, .004, new THREE.MeshStandardMaterial({ color: 0xd9822b, roughness: .55 })); base.position.y = .01; scene.add(base);
+const paper = new THREE.Mesh(new THREE.PlaneGeometry(.66, .3), new THREE.MeshStandardMaterial({ color: 0xa9a9a2, roughness: .95 })); paper.rotation.x = -Math.PI / 2; paper.position.y = .0205; scene.add(paper);
+lab.shadow(base); paper.receiveShadow = true;
+const plane2 = new THREE.Group(); plane2.rotation.x = -Math.PI / 2; plane2.position.y = Y; scene.add(plane2);   // 2D: (x, y) → thế giới (x, -z)
+const beams = new Beams(plane2, 0);
+const W3 = (x, y, h = Y) => new THREE.Vector3(x, h, -y);
+
+/* Đèn có khe hẹp */
+const lamp = new THREE.Group(); lamp.position.set(-.29, 0, 0); scene.add(lamp);
+const lbody = roundBox(.09, .06, .06, .006, MAT.plastic(0x1e2226, .45)); lbody.position.set(0, Y, 0); lamp.add(lbody);
+const lstand = new THREE.Mesh(new THREE.CylinderGeometry(.008, .012, Y - .03, 16), MAT.metal(0x777c82, .4)); lstand.position.y = .02 + (Y - .03) / 2; lamp.add(lstand);
+const lfront = new THREE.Mesh(new THREE.BoxGeometry(.004, .05, .05), MAT.plastic(0x101010, .5)); lfront.position.set(.047, Y, 0); lamp.add(lfront);
+const lslit = new THREE.Mesh(new THREE.PlaneGeometry(.0025, .03), new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0xfff2d0, emissiveIntensity: 0 })); lslit.rotation.y = Math.PI / 2; lslit.position.set(.0495, Y, 0); lamp.add(lslit);
+lab.shadow(lamp); lab.label(lamp, 'Đèn có khe hẹp (2)', [0, Y + .055, 0]);
+/* Giá kính lọc */
+const fHold = new THREE.Group(); fHold.position.set(-.215, 0, 0); scene.add(fHold);
+const fPost = new THREE.Mesh(new THREE.BoxGeometry(.006, Y + .02, .012), MAT.plastic(0x333333, .5)); fPost.position.set(0, .02 + (Y + .02) / 2 - .01, .04); fHold.add(fPost);
+const filt = new THREE.Mesh(new THREE.BoxGeometry(.003, .07, .07), new THREE.MeshPhysicalMaterial({ color: 0xff2020, transparent: true, opacity: .55, roughness: .1, clearcoat: 1 })); filt.position.set(0, Y, 0); fHold.add(filt);
+lab.shadow(fHold); filt.castShadow = false; lab.label(fHold, 'Kính lọc sắc (5)', [0, Y + .06, .03]);
+
+/* Lăng kính trên giá */
+const s = .07, hh = s * Math.sqrt(3) / 2, PR = [[0, hh * 2 / 3], [-s / 2, -hh / 3], [s / 2, -hh / 3]];   // A, B, C (2D)
+const prismG = new THREE.Group(); prismG.position.set(0, 0, 0); scene.add(prismG);
+const shp = new THREE.Shape(PR.map(p => new THREE.Vector2(p[0], p[1])));
+const pGeo = new THREE.ExtrudeGeometry(shp, { depth: .07, bevelEnabled: true, bevelThickness: .0008, bevelSize: .0008, bevelSegments: 2 });
+pGeo.rotateX(-Math.PI / 2); pGeo.translate(0, Y - .035, 0);    // mặt tiết diện nằm ngang
+const prism = new THREE.Mesh(pGeo, MAT.glassLite({ color: 0xe6fbff, opacity: .3 })); prismG.add(prism);
+const pEdges = new THREE.LineSegments(new THREE.EdgesGeometry(pGeo, 20), new THREE.LineBasicMaterial({ color: 0xbfe6ef, transparent: true, opacity: .8 })); prismG.add(pEdges);
+const pStand = new THREE.Mesh(new THREE.CylinderGeometry(.03, .034, Y - .035 - .02, 32), MAT.metal(0x51575d, .35)); pStand.position.y = .02 + (Y - .055) / 2; prismG.add(pStand);
+lab.shadow(pStand); lab.label(prismG, 'Lăng kính (1)', [0, Y + .055, 0]);
+
+/* Màn chắn */
+const RS = .27, SW = .16, SPX = 640;
+const scrG = new THREE.Group(); scene.add(scrG);
+const scrTex = canvasTex(SPX, SPX / 2, () => {});
+const scr = new THREE.Mesh(new THREE.PlaneGeometry(SW, SW / 2), new THREE.MeshStandardMaterial({ color: 0xcfcfc8, roughness: .95, emissive: 0xffffff, emissiveMap: scrTex, emissiveIntensity: 1.4 }));
+scr.position.y = Y; scr.rotation.y = -Math.PI / 2; scrG.add(scr);
+const scrB = roundBox(.004, SW / 2 + .01, SW + .01, .0015, MAT.plastic(0x8a6a3c, .6)); scrB.position.set(.0035, Y, 0); scrG.add(scrB);
+const scrFoot = roundBox(.05, .012, .1, .003, MAT.plastic(0x5b4022, .6)); scrFoot.position.set(.01, .026, 0); scrG.add(scrFoot);
+const scrPost = new THREE.Mesh(new THREE.BoxGeometry(.008, Y - .04, .012), MAT.plastic(0x5b4022, .6)); scrPost.position.set(.006, .032 + (Y - .04) / 2, 0); scrG.add(scrPost);
+lab.shadow(scrG); scr.castShadow = false; lab.label(scrG, 'Màn hứng (3)', [0, Y + .06, 0]);
+
+/* Nguồn điện */
+const psu = powerSupply(lab, [-.42, 0, -.33], { label: 'Nguồn điện (4)', onToggle: on => { S.on = on; if (S.mode == 'prism') { S.dark = on; lab.roomLight(on ? .22 : 1); $('#bRoom').classList.toggle('on', on); } update(); if (on) toast('Đã bật đèn chiếu. Phòng được tắt bớt đèn để quan sát rõ.'); } });
+const wires = [];
+{ const a = psu.post(0), b = psu.post(1), p = new THREE.Vector3(-.335, Y, -.01);
+  wires.push(cable([a.x, a.y, a.z], [p.x, p.y, p.z - .01], { color: 0xc0392b, sag: .06 }), cable([b.x, b.y, b.z], [p.x, p.y - .01, p.z], { color: 0x222222, sag: .07 }));
+  wires.forEach(w => scene.add(w)); }
+
+/* ---- Dò tia 2D ---- */
+const rot2 = (p, a) => [p[0] * Math.cos(a) - p[1] * Math.sin(a), p[0] * Math.sin(a) + p[1] * Math.cos(a)];
+function poly() { const a = rad(S.rot); return PR.map(p => rot2(p, a)); }
+function hitSeg(o, d, a, b) {     // giao tia o+t d với đoạn ab
+  const ex = b[0] - a[0], ey = b[1] - a[1], den = d[0] * ey - d[1] * ex; if (Math.abs(den) < 1e-12) return null;
+  const t = ((a[0] - o[0]) * ey - (a[1] - o[1]) * ex) / den, u = ((a[0] - o[0]) * d[1] - (a[1] - o[1]) * d[0]) / den;
+  return t > 1e-7 && u >= 0 && u <= 1 ? { t, n: [ey, -ex] } : null;
+}
+function refract(d, n, n1, n2) {   // n: pháp tuyến đơn vị hướng về phía tia tới
+  const c = -(d[0] * n[0] + d[1] * n[1]), r = n1 / n2, k = 1 - r * r * (1 - c * c);
+  if (k < 0) return null;
+  return [r * d[0] + (r * c - Math.sqrt(k)) * n[0], r * d[1] + (r * c - Math.sqrt(k)) * n[1]];
+}
+function trace(lam) {
+  const P = poly(), pts = [[-.245, 0]]; let o = [-.245, 0], d = [1, 0], inside = false;
+  for (let k = 0; k < 5; k++) {
+    let best = null;
+    for (let i = 0; i < 3; i++) { const h = hitSeg(o, d, P[i], P[(i + 1) % 3]); if (h && (!best || h.t < best.t)) best = h; }
+    if (!best) break;
+    o = [o[0] + d[0] * best.t, o[1] + d[1] * best.t]; pts.push(o);
+    let n = best.n, L = Math.hypot(...n); n = [n[0] / L, n[1] / L];
+    if (n[0] * d[0] + n[1] * d[1] > 0) n = [-n[0], -n[1]];
+    const nn = nOf(lam), r = inside ? refract(d, n, nn, 1) : refract(d, n, 1, nn);
+    if (r) { d = r; inside = !inside; } else { const c = d[0] * n[0] + d[1] * n[1]; d = [d[0] - 2 * c * n[0], d[1] - 2 * c * n[1]]; }
+    if (!inside) break;
+  }
+  // tới màn
+  const ph = rad(S.phi), c = [RS * Math.cos(ph), RS * Math.sin(ph)], t = [-Math.sin(ph), Math.cos(ph)];
+  const h = hitSeg(o, d, [c[0] - t[0] * SW / 2, c[1] - t[1] * SW / 2], [c[0] + t[0] * SW / 2, c[1] + t[1] * SW / 2]);
+  let sc = null;
+  if (h && !inside) { const q = [o[0] + d[0] * h.t, o[1] + d[1] * h.t]; pts.push(q); sc = (q[0] - c[0]) * t[0] + (q[1] - c[1]) * t[1]; }
+  else pts.push([o[0] + d[0] * .4, o[1] + d[1] * .4]);
+  return { pts, sc, dev: deg(Math.atan2(d[1], d[0])) };
+}
+const BAND = [[0, 400, 700], [1, 625, 700], [2, 400, 435]];
+function update() {
+  // đặt vật
+  prismG.rotation.y = rad(S.rot);
+  const ph = rad(S.phi); scrG.position.set(RS * Math.cos(ph), 0, -RS * Math.sin(ph)); scrG.rotation.y = ph;
+  filt.visible = S.filter > 0; filt.material.color.set(S.filter == 1 ? 0xff1a1a : 0x7a2cff);
+  lslit.material.emissiveIntensity = S.on ? 2.5 : 0;
+  const list = [], g = scrTex.image.getContext('2d'), Wc = scrTex.image.width, Hc = scrTex.image.height;
+  g.globalCompositeOperation = 'source-over'; g.fillStyle = '#060606'; g.fillRect(0, 0, Wc, Hc);
+  let hits = [];
+  if (S.on) {
+    const [, l0, l1] = BAND[S.filter];
+    list.push({ a: [-.245, 0], b: [S.filter ? -.217 : -.2, 0], c: 0xfff4dc, o: .9, w: .004 });
+    const reps = S.filter ? [l0 + (l1 - l0) * .3, l0 + (l1 - l0) * .7] : [690, 615, 585, 545, 480, 445, 410];
+    const first = trace(560);
+    if (first.pts.length > 2) list.push({ a: S.filter ? [-.213, 0] : [-.2, 0], b: first.pts[1], c: S.filter == 1 ? 0xff3020 : S.filter == 2 ? 0x8a3cff : 0xfff4dc, o: .9, w: .004 });
+    reps.forEach(l => { const tr = trace(l), c = lamRGB(l); for (let i = 1; i < tr.pts.length - 1; i++) list.push({ a: tr.pts[i], b: tr.pts[i + 1], c, o: i == 1 ? .25 : .7, w: .0035 }); });
+    // vẽ quang phổ trên màn
+    g.globalCompositeOperation = 'lighter';
+    const N = 90;
+    for (let i = 0; i <= N; i++) {
+      const l = l0 + (l1 - l0) * i / N, tr = trace(l); if (tr.sc == null) continue; hits.push(tr);
+      const c = lamRGB(l), x = Wc / 2 + tr.sc / SW * Wc;
+      const gr = g.createLinearGradient(x - 10, 0, x + 10, 0), col = `${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)}`;
+      const a = S.filter ? .05 : .1;
+      gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(.5, `rgba(${col},${Math.min(1, a)})`); gr.addColorStop(1, `rgba(${col},0)`);
+      g.fillStyle = gr; g.fillRect(x - 10, Hc * .3, 20, Hc * .4);
+    }
+  }
+  img(); beams.set(list); scrTex.needsUpdate = true;
+  function img() {
+    const o = $('#obs');
+    if (!S.on) { o.innerHTML = 'Đèn đang tắt. Bật nguồn điện để chiếu sáng.'; hud.innerHTML = 'Đèn đang tắt – bấm nút đỏ trên hộp nguồn.'; return; }
+    if (!hits.length) { o.innerHTML = 'Chưa hứng được vệt sáng trên màn. Hãy kéo màn dịch chuyển phía sau lăng kính.'; hud.innerHTML = 'Kéo màn hứng (3) để bắt vệt sáng.'; return; }
+    const dRed = Math.abs(trace(680).dev), dVio = Math.abs(trace(410).dev), dF = S.filter == 1 ? dRed : dVio;
+    o.innerHTML = S.filter == 0 ? `Trên màn xuất hiện <b>dải màu liên tục</b>: đỏ – da cam – vàng – lục – lam – chàm – tím. Tia đỏ lệch ít nhất (góc lệch ≈ ${fmt(dRed, 1)}°), tia tím lệch nhiều nhất (≈ ${fmt(dVio, 1)}°).`
+      : `Ánh sáng ${S.filter == 1 ? 'đỏ' : 'tím'} qua lăng kính <b>không bị tách thành nhiều màu</b>, chỉ bị lệch về phía đáy lăng kính một góc ≈ ${fmt(dF, 1)}°. ${S.filter == 1 ? 'Thử kính lọc tím để so sánh.' : `Tia tím lệch nhiều hơn tia đỏ (≈ ${fmt(dRed, 1)}°).`}`;
+    hud.innerHTML = S.filter == 0 ? 'Trên màn: <b>dải màu từ đỏ đến tím</b>' : `Trên màn: vệt sáng <b>${S.filter == 1 ? 'đỏ' : 'tím'}</b> (không tán sắc)`;
+  }
+}
+
+/* ---- Kéo lăng kính (xoay) và màn (quanh lăng kính) ---- */
+const tmp = new THREE.Vector3();
+lab.draggable({ obj: scrG, plane: new THREE.Vector3(0, 1, 0), get: () => 0, set(p) { S.phi = clamp(deg(Math.atan2(-p.z, p.x)), -80, 5); update(); } });
+let r0 = null;
+lab.draggable({ obj: prismG, handles: [prism], plane: new THREE.Vector3(0, 1, 0), get: () => 0,
+  onStart() { r0 = null; }, set(p) { const a = deg(Math.atan2(-p.z, p.x)); if (r0 == null) r0 = { a, rot: S.rot }; S.rot = clamp(r0.rot + (a - r0.a), -32, -14); $('#rot').value = S.rot; $('#vr').textContent = Math.round(S.rot + 25) + '°'; update(); } });
+void tmp;
+
+/* ---- Hộp quan sát màu sắc vật ---- */
+const cbox = new THREE.Group(); cbox.position.set(.72, 0, -.05); scene.add(cbox);
+const black = new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: .9 });
+for (const [w, h, d, x, y, z] of [[.42, .005, .28, 0, .0025, 0], [.42, .22, .005, 0, .11, -.14], [.005, .22, .28, -.21, .11, 0], [.005, .22, .28, .21, .11, 0], [.42, .005, .28, 0, .22, 0]]) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), black); m.position.set(x, y, z); cbox.add(m);
+}
+const objs = [];
+function obj(geo, color, x, z, y, name, rough = .5) { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: rough })); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; cbox.add(m); objs.push(m); lab.label(m, name, [0, .05, 0]); return m; }
+const apple = obj(new THREE.SphereGeometry(.035, 40, 30), 0xb3140c, -.14, .02, .036, 'Táo đỏ', .35); apple.scale.y = .9;
+const stem = new THREE.Mesh(new THREE.CylinderGeometry(.002, .002, .02), new THREE.MeshStandardMaterial({ color: 0x4a2c10 })); stem.position.y = .036; apple.add(stem);
+const leaf = obj(new THREE.SphereGeometry(.05, 32, 16), 0x1f7a1a, -.05, .04, .006, 'Lá xanh', .55); leaf.scale.set(1, .1, .45);
+const lemon = obj(new THREE.SphereGeometry(.03, 32, 24), 0xd8c010, .04, .02, .03, 'Chanh vàng', .45); lemon.scale.set(1.3, 1, 1);
+const card = obj(new THREE.BoxGeometry(.07, .002, .09), 0xf2f2f2, .13, .03, .002, 'Giấy trắng', .9);
+const cloth = obj(new THREE.BoxGeometry(.07, .004, .07), 0x101010, .13, -.07, .003, 'Vải đen', 1);
+const spot = new THREE.SpotLight(0xffffff, 0, 1.2, .7, .5, 1.5); spot.position.set(.72, .21, .2); spot.target.position.set(.72, 0, -.03); spot.castShadow = true; scene.add(spot, spot.target);
+const spotLamp = new THREE.Mesh(new THREE.CylinderGeometry(.018, .028, .05, 24), MAT.plastic(0x222222, .4)); spotLamp.position.set(.72, .235, .16); spotLamp.rotation.x = -.9; scene.add(spotLamp);
+lab.label(cbox, 'Hộp quan sát màu sắc vật', [0, .25, 0]);
+const LIGHTS = [0xffffff, 0xff0000, 0x00ff00, 0x0000ff, 0x000000], LN = ['trắng', 'đỏ', 'lục', 'lam', 'tắt'];
+function setLight(i) {
+  S.light = i; spot.color.set(LIGHTS[i] || 0); spot.intensity = i == 4 ? 0 : 2.2;
+  document.querySelectorAll('[data-l]').forEach(b => { b.classList.toggle('on', +b.dataset.l == i); b.classList.toggle('g', +b.dataset.l != i); });
+  if (S.mode == 'color') hud.innerHTML = `Chiếu ánh sáng <b>${LN[i]}</b> vào các vật` + (i == 4 ? '<br>Không có ánh sáng: không nhìn thấy màu của vật.' : i > 0 ? `<br>Vật chỉ phản xạ được ánh sáng ${LN[i]} chiếu tới (nếu nó phản xạ màu đó) – các vật khác trông tối.` : '');
+}
+function setMode(m) {
+  S.mode = m; $('#bMode').classList.toggle('on', m == 'color');
+  if (m == 'color') { lab.roomLight(.05); setLight(S.light); lab.view([.72, .27, .56], [.72, .06, -.03]); }
+  else { lab.roomLight(S.dark ? .22 : 1); spot.intensity = 0; lab.view(...HOME); update(); }
+}
+
+/* ---- HUD & thanh công cụ ---- */
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" id="bMode">Màu sắc vật</button><button class="btn" id="bRoom">Tắt đèn phòng</button><button class="btn" id="bView">Nhìn màn</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+let views = 0, lbl = true;
+$('#bRoom').onclick = () => { if (S.mode == 'color') return; S.dark = !S.dark; lab.roomLight(S.dark ? .22 : 1); $('#bRoom').classList.toggle('on', S.dark); };
+$('#bMode').onclick = () => setMode(S.mode == 'color' ? 'prism' : 'color');
+$('#bView').onclick = () => {
+  if (S.mode == 'color') setMode('prism');
+  views = (views + 1) % 3; const p = scrG.position;
+  if (views == 1) lab.view([p.x * .35, Y + .05, p.z * .35 + .03], [p.x, Y, p.z]); else if (views == 2) lab.view([0, .5, .05], [0, 0, -.02]); else lab.view(...HOME);
+  $('#bView').textContent = ['Nhìn màn', 'Nhìn từ trên', 'Toàn cảnh'][views];
+};
+$('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { S.filter = +b.dataset.f; document.querySelectorAll('[data-f]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); if (S.mode == 'color') setMode('prism'); update(); toast(S.filter ? 'Đã chắn kính lọc ' + (S.filter == 1 ? 'đỏ' : 'tím') : 'Đã bỏ kính lọc'); });
+document.querySelectorAll('[data-l]').forEach(b => b.onclick = () => { if (S.mode != 'color') setMode('color'); setLight(+b.dataset.l); });
+$('#rot').oninput = e => { S.rot = +e.target.value; $('#vr').textContent = (S.rot + 25) + '°'; update(); };
+
+quiz($('#qz'), [
+  { q: 'Chiếu chùm ánh sáng trắng hẹp qua lăng kính, trên màn ta thu được', o: ['một vệt sáng trắng', 'dải màu từ đỏ đến tím', 'một vệt sáng đỏ', 'không thấy gì'], a: 1 },
+  { q: 'Thứ tự các màu trong quang phổ ánh sáng trắng (từ tia lệch ít nhất) là', o: ['tím, chàm, lam, lục, vàng, da cam, đỏ', 'đỏ, da cam, vàng, lục, lam, chàm, tím', 'đỏ, vàng, lục, da cam, lam, tím, chàm', 'lục, lam, đỏ, vàng, tím, chàm, da cam'], a: 1 },
+  { q: 'Chiếu ánh sáng đỏ (sau kính lọc đỏ) qua lăng kính thì', o: ['bị tách thành nhiều màu', 'không bị tán sắc, chỉ bị lệch về phía đáy lăng kính', 'bị biến thành ánh sáng trắng', 'không bị lệch'], a: 1 },
+  { q: 'Tia sáng nào bị lăng kính làm lệch nhiều nhất?', o: ['Đỏ', 'Vàng', 'Lục', 'Tím'], a: 3, e: 'Chiết suất của thuỷ tinh lớn nhất với ánh sáng tím.' },
+  { q: 'Chiếu ánh sáng lục vào một quả táo đỏ, ta thấy quả táo có màu', o: ['đỏ', 'lục', 'gần như đen (tối)', 'trắng'], a: 2, e: 'Táo đỏ hấp thụ gần hết ánh sáng lục nên trông tối.' },
+  { q: 'Tờ giấy trắng dưới ánh sáng lam có màu', o: ['trắng', 'lam', 'đen', 'vàng'], a: 1, e: 'Vật trắng phản xạ mọi ánh sáng chiếu tới, ở đây là ánh sáng lam.' },
+  { q: 'Vì sao ta thấy vật có màu đen?', o: ['Vì vật phản xạ tất cả ánh sáng', 'Vì vật hấp thụ hầu hết ánh sáng chiếu tới, không có ánh sáng phản xạ tới mắt', 'Vì vật phát ra ánh sáng đen', 'Vì mắt bị mỏi'], a: 1 },
+]);
+
+setLight(0); update(); ready();
+window.dbg = { S, update, lab, setMode, trace };
+</script></body></html>
