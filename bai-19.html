@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 19 – Dãy hoạt động hoá học</title>
+<link rel="stylesheet" href="assets/lib.css"><script src="assets/lib.js"></script>
+<style>.sr{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:8px 0}.sr .btn{min-width:42px;padding:8px 6px;font-size:15px}.sr .gr{background:#e03131}.sr .gm{background:#f59f00}.sr .gw{background:#868e96}.sr .gh{background:#1c7ed6}.sr .btn.on{outline:3px solid var(--ink)}.rk{font-weight:700;font-size:16px}.lbl{font-weight:700;margin:12px 0 4px}</style></head><body>
+<header><h1>Bài 19. Dãy hoạt động hoá học<a href="index.html">← Danh sách bài</a></h1>
+<nav><button class="tab on">Xây dựng dãy hoạt động</button><button class="tab">Dãy hoạt động &amp; ý nghĩa</button><button class="tab">Dự đoán phản ứng</button><button class="tab">Câu hỏi</button></nav></header>
+
+<div class="pn" id="v0"><div class="cd">Sắp xếp mức độ hoạt động hoá học của Na, Fe, H, Cu, Ag qua ba khảo sát. Với mỗi khảo sát, hãy làm thí nghiệm rồi chờ vài giây để quan sát; bảng kết luận phía dưới tự cập nhật.</div>
+<div class="lbl">Khảo sát 1: Na, Fe, Cu với nước (mỗi ống một kim loại)</div><div id="lb1"></div>
+<div class="lbl">Khảo sát 2: Fe, Cu với dung dịch HCl cùng nồng độ</div><div id="lb2"></div>
+<div class="lbl">Khảo sát 3: Cu với dung dịch AgNO₃ 2%</div><div id="lb3"></div>
+<div class="cd" id="rk" style="margin-top:10px"></div></div>
+
+<div class="pn" id="v1" hidden><div class="cd"><b>Dãy hoạt động hoá học:</b> K, Na, Ca, Mg, Al, Zn, Fe, Pb, <span style="color:var(--bl);font-weight:700">H</span>, Cu, Ag, Au. Bấm vào một kim loại để xem tính chất; từ trái sang phải mức độ hoạt động hoá học giảm dần.</div>
+<div class="sr" id="sr"></div><div class="sm">Mạnh (đỏ) · trung bình (cam) · yếu (xám). H (xanh) là mốc hydrogen.</div><div class="cd" id="si" style="margin-top:8px"></div>
+<div class="cd"><b>Ý nghĩa của dãy hoạt động hoá học</b><ul style="margin:4px 0"><li>Từ trái sang phải, mức độ hoạt động hoá học của kim loại giảm dần.</li><li>Kim loại mạnh như K, Na, Ca… tác dụng với nước ở điều kiện thường tạo hydroxide và khí H₂.</li><li>Kim loại đứng trước H tác dụng với dung dịch acid (HCl, H₂SO₄ loãng…) giải phóng khí H₂.</li><li>Kim loại đứng trước (trừ K, Na, Ca…) đẩy được kim loại đứng sau ra khỏi dung dịch muối.</li></ul></div></div>
+
+<div class="pn" id="v2" hidden><div class="cd"><b>Công cụ dự đoán.</b> Chọn kim loại và chất phản ứng, hãy dự đoán rồi xem kết luận dựa vào dãy hoạt động.</div>
+<div class="row"><select id="pa"></select><select id="pr"><option value="w">nước (điều kiện thường)</option><option value="a">dung dịch HCl / H₂SO₄ loãng</option><option value="s">dung dịch muối của kim loại</option></select><select id="pb"></select><button class="btn" id="pg">Dự đoán</button></div><div class="cd" id="po">Chọn rồi bấm “Dự đoán”.</div>
+<div class="lbl">Dự đoán các thí nghiệm trong sách</div><div class="cd"><div id="ex"></div><div class="row"><button class="btn" id="ek">Xem kết quả</button></div></div>
+<div class="lbl">Tự do thí nghiệm</div><div id="lb4"></div></div>
+<div class="pn" id="v3" hidden><div id="qs"></div></div>
+
+<script>
+tabs();
+const G=(it,id)=>(it.find(x=>x.id==id)||{amt:0}).amt,fade=(a,s)=>Math.max(0,1-a/s);
+const FL={nw:0,fw:0,cw:0,fa:0,ca:0,cg:0};
+/* khảo sát 1 */
+const L1=Lab('#lb1',{tubes:3,labels:['Ống 1','Ống 2','Ống 3'],reagents:[{id:'w',n:'Nước cất',c:'#d7ecf5',k:'liq'},{id:'Na',n:'Natri (Na)',c:'#dfe3e6',k:'sol'},{id:'Fe',n:'Đinh sắt (Fe)',c:'#7d848b',k:'sol'},{id:'Cu',n:'Dây đồng (Cu)',c:'#c9783c',k:'sol'}],
+ react(it,h,age){const s={color:'#d7ecf5',op:.55,notes:[],eq:[]},w=G(it,'w'),m=['Na','Fe','Cu'].find(x=>G(it,x));if(!m)return s;const c={Na:'#dfe3e6',Fe:'#7d848b',Cu:'#c9783c'}[m];if(!w){s.solid={kind:'chunk',c,amt:1};s.notes.push('Chưa có nước.');return s}
+ if(m=='Na'){const p=fade(age,6);s.solid={kind:'chunk',c,amt:p};s.bub=.9;s.notes.push('Natri chạy trên mặt nước, nóng chảy, sủi bọt khí H₂ mạnh, toả nhiều nhiệt → phản ứng với nước ở điều kiện thường.');s.eq.push('2Na + 2H₂O → 2NaOH + H₂↑');if(age>3)FL.nw=1}
+ else{s.solid={kind:m=='Cu'?'wire':'chunk',c,amt:1};s.notes.push(`${m=='Fe'?'Sắt':'Đồng'} không phản ứng với nước ở nhiệt độ thường (không có bọt khí).`);if(age>3)FL[m=='Fe'?'fw':'cw']=1}return s}});
+const L2=Lab('#lb2',{tubes:2,reagents:[{id:'hcl',n:'Dung dịch HCl',c:'#e3f1f8',k:'liq'},{id:'Fe',n:'Đinh sắt (Fe)',c:'#7d848b',k:'sol'},{id:'Cu',n:'Dây đồng (Cu)',c:'#c9783c',k:'sol'}],
+ react(it,h,age){const s={color:'#e3f1f8',op:.5,notes:[],eq:[]},a=G(it,'hcl'),m=['Fe','Cu'].find(x=>G(it,x));if(!m)return s;if(!a){s.solid={kind:'chunk',c:'#888',amt:1};s.notes.push('Chưa có acid.');return s}
+ if(m=='Fe'){const p=fade(age,22);s.solid={kind:'chunk',c:'#7d848b',amt:Math.max(.2,p)};s.bub=.5;s.color=mix('#e3f1f8','#b7e0b0',Math.min(1,age/12));s.notes.push('Có bọt khí H₂ quanh đinh sắt: Fe đẩy được hydrogen ra khỏi acid → Fe hoạt động hơn H.');s.eq.push('Fe + 2HCl → FeCl₂ + H₂↑');if(age>3)FL.fa=1}
+ else{s.solid={kind:'wire',c:'#c9783c',amt:1};s.notes.push('Đồng không có bọt khí: không đẩy được hydrogen → Cu kém hoạt động hơn H.');if(age>3)FL.ca=1}return s}});
+const L3=Lab('#lb3',{tubes:1,reagents:[{id:'ag',n:'Dung dịch AgNO₃ 2%',c:'#eef2f5',k:'liq'},{id:'Cu',n:'Dây đồng xoắn (Cu)',c:'#c9783c',k:'sol'}],
+ react(it,h,age){const s={color:'#e6eef3',op:.5,notes:[],eq:[]};if(G(it,'Cu')&&G(it,'ag')){const p=Math.min(1,age/9);s.solid={kind:'wire',c:mix('#c9783c','#d9dde1',p),amt:1};s.color=mix('#e6eef3','#6bb7ea',p);s.op=.5+.3*p;if(p>.2)s.ppt={c:'#cfd4d8',amt:p*.3};s.notes.push('Có lớp bạc màu xám trắng bám trên dây đồng, dung dịch chuyển dần sang màu xanh lam (copper(II) nitrate) → Cu đẩy Ag ra khỏi muối: Cu hoạt động hơn Ag.');s.eq.push('Cu + 2AgNO₃ → Cu(NO₃)₂ + 2Ag');if(age>6)FL.cg=1}else if(G(it,'Cu'))s.solid={kind:'wire',c:'#c9783c',amt:1};return s}});
+function rk(){const l=[];if(FL.nw&&FL.fw&&FL.cw)l.push('Khảo sát 1: Na phản ứng với nước ở điều kiện thường, Fe và Cu thì không ⇒ Na hoạt động hơn Fe và Cu.');if(FL.fa&&FL.ca)l.push('Khảo sát 2: Fe đẩy được H₂ khỏi dung dịch HCl còn Cu thì không ⇒ Fe &gt; H &gt; Cu.');if(FL.cg)l.push('Khảo sát 3: Cu đẩy Ag ra khỏi dung dịch AgNO₃ ⇒ Cu hoạt động hơn Ag.');const all=FL.nw&&FL.fw&&FL.cw&&FL.fa&&FL.ca&&FL.cg;
+ const h=`<b>Bảng kết luận</b><br>${l.length?l.join('<br>'):'<span class="sm">Làm thí nghiệm và chờ vài giây: kết luận sẽ xuất hiện ở đây.</span>'}${all?'<div class="rk ok" style="margin-top:8px">Mức độ hoạt động hoá học giảm dần: Na &gt; Fe &gt; H &gt; Cu &gt; Ag</div>':''}`;if($('#rk').dataset.h!=h){$('#rk').dataset.h=h;$('#rk').innerHTML=h}}
+/* dãy */
+const SE=[['K','gr'],['Na','gr'],['Ca','gr'],['Mg','gm'],['Al','gm'],['Zn','gm'],['Fe','gm'],['Pb','gm'],['H','gh'],['Cu','gw'],['Ag','gw'],['Au','gw']],ID=Object.fromEntries(SE.map((s,i)=>[s[0],12-i]));
+$('#sr').innerHTML=SE.map((s,i)=>`<button class="btn ${s[1]} sb" data-m="${s[0]}">${s[0]}</button>${i<11?'<span class="sm">›</span>':''}`).join('');
+function info(m){if(m=='H')return 'Hydrogen là mốc: kim loại đứng trước H đẩy được H₂ khỏi dung dịch acid.';const i=ID[m],h=ID.H;return `<b>${m}</b>: ${i>=ID.Ca?'tác dụng với nước ở điều kiện thường (tạo hydroxide và H₂); ':'không tác dụng với nước ở điều kiện thường; '}${i>h?'tác dụng với dung dịch acid (HCl, H₂SO₄ loãng…) giải phóng H₂; ':'không tác dụng với dung dịch HCl, H₂SO₄ loãng; '}${i<=ID.Au+1?'rất kém hoạt động (bị đẩy khỏi muối bởi hầu hết kim loại đứng trước).':`đẩy được các kim loại đứng sau nó ra khỏi dung dịch muối (trừ K, Na, Ca…).`}`}
+$$('.sb').forEach(b=>b.onclick=()=>{$$('.sb').forEach(x=>x.classList.toggle('on',x==b));$('#si').innerHTML=info(b.dataset.m)});$('#si').textContent='Bấm vào một kim loại.';
+const MM=SE.filter(s=>s[0]!='H').map(s=>s[0]);$('#pa').innerHTML=MM.map(m=>`<option>${m}</option>`).join('');$('#pb').innerHTML=MM.map(m=>`<option ${m=='Cu'?'selected':''}>${m}</option>`).join('');$('#pa').value='Fe';
+$('#pg').onclick=()=>{const a=$('#pa').value,r=$('#pr').value,b=$('#pb').value;let t='';
+ if(r=='w'){const y=ID[a]>=ID.Ca;t=y?`${a} đứng trước (hoặc ở vị trí) nhóm mạnh K, Na, Ca nên <span class="ok">phản ứng với nước ở điều kiện thường</span>, tạo hydroxide và khí H₂.`:`${a} nằm sau Ca trong dãy nên <span class="er">không phản ứng với nước ở điều kiện thường</span> (một số như Zn, Fe chỉ phản ứng với hơi nước ở nhiệt độ cao).`}
+ if(r=='a'){const y=ID[a]>ID.H;t=y?`${a} đứng trước H nên <span class="ok">phản ứng với dung dịch acid</span>, giải phóng khí H₂ và tạo muối.`:`${a} đứng sau H nên <span class="er">không phản ứng với dung dịch HCl, H₂SO₄ loãng</span>.`}
+ if(r=='s'){if(a==b)t='Kim loại và muối của cùng một kim loại: không có phản ứng.';else if(['K','Na','Ca'].includes(a))t=`${a} phản ứng với nước trong dung dịch trước nên không đẩy được kim loại ${b} ra khỏi muối.`;else{const y=ID[a]>ID[b];t=y?`${a} đứng trước ${b} nên <span class="ok">đẩy được ${b} ra khỏi dung dịch muối</span>: tạo muối của ${a} và kim loại ${b}.`:`${a} đứng sau ${b} nên <span class="er">không đẩy được ${b}</span> ra khỏi dung dịch muối.`}}$('#po').innerHTML=t};
+const EX=[['Mg, Ag, Zn + dung dịch H₂SO₄ loãng',[['Mg',1,'Mg + H₂SO₄ → MgSO₄ + H₂↑'],['Ag',0,'Ag đứng sau H: không phản ứng'],['Zn',1,'Zn + H₂SO₄ → ZnSO₄ + H₂↑']]],['Viên kẽm + dung dịch AgNO₃',[['Zn',1,'Zn + 2AgNO₃ → Zn(NO₃)₂ + 2Ag']]],['Cu, Fe, Ca + nước (cốc 25 mL)',[['Cu',0,'Cu: không phản ứng với nước'],['Fe',0,'Fe: không phản ứng với nước ở nhiệt độ thường'],['Ca',1,'Ca + 2H₂O → Ca(OH)₂ + H₂↑']]]];
+let ei=0;$('#ex').innerHTML=EX.map((e,i)=>`<div><b>${i+1}. ${e[0]}</b>${e[1].map((m,j)=>`<div class="row" style="margin:3px 0"><span style="width:50px">${m[0]}</span><select id="e${ei++}"><option value="">phản ứng?</option><option value="1">Có</option><option value="0">Không</option></select><span class="sm" id="ee${ei-1}"></span></div>`).join('')}</div>`).join('');
+$('#ek').onclick=()=>{let k=0;EX.forEach(e=>e[1].forEach(m=>{const v=$('#e'+k).value,ok=v!==''&&+v==m[1];$('#ee'+k).innerHTML=`${v===''?'':ok?'<span class="ok">Đúng.</span> ':'<span class="er">Chưa đúng.</span> '}${m[2]}`;k++}))};
+/* lab tự do */
+const MT={Mg:['#d0d4d8',9,'MgSO₄','Mg(NO₃)₂'],Zn:['#a9b4c0',7,'ZnSO₄','Zn(NO₃)₂'],Fe:['#7d848b',6,'FeSO₄','Fe(NO₃)₂'],Cu:['#c9783c',3,'CuSO₄','Cu(NO₃)₂'],Ag:['#e9ecef',2,'','AgNO₃'],Ca:['#adb5bd',10,'CaSO₄','Ca(NO₃)₂']};
+const L4=Lab('#lb4',{tubes:3,reagents:[{id:'w',n:'Nước',c:'#d7ecf5',k:'liq'},{id:'h2',n:'H₂SO₄ loãng',c:'#e3f1f8',k:'liq'},{id:'cu',n:'Dung dịch CuSO₄',c:'#3b9be0',k:'liq'},{id:'ag',n:'Dung dịch AgNO₃',c:'#eef2f5',k:'liq'},...Object.keys(MT).map(m=>({id:m,n:m=='Ag'?'Bạc (Ag)':m,c:MT[m][0],k:'sol'}))],
+ react(it,h,age){const s={color:'#e6eef3',op:.5,notes:[],eq:[]};if(!it.length)return s;const m=Object.keys(MT).find(x=>G(it,x));const w=G(it,'w'),a=G(it,'h2'),cu=G(it,'cu'),ag=G(it,'ag');if(!m)return s;const[c,i]=MT[m],p=Math.min(1,age/9),kd=m=='Cu'?'wire':'chunk';s.solid={kind:kd,c,amt:1};
+ if(w){s.color='#d7ecf5';if(m=='Ca'){s.bub=.5;s.solid.amt=fade(age,14);s.notes.push('Ca phản ứng với nước ở điều kiện thường: sủi bọt khí H₂, dung dịch hơi đục.');s.eq.push('Ca + 2H₂O → Ca(OH)₂ + H₂↑')}else s.notes.push(`${m} không phản ứng với nước ở điều kiện thường (đứng sau Ca).`)}
+ else if(a){s.color='#e3f1f8';if(i>3.5&&m!='Ag'){s.bub=Math.min(1,.15+i*.1);s.solid.amt=Math.max(.15,fade(age,i>8?5:20));if(m=='Fe')s.color=mix('#e3f1f8','#b7e0b0',p);s.notes.push(`${m} đứng trước H nên tan trong acid, có bọt khí H₂.`);s.eq.push(`${m} + H₂SO₄ → ${MT[m][2]} + H₂↑`)}else s.notes.push(`${m} đứng sau H: không tác dụng với dung dịch H₂SO₄ loãng.`)}
+ else if(cu||ag){const sb=cu?3:2,nm=cu?'CuSO₄':'AgNO₃';s.color=cu?'#3b9be0':'#e6eef3';s.op=cu?.8:.5;if(i>sb&&m!='Ca'){s.notes.push(`${m} đứng trước ${cu?'Cu':'Ag'} nên đẩy ${cu?'Cu':'Ag'} ra khỏi dung dịch ${nm}: có kim loại ${cu?'đỏ (Cu)':'xám trắng (Ag)'} bám vào ${m}.`);s.eq.push(cu?`${m} + CuSO₄ → ${MT[m][2]} + Cu`:`${m} + 2AgNO₃ → ${MT[m][3]} + 2Ag`);s.solid.c=mix(c,cu?'#b5651d':'#e9ecef',p);if(p>.3)s.ppt={c:cu?'#b5651d':'#dee2e6',amt:p*.4};if(cu)s.color=mix('#3b9be0',m=='Fe'?'#cfe8c8':'#e4f1f6',p);else{if(m=='Cu')s.color=mix('#e6eef3','#6bb7ea',p);s.op=.5+.2*p}}else s.notes.push(`${m} đứng sau (hoặc bằng) ${cu?'Cu':'Ag'}: không đẩy được kim loại ra khỏi dung dịch ${nm}, không có hiện tượng.`)}
+ else s.notes.push('Hãy thêm chất phản ứng (nước, acid hoặc dung dịch muối).');return s}});
+loop(dt=>{if(cur==0){L1.tick(dt);L2.tick(dt);L3.tick(dt);rk()}if(cur==2)L4.tick(dt)});rk();
+quiz('qs',[{q:'Dãy nào sau đây xếp đúng theo chiều mức độ hoạt động hoá học giảm dần?',o:['Na, Mg, Fe, Cu, Ag','Ag, Cu, Fe, Mg, Na','Fe, Na, Cu, Mg, Ag','Cu, Fe, Na, Ag, Mg'],a:0,e:'Dãy: K, Na, Ca, Mg, Al, Zn, Fe, Pb, H, Cu, Ag, Au.'},
+{q:'Kim loại nào sau đây tác dụng với nước ở điều kiện thường?',o:['Ca','Fe','Cu','Ag'],a:0,e:'K, Na, Ca… là kim loại hoạt động mạnh, tác dụng với nước tạo hydroxide và H₂.'},
+{q:'Kim loại nào KHÔNG tác dụng với dung dịch H₂SO₄ loãng?',o:['Ag','Mg','Zn','Fe'],a:0,e:'Ag đứng sau H nên không đẩy được hydrogen khỏi acid.'},
+{q:'Cho viên kẽm vào dung dịch AgNO₃, hiện tượng và sản phẩm là gì?',o:['Bạc bám lên kẽm; tạo Zn(NO₃)₂','Không có phản ứng','Tạo khí H₂'],a:0,e:'Zn đứng trước Ag: Zn + 2AgNO₃ → Zn(NO₃)₂ + 2Ag.'},
+{q:'Vì sao Cu đẩy được Ag ra khỏi dung dịch AgNO₃?',o:['Cu hoạt động hoá học mạnh hơn Ag','Ag hoạt động mạnh hơn Cu','Vì Cu nặng hơn Ag'],a:0,e:'Cu đứng trước Ag trong dãy hoạt động.'},
+{q:'Kim loại đứng trước H trong dãy tác dụng với dung dịch acid tạo ra:',o:['Muối và khí hydrogen','Muối và nước','Oxide và hydrogen'],a:0,e:'Ví dụ: Fe + 2HCl → FeCl₂ + H₂.'},
+{q:'Nhóm nào gồm toàn kim loại hoạt động hoá học yếu?',o:['Cu, Ag, Au','K, Na, Ca','Mg, Al, Zn','Fe, Pb, Zn'],a:0,e:'Cu, Ag, Au đứng sau H.'}]);
+</script></body></html>
