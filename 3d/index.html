@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thí nghiệm 3D KHTN</title>
+<style>
+:root{--bg:#eef2f6;--cd:#fff;--ink:#17222d;--mut:#5a6977;--ln:#d3dbe3;--ac:#0b7285;--ac2:#e8590c;--ok:#2b8a3e;--chip:#e7f5f8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f161d;--cd:#18222c;--ink:#e5edf4;--mut:#93a4b4;--ln:#2b3946;--ac:#3bc9db;--ac2:#ff922b;--ok:#69db7c;--chip:#123038}}
+:root[data-theme="dark"]{--bg:#0f161d;--cd:#18222c;--ink:#e5edf4;--mut:#93a4b4;--ln:#2b3946;--ac:#3bc9db;--ac2:#ff922b;--ok:#69db7c;--chip:#123038}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+.w{max-width:1000px;margin:0 auto;padding:22px 16px 48px}
+h1{font-size:25px;margin:0 0 4px}p.s{color:var(--mut);margin:0 0 16px}
+.gr{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.gr button{border:1px solid var(--ln);background:var(--cd);color:var(--ink);font:600 15px inherit;font-family:inherit;padding:8px 16px;border-radius:999px;cursor:pointer}
+.gr button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+h2{font-size:15.5px;margin:20px 0 8px;color:var(--mut)}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:9px}
+.c{display:flex;flex-direction:column;gap:3px;background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:11px 13px;color:var(--ink);text-decoration:none}
+a.c{border-color:var(--ac)}a.c:hover{box-shadow:0 3px 14px rgba(11,114,133,.22);transform:translateY(-1px)}
+.c b{font-size:14.5px}.c span{color:var(--mut);font-size:13px}
+.c i{font-style:normal;font-size:12px;font-weight:600;color:var(--ok)}div.c i{color:var(--mut)}
+.note{background:var(--chip);border-radius:8px;padding:9px 12px;font-size:13.5px;color:var(--mut);margin-top:22px}
+</style></head><body><div class="w">
+<h1>Thí nghiệm 3D – Khoa học tự nhiên</h1>
+<p class="s">Bộ sách Kết nối tri thức với cuộc sống. Phòng thí nghiệm 3D: xoay, phóng to, thao tác trực tiếp trên dụng cụ.</p>
+<div class="gr" id="gr"></div><div id="L"></div>
+<div class="note">Cách dùng: kéo vùng trống để xoay; cuộn chuột hoặc chụm hai ngón để phóng to; kéo các dụng cụ (con trượt, đèn, thấu kính…) để dịch chuyển; bấm vào công tắc, nút nguồn để bật/tắt. Cần kết nối Internet khi mở trang.</div>
+</div>
+<script>
+// [lớp, bài, tên bài, mô tả thí nghiệm, tệp (để trống nếu chưa có)]
+const D = {
+ 9: [["Chương II. Ánh sáng", [
+   [5, "Khúc xạ ánh sáng", "Bán trụ thuỷ tinh, đo góc khúc xạ – Bảng 5.1", "lop9/bai-05.html"],
+   [6, "Phản xạ toàn phần", "Tăng góc tới, tìm góc tới hạn – Bảng 6.1", "lop9/bai-06.html"],
+   [7, "Lăng kính", "Tán sắc ánh sáng trắng, kính lọc màu, màu sắc vật", "lop9/bai-07.html"],
+   [8, "Thấu kính", "Chùm tia qua thấu kính; ảnh ngọn nến; nhìn qua thấu kính", "lop9/bai-08.html"],
+   [9, "Thực hành đo tiêu cự của thấu kính hội tụ", "Giá quang học – phương pháp Silbermann, Bessel", "lop9/bai-09.html"]]],
+  ["Chương III. Điện", [
+   [11, "Điện trở. Định luật Ohm", "Tính chất điện trở; đo I theo U, vẽ đồ thị", "lop9/bai-11.html"],
+   [12, "Đoạn mạch nối tiếp, song song", "Đo cường độ dòng điện bằng các ampe kế", "lop9/bai-12.html"],
+   [13, "Năng lượng của dòng điện và công suất điện", "Đo U, I, tính công suất và điện năng bóng đèn", "lop9/bai-13.html"]]],
+  ["Chương IV. Điện từ", [
+   [14, "Cảm ứng điện từ", "Nam châm – cuộn dây – điện kế; máy phát điện xoay chiều", ""],
+   [15, "Tác dụng của dòng điện xoay chiều", "Tác dụng nhiệt, quang, từ, sinh lí", ""]]],
+  ["Chương I. Năng lượng cơ học", [
+   [2, "Động năng. Thế năng", "Viên bi lăn va vào khúc gỗ", ""],
+   [3, "Cơ năng", "Con lắc, chuyển hoá động năng – thế năng", ""]]],
+  ["Chương VI. Kim loại", [
+   [18, "Tính chất chung của kim loại", "Tính dẫn nhiệt, dẻo; kim loại tác dụng với O₂, S, acid, muối", ""],
+   [19, "Dãy hoạt động hoá học", "So sánh mức độ hoạt động của kim loại", ""],
+   [21, "Sự khác nhau cơ bản giữa phi kim và kim loại", "Đốt lưu huỳnh, carbon; tính dẫn điện", ""]]],
+  ["Chương VII – IX. Hoá học hữu cơ", [
+   [24, "Alkene", "Ethylene làm mất màu nước bromine", ""],
+   [26, "Ethylic alcohol", "Đốt cháy, tác dụng với sodium", ""],
+   [27, "Acetic acid", "Tính acid, phản ứng ester hoá", ""],
+   [28, "Lipid", "Phản ứng xà phòng hoá chất béo", ""],
+   [29, "Glucose và saccharose", "Phản ứng tráng bạc", ""],
+   [30, "Tinh bột và cellulose", "Tinh bột + iodine", ""],
+   [31, "Protein", "Đông tụ protein, đốt cháy", ""]]]],
+ 7: [], 8: [], 6: []
+};
+let g = +(localStorage.getItem('grade3d') || 9);
+const gr = document.getElementById('gr');
+gr.innerHTML = [6, 7, 8, 9].map(k => `<button data-g="${k}">Lớp ${k}</button>`).join('');
+function draw() {
+  try { localStorage.setItem('grade3d', g) } catch (e) { }
+  gr.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.g == g));
+  const L = D[g];
+  document.getElementById('L').innerHTML = !L.length ? '<p class="s">Đang xây dựng các thí nghiệm của lớp ' + g + '. Sắp có!</p>' :
+    L.map(([t, ls]) => `<h2>${t}</h2><div class="g">${ls.map(([n, x, m, f]) => f ? `<a class="c" href="${f}"><b>Bài ${n}. ${x}</b><span>${m}</span><i>▶ Mở thí nghiệm 3D</i></a>` : `<div class="c"><b>Bài ${n}. ${x}</b><span>${m}</span><i>Sắp có</i></div>`).join('')}</div>`).join('');
+}
+gr.onclick = e => { const b = e.target.closest('button'); if (b) { g = +b.dataset.g; draw(); } };
+draw();
+</script></body></html>
