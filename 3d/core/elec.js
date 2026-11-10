@@ -36,7 +36,7 @@ export function supply(lab, pos, { V = 12, label = 'Nguồn điện', onToggle }
 }
 
 /** Đồng hồ đo kim (ampe kế 'A' / vôn kế 'V') */
-export function meter(lab, pos, { kind = 'A', max = 3, step, label, rotY = 0 } = {}) {
+export function meter(lab, pos, { kind = 'A', max = 3, step, label, rotY = 0, center = false } = {}) {
   const g = mk(lab, pos, rotY), W = .1, H = .075;
   const body = roundBox(W, H, .045, .006, MAT.plastic(0x1f2a33, .4)); body.position.y = H / 2; body.rotation.x = -.35; g.add(body);
   const face = new THREE.Group(); face.position.set(0, H / 2, 0); face.rotation.x = -.35; g.add(face);
@@ -45,15 +45,15 @@ export function meter(lab, pos, { kind = 'A', max = 3, step, label, rotY = 0 } =
     c.fillStyle = '#f8f6ee'; c.fillRect(0, 0, w, h); const cx = w / 2, cy = h * .92, R = h * .75;
     c.strokeStyle = '#111'; c.fillStyle = '#111'; c.textAlign = 'center'; c.lineWidth = 3;
     c.beginPath(); c.arc(cx, cy, R, rad(-140), rad(-40)); c.stroke();
-    const n = Math.round(max / step);
+    const n = Math.round((center ? 2 : 1) * max / step);
     for (let i = 0; i <= n; i++) {
       const a = rad(-140 + 100 * i / n), big = i % 5 == 0, L = big ? 26 : 13;
       c.lineWidth = big ? 3 : 1.6; c.beginPath(); c.moveTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); c.lineTo(cx + Math.cos(a) * (R + L), cy + Math.sin(a) * (R + L)); c.stroke();
-      if (big) { c.font = 'bold 26px Arial'; const v = +(i * step).toFixed(3); c.fillText(String(v).replace('.', ','), cx + Math.cos(a) * (R + 50), cy + Math.sin(a) * (R + 50) + 9); }
+      if (big) { c.font = 'bold 26px Arial'; const v = +((center ? i * step - max : i * step)).toFixed(3); c.fillText(String(v).replace('.', ','), cx + Math.cos(a) * (R + 50), cy + Math.sin(a) * (R + 50) + 9); }
     }
     c.fillStyle = 'rgba(150,170,190,.35)'; c.beginPath(); c.arc(cx, cy, R - 10, rad(-140), rad(-40)); c.arc(cx, cy, R - 24, rad(-40), rad(-140), true); c.fill();
     c.fillStyle = kind == 'A' ? '#c92a2a' : '#1864ab'; c.font = 'bold 76px Arial'; c.fillText(kind, cx, cy - 60);
-    c.fillStyle = '#444'; c.font = '20px Arial'; c.fillText(`GHĐ ${String(max).replace('.', ',')} ${kind}  ·  ĐCNN ${String(step).replace('.', ',')} ${kind}`, cx, h - 8);
+    c.fillStyle = '#444'; c.font = '20px Arial'; c.fillText(center ? 'ĐIỆN KẾ (G)' : `GHĐ ${String(max).replace('.', ',')} ${kind}  ·  ĐCNN ${String(step).replace('.', ',')} ${kind}`, cx, h - 8);
   });
   const dm = new THREE.Mesh(new THREE.PlaneGeometry(W * .86, H * .78), new THREE.MeshStandardMaterial({ map: dial, roughness: .5 })); dm.position.set(0, .002, .0228); face.add(dm);
   const glass = new THREE.Mesh(new THREE.PlaneGeometry(W * .88, H * .8), MAT.glassLite({ opacity: .12 })); glass.position.set(0, .002, .0236); face.add(glass);
@@ -64,7 +64,40 @@ export function meter(lab, pos, { kind = 'A', max = 3, step, label, rotY = 0 } =
   lab.shadow(g); if (label) lab.label(g, label, [0, H + .02, 0], 'big');
   let tgt = 0, cur = 0;
   lab.onTick(dt => { cur += (tgt - cur) * Math.min(1, dt * 7); piv.rotation.z = rad(50 - 100 * clamp(cur, -0.03, 1.04)); });
-  return { g, term: i => world(g, t[i]), set(v) { tgt = v / max; }, max, step };
+  return { g, term: i => world(g, t[i]), set(v) { tgt = center ? (v / max + 1) / 2 : v / max; }, max, step };
+}
+
+/** Đèn LED nhỏ (sáng khi có dòng theo chiều thuận) */
+export function led(lab, parent, pos, { color = 0xff2a2a } = {}) {
+  const g = new THREE.Group(); g.position.set(...pos); parent.add(g);
+  const dome = new THREE.Mesh(new THREE.CapsuleGeometry(.0028, .004, 6, 16), new THREE.MeshPhysicalMaterial({ color, transparent: true, opacity: .75, roughness: .15, emissive: color, emissiveIntensity: 0 }));
+  dome.position.y = .006; g.add(dome);
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(.0033, .0033, .001, 16), new THREE.MeshPhysicalMaterial({ color, transparent: true, opacity: .8 })); rim.position.y = .0025; g.add(rim);
+  for (const s of [-1, 1]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(.0004, .0004, .006, 6), MAT.metal(0xcccccc, .3)); l.position.set(s * .0012, -.0005, 0); g.add(l); }
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(.009, 16, 12), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  glow.position.y = .007; g.add(glow);
+  return { g, set(k) { k = clamp(k, 0, 1); dome.material.emissiveIntensity = k * 4; glow.material.opacity = k * .7; } };
+}
+
+/** Cuộn dây đồng (trục theo x), bán kính r, dài L, n vòng */
+export function coil(r = .025, L = .06, n = 24, { color = 0xb87333, wire = .0016, core = true } = {}) {
+  const g = new THREE.Group(), pts = [];
+  for (let i = 0; i <= n * 24; i++) { const t = i / 24 * Math.PI * 2, x = -L / 2 + L * i / (n * 24); pts.push(V3(x, Math.cos(t) * r, Math.sin(t) * r)); }
+  const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), n * 24, wire, 6, false), new THREE.MeshStandardMaterial({ color, metalness: .85, roughness: .3 }));
+  m.castShadow = true; g.add(m);
+  if (core) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r - wire * 1.2, r - wire * 1.2, L * 1.08, 32, 1, true), new THREE.MeshStandardMaterial({ color: 0xd8c9a8, roughness: .7, side: THREE.DoubleSide })); c.rotation.z = Math.PI / 2; g.add(c); }
+  return g;
+}
+
+/** Thanh nam châm (trục x, cực N ở +x) */
+export function barMagnet(L = .1, w = .018) {
+  const g = new THREE.Group();
+  const lbl = (t, bg) => new THREE.MeshStandardMaterial({ roughness: .4, metalness: .2, map: canvasTex(128, 64, (c, W, H) => { c.fillStyle = bg; c.fillRect(0, 0, W, H); c.fillStyle = '#fff'; c.font = 'bold 44px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, W / 2, H / 2 + 2); }) });
+  const mN = lbl('N', '#c92a2a'), mS = lbl('S', '#1c5fb8');
+  const n = new THREE.Mesh(new THREE.BoxGeometry(L / 2, w, w), mN); n.position.x = L / 4; g.add(n);
+  const s = new THREE.Mesh(new THREE.BoxGeometry(L / 2, w, w), mS); s.position.x = -L / 4; g.add(s);
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
 }
 const rad = d => d * Math.PI / 180;
 
@@ -149,9 +182,9 @@ export function wire(lab, a, b, { color = 0xc92a2a, sag = .04, r = .0016 } = {})
   const A = a.clone(), B = b.clone(), up = .02;
   const pts = [A, A.clone().add(V3(0, up, 0)), A.clone().lerp(B, .5).add(V3(0, Math.max(0, up - sag) + (Math.min(A.y, B.y) - Math.max(A.y, B.y)) * .2, 0)), B.clone().add(V3(0, up, 0)), B];
   const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), 48, r, 8, false), MAT.plastic(color, .45));
-  m.castShadow = true; lab.scene.add(m);
-  for (const p of [A, B]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r * 2.2, r * 2.2, .008, 12), MAT.plastic(color, .4)); c.position.copy(p).add(V3(0, .005, 0)); lab.scene.add(c); }
-  return m;
+  m.castShadow = true; const g = new THREE.Group(); g.add(m); lab.scene.add(g);
+  for (const p of [A, B]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r * 2.2, r * 2.2, .008, 12), MAT.plastic(color, .4)); c.position.copy(p).add(V3(0, .005, 0)); g.add(c); }
+  return g;
 }
 /** Bảng nhựa nền */
 export function board(lab, pos, w, d, color = 0x9cc9e8) { const g = mk(lab, pos); const b = roundBox(w, .008, d, .003, MAT.plastic(color, .55)); b.position.y = .004; g.add(b); b.receiveShadow = true; return g; }

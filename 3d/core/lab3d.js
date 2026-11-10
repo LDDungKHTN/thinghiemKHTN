@@ -149,7 +149,9 @@ export function createLab(host, o = {}) {
     for (const f of ticks) f(dt, t);
     controls.update();
     renderer.render(scene, camera); lr.render(scene, camera);
+    for (const l of labels) { if (l.element.style.display == 'none') continue; for (let o = l.parent; o; o = o.parent) if (!o.visible) { l.element.style.display = 'none'; break; } }
   });
+  const labels = [];
 
   // ---- tương tác: kéo theo trục, bấm ----
   const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(), drags = [], clicks = [];
@@ -157,7 +159,8 @@ export function createLab(host, o = {}) {
   const setPtr = e => { const r = renderer.domElement.getBoundingClientRect(); ptr.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ptr, camera); };
   const owner = (obj, list) => { for (let o = obj; o; o = o.parent) { const it = list.find(d => d.obj === o || d.handles?.includes(o)); if (it) return it; } return null; };
   function pick() {
-    const all = [...drags, ...clicks].filter(d => d.enabled !== false && d.obj.visible).flatMap(d => d.handles || [d.obj]);
+    const vis = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+    const all = [...drags, ...clicks].filter(d => d.enabled !== false && vis(d.obj)).flatMap(d => d.handles || [d.obj]);
     const hits = ray.intersectObjects(all, true);
     for (const h of hits) { const d = owner(h.object, drags) || owner(h.object, clicks); if (d) return { d, h }; }
     return null;
@@ -210,9 +213,16 @@ export function createLab(host, o = {}) {
     view(pos, target, dur = .9) { tween = { p0: camera.position.clone(), p1: fitPos(pos, target), t0: controls.target.clone(), t1: V(...target), k: 0, dur }; },
     label(obj, text, off = [0, .05, 0], cls = '') {
       const d = document.createElement('div'); d.className = 'tag3d ' + cls; d.innerHTML = text;
-      const l = new CSS2DObject(d); l.position.set(...off); obj.add(l); return l;
+      const l = new CSS2DObject(d); l.position.set(...off); obj.add(l); labels.push(l); return l;
     },
     showLabels(on) { lr.domElement.classList.toggle('off', !on); },
+    /** (kiểm thử) đặt camera, vẽ một khung và phủ ảnh lên sân khấu; gọi lại không tham số để bỏ */
+    shot(p, t) {
+      let im = host.querySelector('#shotimg'); if (!p) { im && im.remove(); return; }
+      tween = null; camera.position.set(...p); controls.target.set(...t); controls.update(); renderer.render(scene, camera);
+      if (!im) { im = document.createElement('img'); im.id = 'shotimg'; im.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:9;pointer-events:none'; host.appendChild(im); }
+      im.src = renderer.domElement.toDataURL(); return 'ok';
+    },
     /** gỡ vật khỏi cảnh, xoá cả nhãn HTML của nó */
     remove(o) { if (!o) return; o.traverse(c => { if (c.isCSS2DObject && c.element.parentNode) c.element.remove(); }); o.parent && o.parent.remove(o); },
     shadow(o) { o.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true } }); return o; },
