@@ -29,7 +29,10 @@ a.c{border-color:var(--ac)}a.c:hover{box-shadow:0 3px 14px rgba(11,114,133,.22);
 <script>
 // [lớp, bài, tên bài, mô tả thí nghiệm, tệp (để trống nếu chưa có)]
 const D = {
- 9: [["Chương II. Ánh sáng", [
+ 9: [["Chương I. Năng lượng cơ học", [
+   [2, "Động năng. Thế năng", "Viên bi lăn va vào khúc gỗ; quả nặng rơi đóng cọc", "lop9/bai-02.html"],
+   [3, "Cơ năng", "Con lắc đơn – chuyển hoá động năng, thế năng (Hình 3.2)", "lop9/bai-03.html"]]],
+  ["Chương II. Ánh sáng", [
    [5, "Khúc xạ ánh sáng", "Bán trụ thuỷ tinh, đo góc khúc xạ – Bảng 5.1", "lop9/bai-05.html"],
    [6, "Phản xạ toàn phần", "Tăng góc tới, tìm góc tới hạn – Bảng 6.1", "lop9/bai-06.html"],
    [7, "Lăng kính", "Tán sắc ánh sáng trắng, kính lọc màu, màu sắc vật", "lop9/bai-07.html"],
@@ -40,23 +43,20 @@ const D = {
    [12, "Đoạn mạch nối tiếp, song song", "Đo cường độ dòng điện bằng các ampe kế", "lop9/bai-12.html"],
    [13, "Năng lượng của dòng điện và công suất điện", "Đo U, I, tính công suất và điện năng bóng đèn", "lop9/bai-13.html"]]],
   ["Chương IV. Điện từ", [
-   [14, "Cảm ứng điện từ", "Nam châm – cuộn dây – điện kế; máy phát điện xoay chiều", ""],
-   [15, "Tác dụng của dòng điện xoay chiều", "Tác dụng nhiệt, quang, từ, sinh lí", ""]]],
-  ["Chương I. Năng lượng cơ học", [
-   [2, "Động năng. Thế năng", "Viên bi lăn va vào khúc gỗ", ""],
-   [3, "Cơ năng", "Con lắc, chuyển hoá động năng – thế năng", ""]]],
+   [14, "Cảm ứng điện từ. Dòng điện xoay chiều", "Nam châm – cuộn dây – điện kế; LED; máy phát điện xoay chiều", "lop9/bai-14.html"],
+   [15, "Tác dụng của dòng điện xoay chiều", "Tác dụng nhiệt, phát sáng, từ", "lop9/bai-15.html"]]],
   ["Chương VI. Kim loại", [
-   [18, "Tính chất chung của kim loại", "Tính dẫn nhiệt, dẻo; kim loại tác dụng với O₂, S, acid, muối", ""],
-   [19, "Dãy hoạt động hoá học", "So sánh mức độ hoạt động của kim loại", ""],
-   [21, "Sự khác nhau cơ bản giữa phi kim và kim loại", "Đốt lưu huỳnh, carbon; tính dẫn điện", ""]]],
+   [18, "Tính chất chung của kim loại", "Kim loại + acid, muối; natri + nước; đốt trong O₂, Cl₂", "lop9/bai-18.html"],
+   [19, "Dãy hoạt động hoá học", "Fe, Cu với nước, HCl; Cu + AgNO₃", "lop9/bai-19.html"],
+   [21, "Sự khác nhau cơ bản giữa phi kim và kim loại", "Hấp phụ của than gỗ; thử dẫn điện; đốt Mg, S", "lop9/bai-21.html"]]],
   ["Chương VII – IX. Hoá học hữu cơ", [
-   [24, "Alkene", "Ethylene làm mất màu nước bromine", ""],
-   [26, "Ethylic alcohol", "Đốt cháy, tác dụng với sodium", ""],
-   [27, "Acetic acid", "Tính acid, phản ứng ester hoá", ""],
-   [28, "Lipid", "Phản ứng xà phòng hoá chất béo", ""],
-   [29, "Glucose và saccharose", "Phản ứng tráng bạc", ""],
-   [30, "Tinh bột và cellulose", "Tinh bột + iodine", ""],
-   [31, "Protein", "Đông tụ protein, đốt cháy", ""]]]],
+   [24, "Alkene", "Điều chế ethylene; đốt cháy; làm mất màu nước bromine", "lop9/bai-24.html"],
+   [26, "Ethylic alcohol", "Đốt cồn; natri + ethylic alcohol", "lop9/bai-26.html"],
+   [27, "Acetic acid", "Tính acid; phản ứng ester hoá", "lop9/bai-27.html"],
+   [28, "Lipid", "Chất béo với nước, xăng; xà phòng hoá", "lop9/bai-28.html"],
+   [29, "Glucose và saccharose", "Phản ứng tráng bạc", "lop9/bai-29.html"],
+   [30, "Tinh bột và cellulose", "Tinh bột + iodine; thuỷ phân tinh bột", "lop9/bai-30.html"],
+   [31, "Protein", "Đông tụ protein bởi acid, nhiệt; đốt cháy", "lop9/bai-31.html"]]]],
  7: [], 8: [], 6: []
 };
 let g = +(localStorage.getItem('grade3d') || 9);
