@@ -50,4 +50,25 @@ export function stopwatch(lab, pos, { label = 'Đồng hồ bấm giây', onChan
   let acc = 0; lab.onTick(dt => { if (api.run) { api.t += dt; acc += dt; if (acc > .03) { acc = 0; draw(); } } });
   draw(); return api;
 }
+/** Cân điện tử: set(m) hiển thị khối lượng (g); top = độ cao mặt cân */
+export function balance(lab, pos, { label = 'Cân điện tử', dec = 1 } = {}) {
+  const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);
+  const b = roundBox(.2, .035, .18, .008, MAT.plastic(0xe9ecef, .4)); b.position.y = .0175; g.add(b);
+  const pan = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .005, 48), MAT.metal(0xd0d4d8, .2)); pan.position.set(0, .0375, -.01); g.add(pan);
+  const disp = canvasTex(320, 96, () => { }); const dm = new THREE.Mesh(new THREE.PlaneGeometry(.09, .027), new THREE.MeshStandardMaterial({ map: disp, emissive: 0xffffff, emissiveMap: disp, emissiveIntensity: .9 })); dm.position.set(0, .019, .0905); g.add(dm);
+  lab.shadow(g); if (label) lab.label(g, label, [0, .02, .12]);
+  const api = { g, top: pos[1] + .04, m: 0, set(m) { api.m = m; const c = disp.image.getContext('2d'); c.fillStyle = '#0d1a10'; c.fillRect(0, 0, 320, 96); c.fillStyle = '#8cff8a'; c.font = 'bold 58px "Courier New",monospace'; c.textAlign = 'right'; c.fillText(m.toFixed(dec).replace('.', ',') + ' g', 305, 70); disp.needsUpdate = true; } };
+  api.set(0); return api;
+}
+/** Ống đong có vạch chia (mL); set(V) mực nước; nhóm gốc ở đáy */
+export function cylinder(lab, { R = .016, H = .2, max = 250, color = 0xcfe8f3 } = {}) {
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(R * 2.2, R * 2.4, .006, 6), MAT.glassLite({ opacity: .4 })); base.position.y = .003; g.add(base);
+  const tube = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 32, 1, true), MAT.glassLite({ opacity: .22 })); tube.position.y = .006 + H / 2; tube.renderOrder = 4; g.add(tube);
+  const sc = new THREE.Mesh(new THREE.CylinderGeometry(R + .0003, R + .0003, H * .9, 32, 1, true, -.6, 1.2), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, map: canvasTex(128, 512, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = 'bold 20px Arial'; const n = max / 5; for (let i = 0; i <= n; i++) { const y = h - 2 - i / n * (h - 4); const big = i % 10 == 0, mid = i % 2 == 0; c.fillRect(10, y - 1, big ? 50 : mid ? 34 : 20, 2); if (big && i) c.fillText(String(i * 5), 64, y + 7); } }) }));
+  sc.position.y = .006 + H * .45 + .004; sc.renderOrder = 5; g.add(sc);
+  const liq = new THREE.Mesh(new THREE.CylinderGeometry(R * .96, R * .96, 1, 32), new THREE.MeshPhysicalMaterial({ color, transparent: true, opacity: .45, depthWrite: false })); liq.renderOrder = 3; g.add(liq);
+  const api = { g, V: 0, R, H, max, set(V) { api.V = V; const h = Math.max(.0001, V / max * H * .9); liq.visible = V > 0; liq.scale.y = h; liq.position.y = .006 + h / 2; }, levelY: () => .006 + api.V / max * H * .9 };
+  api.set(0); return api;
+}
 export { cable };
