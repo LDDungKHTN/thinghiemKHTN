@@ -32,4 +32,22 @@ export function tripod(lab, pos, h = .3) {
   const rod = new THREE.Mesh(new THREE.CylinderGeometry(.007, .007, h - .08, 16), MAT.metal(0xcfd3d8, .2)); rod.position.y = .08 + (h - .08) / 2; g.add(rod);
   lab.shadow(g); return g;
 }
+/** Đồng hồ bấm giây cầm tay: bấm nút trái (Bắt đầu/Dừng), nút phải (Đặt lại) */
+export function stopwatch(lab, pos, { label = 'Đồng hồ bấm giây', onChange } = {}) {
+  const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .014, 40), MAT.plastic(0x1c1f22, .4)); body.rotation.x = Math.PI / 2 - .9; body.position.y = .022; g.add(body);
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256; const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const face = new THREE.Mesh(new THREE.CircleGeometry(.026, 40), new THREE.MeshStandardMaterial({ map: tex, roughness: .4 })); face.position.set(0, .0071, 0); face.rotation.x = -Math.PI / 2; body.add(face); face.rotation.set(Math.PI / 2, 0, 0); face.position.set(0, .0072, 0);
+  const mkB = (x, col) => { const b = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .01, 16), MAT.plastic(col, .35)); b.position.set(x, .03, 0); body.add(b); return b; };
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .01, 16), MAT.metal(0xc8cdd2, .3)); top.position.set(0, .034, 0); body.add(top);
+  const bS = mkB(-.016, 0x2f9e44), bR = mkB(.016, 0xc92a2a); bS.rotation.z = .5; bR.rotation.z = -.5; bS.position.set(-.017, .027, 0); bR.position.set(.017, .027, 0);
+  lab.shadow(g); if (label) lab.label(g, label, [0, .07, 0]);
+  const api = { g, t: 0, run: false,
+    start() { api.run = true; }, stop() { api.run = false; onChange && onChange(api.t); }, reset() { api.run = false; api.t = 0; draw(); },
+    toggle() { api.run ? api.stop() : api.start(); } };
+  function draw() { const x = c.getContext('2d'); x.fillStyle = '#e9eee4'; x.beginPath(); x.arc(128, 128, 128, 0, 7); x.fill(); x.fillStyle = '#1b2a1b'; x.font = 'bold 54px "Courier New",monospace'; x.textAlign = 'center'; x.fillText(api.t.toFixed(2).replace('.', ','), 128, 145); x.font = '22px Arial'; x.fillText('giây', 128, 185); x.fillText(api.run ? '● CHẠY' : '', 128, 80); tex.needsUpdate = true; }
+  lab.clickable(bS, () => api.toggle()); lab.clickable(bR, () => api.reset());
+  let acc = 0; lab.onTick(dt => { if (api.run) { api.t += dt; acc += dt; if (acc > .03) { acc = 0; draw(); } } });
+  draw(); return api;
+}
 export { cable };

@@ -136,7 +136,7 @@ export function createLab(host, o = {}) {
   }
   new ResizeObserver(resize).observe(host); resize();
   // màn hình hẹp (điện thoại dọc): lùi camera ra xa cho vừa khung
-  const fitK = () => Math.max(1, (1.35 / camera.aspect) ** .8);
+  const fitK = () => Math.max(1, (1.75 / camera.aspect) ** .75);
   const fitPos = (p, t) => V(...t).add(V(...p).sub(V(...t)).multiplyScalar(fitK()));
   camera.position.copy(fitPos(opt.cam, opt.target)); controls.update();
   renderer.setAnimationLoop(() => {
