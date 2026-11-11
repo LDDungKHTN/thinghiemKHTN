@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 5. Định luật bảo toàn khối lượng và phương trình hoá học</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { vessel } from '../core/chem.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 5. Định luật bảo toàn khối lượng và phương trình hoá học', sub: 'KHTN 8 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<p><b>Chuẩn bị:</b> dung dịch barium chloride, sodium sulfate; cân điện tử; cốc thuỷ tinh.</p>
+<ol><li>Trên mặt cân đặt 2 cốc: cốc (1) đựng dung dịch barium chloride, cốc (2) đựng dung dịch sodium sulfate. Ghi tổng khối lượng 2 cốc.</li><li>Đổ cốc (1) vào cốc (2), lắc nhẹ để hai dung dịch trộn lẫn với nhau. Quan sát.</li><li>Đặt 2 cốc trở lại mặt cân. Ghi khối lượng.</li></ol>
+<div class="row"><button class="btn p" id="b1">Ghi khối lượng ban đầu</button><button class="btn p" id="b2">Đổ cốc (1) vào cốc (2)</button><button class="btn p" id="b3">Đặt lại lên cân, ghi khối lượng</button><button class="btn g" id="rs">Làm lại</button></div>
+<table class="dt"><thead><tr><th>Thời điểm</th><th>Tổng khối lượng (g)</th></tr></thead><tbody><tr><td>Trước phản ứng</td><td id="m1">?</td></tr><tr><td>Sau phản ứng</td><td id="m2">?</td></tr></tbody></table>
+<div id="obs" class="note"></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<p>Phản ứng: Barium chloride + Sodium sulfate → Barium sulfate↓ (kết tủa trắng) + Sodium chloride</p><div class="eq">BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl</div>
+<p><b>Định luật bảo toàn khối lượng</b> (Lomonosov, Lavoisier): “Trong một phản ứng hoá học, tổng khối lượng của các chất sản phẩm bằng tổng khối lượng của các chất tham gia phản ứng”.</p><p>Giải thích: trong phản ứng chỉ có liên kết giữa các nguyên tử thay đổi, số nguyên tử của mỗi nguyên tố được giữ nguyên.</p><div class="eq">m(A) + m(B) = m(C) + m(D)</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .3, .42], [0, .07, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.2, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+// cân điện tử
+const bal = new THREE.Group(); scene.add(bal);
+const bb = roundBox(.24, .04, .2, .01, MAT.plastic(0xe9ecef, .4)); bb.position.y = .02; bal.add(bb);
+const pan = new THREE.Mesh(new THREE.CylinderGeometry(.085, .085, .006, 48), MAT.metal(0xd0d4d8, .2)); pan.position.set(0, .046, -.01); bal.add(pan);
+const disp = canvasTex(320, 96, () => { }); const dm = new THREE.Mesh(new THREE.PlaneGeometry(.1, .03), new THREE.MeshStandardMaterial({ map: disp, emissive: 0xffffff, emissiveMap: disp, emissiveIntensity: .9 })); dm.position.set(0, .026, .1005); bal.add(dm);
+lab.label(bal, 'Cân điện tử', [.0, .02, .13]);
+let shown = 0;
+function drawDisp(m) { const c = disp.image.getContext('2d'); c.fillStyle = '#0d1a10'; c.fillRect(0, 0, 320, 96); c.fillStyle = '#8cff8a'; c.font = 'bold 60px "Courier New",monospace'; c.textAlign = 'right'; c.fillText(m.toFixed(2).replace('.', ',') + ' g', 305, 70); disp.needsUpdate = true; }
+// cốc
+const B1 = vessel(lab, { kind: 'beaker', R: .028, H: .07 }), B2 = vessel(lab, { kind: 'beaker', R: .03, H: .08 });
+scene.add(B1.g, B2.g);
+lab.label(B1.g, 'Cốc (1): dd BaCl₂', [0, .1, 0]); lab.label(B2.g, 'Cốc (2): dd Na₂SO₄', [0, .11, 0]);
+const P1 = new THREE.Vector3(-.04, .049, -.01), P2 = new THREE.Vector3(.04, .049, -.01);
+const MASS = { b1: 52.36, b2: 58.11, s1: 25.0, s2: 30.0 }, TOTAL = MASS.b1 + MASS.b2 + MASS.s1 + MASS.s2 + .0;
+const S = { st: 0, t: -1, ppt: 0 };
+function reset() { S.st = 0; S.t = -1; S.ppt = 0; B1.g.position.copy(P1); B1.g.rotation.z = 0; B2.g.position.copy(P2); B1.set({ level: .55, color: 0xf3f8fa, op: .3 }); B2.set({ level: .5, color: 0xf3f8fa, op: .3, ppt: null, cloud: 0 }); shown = TOTAL; drawDisp(shown); $('#m1').textContent = '?'; $('#m2').textContent = '?'; say('Hai cốc dung dịch trong suốt, không màu đặt trên cân. Bấm “Ghi khối lượng ban đầu”.'); }
+lab.onTick(dt => {
+  if (S.t < 0) return; S.t += dt; const t = S.t;
+  const up = new THREE.Vector3(-.0, .17, -.01), over = new THREE.Vector3(.0, .15, -.01);
+  if (t < 1) { B1.g.position.lerpVectors(P1, up, t); shown = MASS.b2 + MASS.s2; }
+  else if (t < 3.2) { B1.g.position.copy(over); B1.g.rotation.z = -Math.min(1, (t - 1) / .5) * 1.9; const k = clamp((t - 1.3) / 1.6, 0, 1); B1.set({ level: .55 * (1 - k) }); B2.set({ level: .5 + .45 * k, cloud: .9 * k, cloudC: 0xffffff, op: .3 + .35 * k }); }
+  else if (t < 4.3) { const k = (t - 3.2) / 1.1; B1.g.rotation.z = -1.9 * (1 - k); B1.g.position.lerpVectors(over, P1, k); }
+  else { if (!S.d) { S.d = 1; S.t = -1; say('Hai dung dịch trộn lẫn: xuất hiện <b>chất rắn màu trắng</b> không tan (kết tủa barium sulfate). Đặt 2 cốc trở lại mặt cân rồi bấm “Đặt lại lên cân, ghi khối lượng”.'); } }
+  if (t > 4.3) { }
+  drawDisp(shown);
+});
+$('#b1').onclick = () => { if (S.st != 0) return; $('#m1').textContent = fmt(TOTAL, 2); S.st = 1; say(`Tổng khối lượng 2 cốc dung dịch trước phản ứng: <b>${fmt(TOTAL, 2)} g</b>. Bấm “Đổ cốc (1) vào cốc (2)”.`); };
+$('#b2').onclick = () => { if (S.st != 1) return toast('Hãy ghi khối lượng ban đầu trước.'); S.st = 2; S.d = 0; S.t = 0; };
+$('#b3').onclick = () => { if (S.st != 2 || !S.d) return toast('Hãy đổ cốc (1) vào cốc (2) trước.'); shown = TOTAL; drawDisp(shown); B2.set({ ppt: { c: 0xffffff, amt: .9, settle: .5 }, cloud: .35 }); $('#m2').textContent = fmt(TOTAL, 2); S.st = 3; say(`Khối lượng sau phản ứng: <b>${fmt(TOTAL, 2)} g</b> – <b>bằng</b> khối lượng trước phản ứng.<br><b>Kết luận:</b> tổng khối lượng các chất trước và sau phản ứng không đổi.`); };
+$('#rs').onclick = () => { S.d = 0; reset(); };
+quiz($('#qz'), [
+  { q: 'Đốt cháy 3,2 g sulfur trong 3,2 g oxygen tạo ra sulfur dioxide. Khối lượng sulfur dioxide thu được là bao nhiêu gam?', n: 6.4, u: 'g' },
+  { q: 'Vì sao trong phản ứng hoá học tổng khối lượng các chất được bảo toàn?', o: ['Vì số nguyên tử mỗi nguyên tố được giữ nguyên, chỉ liên kết giữa các nguyên tử thay đổi', 'Vì chất không thay đổi', 'Vì khối lượng phân tử không đổi', 'Vì không có chất mới'], a: 0 },
+  { q: 'Nung 10 g đá vôi CaCO₃ thu được 5,6 g vôi sống CaO và khí CO₂. Khối lượng CO₂ là bao nhiêu gam?', n: 4.4, u: 'g' },
+  { q: 'Hiện tượng khi trộn dung dịch BaCl₂ với dung dịch Na₂SO₄ là', o: ['có khí thoát ra', 'có kết tủa trắng', 'dung dịch chuyển màu xanh', 'không có hiện tượng'], a: 1 },
+]);
+reset(); ready(); window.dbg = { lab, S };
+</script></body></html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 18–19. Moment lực. Đòn bẩy</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+const stage = shell({ title: 'Bài 18–19. Moment lực. Đòn bẩy', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<h3>Thanh đòn bẩy cân bằng</h3><p>Thanh cứng có các lỗ cách đều nhau 5 cm, quay quanh trục O ở giữa. Mỗi quả nặng 50 g (P = 0,5 N).</p>
+<ol><li><b>Bấm vào một lỗ</b> trên thanh để treo thêm quả nặng; bấm giữ phím Shift (hoặc nút “Gỡ”) để gỡ bớt.</li><li>Quan sát thanh nghiêng về bên nào. Tìm cách treo để thanh nằm cân bằng.</li><li>So sánh tích F·d (moment lực) của hai bên khi thanh cân bằng.</li></ol>
+<div class="row"><button class="btn g" id="rm">Chế độ gỡ quả nặng: tắt</button><button class="btn g" id="clr">Bỏ hết quả nặng</button></div>
+<h3>Moment lực</h3><p>Lực tác dụng lên vật có trục quay cố định làm vật quay; tác dụng làm quay càng lớn khi lực càng lớn và giá của lực càng xa trục quay: <b>M = F·d</b>.</p>` },
+  { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note"></div><table class="dt"><thead><tr><th>Bên trái F₁·d₁ (N·m)</th><th>Bên phải F₂·d₂ (N·m)</th><th>Trạng thái</th></tr></thead><tbody id="tb"></tbody></table>
+<ul><li>Đòn bẩy cân bằng khi <b>F₁·d₁ = F₂·d₂</b> (điều kiện cân bằng: moment làm quay theo chiều kim đồng hồ bằng moment làm quay ngược chiều).</li><li>Đòn bẩy loại 1: điểm tựa O nằm giữa O₁, O₂. Đòn bẩy loại 2: điểm tựa O nằm ngoài khoảng O₁O₂. Khi OO₂ &lt; OO₁ thì F₂ &gt; F₁ (lợi về lực).</li></ul>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const lab = createLab(stage, { cam: [0, .32, .6], target: [0, .2, 0], table: 'wood', tableSize: [1.2, .7], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+const dk = MAT.metal(0x2d3136, .45);
+const base = roundBox(.2, .015, .12, .004, dk); base.position.y = .0075; scene.add(base);
+const post = new THREE.Mesh(new THREE.BoxGeometry(.02, .26, .02), dk); post.position.set(0, .13, -.02); scene.add(post);
+const PIV = new THREE.Vector3(0, .26, 0);
+const bar = new THREE.Group(); bar.position.copy(PIV); scene.add(bar);
+const NH = 6, GAP = .05;
+const beam = roundBox(2 * NH * GAP + .04, .02, .008, .003, MAT.metal(0xc8cdd2, .3)); bar.add(beam);
+const lbl = new THREE.Mesh(new THREE.PlaneGeometry(2 * NH * GAP + .04, .02), new THREE.MeshStandardMaterial({ transparent: true, map: canvasTex(1024, 52, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = '#222'; c.font = 'bold 22px Arial'; c.textAlign = 'center'; for (let i = -NH; i <= NH; i++) { const x = w / 2 + i * (w - 40 / (2 * NH * GAP + .04) * 0) / (2 * NH + 0.8); c.beginPath(); c.arc(w / 2 + i * w / (2 * NH + .8), h / 2, 9, 0, 7); c.fill(); if (i) { c.fillStyle = '#fff'; c.fillText(Math.abs(i), w / 2 + i * w / (2 * NH + .8), h / 2 + 8); c.fillStyle = '#222'; } void x; } }) })); lbl.position.z = .0045; bar.add(lbl);
+const axle = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .04, 12), MAT.metal(0xd4b26a, .3)); axle.rotation.x = Math.PI / 2; axle.position.copy(PIV); scene.add(axle);
+lab.label(axle, 'O', [0, .03, .02], 'read');
+const hooks = []; for (let i = -NH; i <= NH; i++) if (i) { const h = new THREE.Mesh(new THREE.BoxGeometry(.03, .03, .03), new THREE.MeshBasicMaterial({ visible: false })); h.position.set(i * (2 * NH * GAP + .04) / (2 * NH + .8), 0, 0); h.userData.i = i; bar.add(h); hooks.push(h); }
+const W = {}; const wM = MAT.metal(0x6c7178, .3);
+const stacks = {};
+let removeMode = false;
+function rebuild() {
+  Object.values(stacks).forEach(g => bar.remove(g));
+  hooks.forEach(h => { const n = W[h.userData.i] || 0; if (!n) return; const g = new THREE.Group(); g.position.copy(h.position); const str = new THREE.Mesh(new THREE.CylinderGeometry(.0006, .0006, .03, 6), MAT.metal(0x666666, .4)); str.position.y = -.025; g.add(str); for (let k = 0; k < n; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, .014, 20), wM); m.position.y = -.047 - k * .015; m.castShadow = true; g.add(m); } bar.add(g); stacks[h.userData.i] = g; });
+  const ML = Object.entries(W).filter(([i]) => i < 0).reduce((a, [i, n]) => a + n * .5 * (-i) * GAP, 0), MR = Object.entries(W).filter(([i]) => i > 0).reduce((a, [i, n]) => a + n * .5 * i * GAP, 0);
+  S.tgt = clamp((ML - MR) * 3, -.35, .35);
+  const st = Math.abs(ML - MR) < 1e-9 ? (ML ? 'Cân bằng' : 'Chưa treo') : ML > MR ? 'Nghiêng trái' : 'Nghiêng phải';
+  say(`Bên trái: M₁ = F₁·d₁ = <b>${fmt(ML, 3)} N·m</b> · Bên phải: M₂ = F₂·d₂ = <b>${fmt(MR, 3)} N·m</b><br>${st == 'Cân bằng' ? '<b style="color:#8ce99a">Thanh nằm cân bằng</b>: M₁ = M₂.' : st == 'Chưa treo' ? 'Bấm vào các lỗ trên thanh để treo quả nặng.' : `Thanh <b>${st.toLowerCase()}</b> vì moment bên ${ML > MR ? 'trái' : 'phải'} lớn hơn.`}`);
+  if (ML || MR) { S.rows.unshift([fmt(ML, 3), fmt(MR, 3), st]); S.rows.length = Math.min(S.rows.length, 6); $('#tb').innerHTML = S.rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join(''); }
+}
+const S = { ang: 0, tgt: 0, rows: [] };
+hooks.forEach(h => lab.clickable(h, () => { const i = h.userData.i; if (removeMode) W[i] = Math.max(0, (W[i] || 0) - 1); else W[i] = Math.min(5, (W[i] || 0) + 1); rebuild(); }));
+lab.onTick(dt => { S.ang += (S.tgt - S.ang) * Math.min(1, dt * 3); bar.rotation.z = S.ang; Object.values(stacks).forEach(g => g.rotation.z = -S.ang); });
+$('#rm').onclick = () => { removeMode = !removeMode; $('#rm').textContent = 'Chế độ gỡ quả nặng: ' + (removeMode ? 'bật' : 'tắt'); $('#rm').classList.toggle('on', removeMode); };
+$('#clr').onclick = () => { for (const k in W) delete W[k]; rebuild(); };
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="ex1">Ví dụ: 2 quả ở lỗ 3 trái</button><button class="btn p" id="ex2">… và 3 quả ở lỗ 2 phải</button>`;
+$('#ex1').onclick = () => { for (const k in W) delete W[k]; W[-3] = 2; rebuild(); };
+$('#ex2').onclick = () => { W[-3] = 2; W[2] = 3; rebuild(); };
+quiz($('#qz'), [
+  { q: 'Moment lực được tính bằng', o: ['M = F + d', 'M = F·d', 'M = F/d', 'M = d/F'], a: 1 },
+  { q: 'Treo 2 quả nặng (0,5 N mỗi quả) cách O 15 cm bên trái. Phải treo bao nhiêu quả ở lỗ cách O 10 cm bên phải để thanh cân bằng?', n: 3, u: 'quả' },
+  { q: 'Dùng cờ lê có cán dài để vặn đai ốc vì', o: ['cán dài nặng hơn', 'khoảng cách từ trục quay đến giá của lực lớn → moment lớn, dễ vặn', 'cán dài đẹp hơn', 'đỡ mỏi mắt'], a: 1 },
+  { q: 'Đòn bẩy loại 1 có điểm tựa', o: ['nằm giữa điểm đặt của hai lực', 'nằm ngoài hai điểm đặt lực', 'trùng điểm đặt lực', 'không có'], a: 0 },
+]);
+rebuild(); ready(); window.dbg = { lab };
+</script></body></html>

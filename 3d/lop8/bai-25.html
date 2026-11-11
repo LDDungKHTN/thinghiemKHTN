@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 24–25. Thực hành đo cường độ dòng điện và hiệu điện thế</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE } from '../core/lab3d.js';
+import { supply, meter, bulb, knife, wire, board } from '../core/elec.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+const stage = shell({ title: 'Bài 24–25. Thực hành đo cường độ dòng điện và hiệu điện thế', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<p><b>Chuẩn bị:</b> ba nguồn điện 1,5 V, 3 V, 6 V; bóng đèn pin 6 V – 0,5 A; ampe kế GHĐ 0,5 A (ĐCNN 0,01 A); vôn kế GHĐ 6 V (ĐCNN 0,1 V); công tắc; dây nối.</p>
+<h3>1. Đo cường độ dòng điện (Hình 25.1)</h3><ol><li>Mắc mạch với nguồn 1,5 V, ampe kế ở <b>vị trí (1)</b> (trước đèn). Đóng công tắc, đọc I₁.</li><li>Chuyển ampe kế sang <b>vị trí (2)</b> (sau đèn), đọc I₂.</li><li>Làm lại với nguồn 3 V và 6 V.</li></ol>
+<h3>2. Đo hiệu điện thế</h3><p>Vôn kế mắc <b>song song</b> với bóng đèn, cực (+) của vôn kế nối về phía cực (+) của nguồn.</p>
+<div class="row"><b>Nguồn:</b><button class="btn on" data-u="1.5">1,5 V</button><button class="btn g" data-u="3">3 V</button><button class="btn g" data-u="6">6 V</button></div>
+<div class="row"><b>Ampe kế ở:</b><button class="btn on" data-p="1">Vị trí (1)</button><button class="btn g" data-p="2">Vị trí (2)</button></div>` },
+  { id: 'p2', title: 'Kết quả', html: `<h3>Bảng 25.1</h3><table class="dt"><thead><tr><th>Nguồn</th><th>I₁ (A)</th><th>I₂ (A)</th><th>U đèn (V)</th><th>Độ sáng</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="note">Cường độ dòng điện tại các vị trí khác nhau trong mạch nối tiếp là như nhau (I₁ = I₂). Hiệu điện thế giữa hai đầu bóng đèn càng lớn thì dòng điện qua đèn càng lớn, đèn càng sáng. Bóng đèn tiêu thụ điện năng nhưng không “làm giảm” cường độ dòng điện sau khi đi qua đèn.</div>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const lab = createLab(stage, { cam: [0, .42, .55], target: [0, .03, 0], table: 'wood', tableSize: [1.3, .8], minDist: .05 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+board(lab, [0, 0, 0], .6, .36);
+const ps = supply(lab, [-.17, .008, -.12], { onToggle: () => solve() });
+const K = knife(lab, [.02, .008, -.13], { onToggle: () => solve() });
+const L = bulb(lab, [.03, .008, .09], { Unom: 6, Pnom: 3, label: 'Đèn 6 V – 0,5 A' });
+const Am = meter(lab, [-.17, .008, .08], { kind: 'A', max: .5, step: .01, label: 'Ampe kế' });
+const Vm = meter(lab, [.22, .008, .1], { kind: 'V', max: 6, step: .1, label: 'Vôn kế' });
+const S = { U: 1.5, pos: 1, rows: {} };
+let ws = [];
+function build() {
+  ws.forEach(w => lab.remove(w)); ws = [];
+  Am.g.position.set(S.pos == 1 ? -.17 : .2, .008, S.pos == 1 ? .08 : -.04);
+  const A0 = Am.term(0), A1 = Am.term(1);
+  if (S.pos == 1) ws.push(wire(lab, ps.term(0), K.term(0)), wire(lab, K.term(1), A0, { sag: .0 }), wire(lab, A1, L.term(1), { color: 0xe67700 }), wire(lab, L.term(0), ps.term(1), { color: 0x1b1b1b }));
+  else ws.push(wire(lab, ps.term(0), K.term(0)), wire(lab, K.term(1), L.term(1)), wire(lab, L.term(0), A0, { color: 0xe67700 }), wire(lab, A1, ps.term(1), { color: 0x1b1b1b }));
+  ws.push(wire(lab, L.term(1), Vm.term(0), { sag: 0 }), wire(lab, L.term(0), Vm.term(1), { color: 0x1b1b1b, sag: 0 }));
+  solve();
+}
+function iv() { const R0 = 12, x = Math.min(1.3, S.U / 6), R = R0 * (.35 + .65 * Math.sqrt(x)); return { I: S.U / R, R }; }
+function solve() {
+  const on = ps.on && K.closed; ps.setV(S.U); const { I } = iv(), i = on ? I : 0;
+  Am.set(i); Vm.set(on ? S.U : 0); L.set(on ? S.U * I : 0);
+  if (on) { const r = S.rows[S.U] = S.rows[S.U] || {}; r['I' + S.pos] = Math.round(I * 100) / 100; r.U = S.U; r.P = S.U * I; draw(); }
+  hud.innerHTML = on ? `Nguồn ${fmt(S.U, 1)} V · ampe kế ở vị trí (${S.pos}): <b>${fmt(Math.round(I * 100) / 100, 2)} A</b> · vôn kế: <b>${fmt(S.U, 1)} V</b>` : (ps.on ? 'Bấm vào công tắc K để đóng mạch.' : 'Bấm nút đỏ trên nguồn để bật nguồn.');
+}
+function draw() { $('#tb').innerHTML = [1.5, 3, 6].map(u => { const r = S.rows[u] || {}; const f = x => x != null ? fmt(x, 2) : '?'; return `<tr><td>${fmt(u, 1)} V</td><td>${f(r.I1)}</td><td>${f(r.I2)}</td><td>${r.U != null ? fmt(r.U, 1) : '?'}</td><td>${r.P == null ? '?' : r.P > 2.5 ? 'Sáng mạnh' : r.P > .6 ? 'Sáng vừa' : 'Sáng yếu'}</td></tr>`; }).join(''); }
+document.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { S.U = +b.dataset.u; document.querySelectorAll('[data-u]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); solve(); });
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.pos = +b.dataset.p; document.querySelectorAll('[data-p]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); build(); toast('Đã chuyển ampe kế sang vị trí (' + S.pos + ')'); });
+quiz($('#qz'), [
+  { q: 'Ampe kế được mắc như thế nào trong mạch?', o: ['Song song với đèn', 'Nối tiếp với đèn', 'Không cần mắc', 'Song song với nguồn'], a: 1 },
+  { q: 'Vôn kế đo hiệu điện thế giữa hai đầu bóng đèn được mắc', o: ['nối tiếp với đèn', 'song song với đèn', 'nối tiếp với nguồn', 'bất kì'], a: 1 },
+  { q: 'Bạn học sinh cho rằng “dòng điện sẽ giảm sau khi đi qua bóng đèn”. Điều đó', o: ['đúng', 'sai, vì I₁ = I₂ trong mạch nối tiếp', 'đúng với đèn LED', 'chỉ đúng khi U lớn'], a: 1 },
+  { q: 'Đơn vị của hiệu điện thế là', o: ['ampe (A)', 'vôn (V)', 'oát (W)', 'ôm (Ω)'], a: 1 },
+]);
+build(); draw(); ready(); window.dbg = { lab };
+</script></body></html>

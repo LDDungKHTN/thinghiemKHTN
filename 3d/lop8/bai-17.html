@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 17. Lực đẩy Archimedes</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, lathe, clamp } from '../core/lab3d.js';
+import { balance, cylinder } from '../core/kit.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+const stage = shell({ title: 'Bài 17. Lực đẩy Archimedes', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<h3>Độ lớn của lực đẩy Archimedes (Hình 17.4)</h3><p><b>Dụng cụ:</b> lực kế có giới hạn đo 2 N; cân điện tử; quả nặng bằng nhựa 130 g; bình tràn; ống đong; giá thí nghiệm.</p>
+<ol><li>Treo quả nặng vào lực kế. Số chỉ của lực kế là P.</li><li>Nhúng quả nặng vào bình tràn đựng đầy nước sao cho phần chìm có thể tích 20 cm³, đọc số chỉ F₁ trên lực kế. F<sub>A</sub> = P − F₁.</li><li>Dùng cân điện tử đo khối lượng nước tràn ra ống đong, tính trọng lượng nước bị vật chiếm chỗ.</li><li>Lặp lại với 40, 60, 80 cm³. Thay nước bằng nước muối và lặp lại.</li></ol>
+<div class="row"><b>Phần chìm:</b><button class="btn g" data-v="0">0</button><button class="btn g" data-v="20">20 cm³</button><button class="btn g" data-v="40">40 cm³</button><button class="btn g" data-v="60">60 cm³</button><button class="btn g" data-v="80">80 cm³</button></div>
+<div class="row"><b>Chất lỏng:</b><button class="btn on" data-l="1">Nước</button><button class="btn g" data-l="1.1">Nước muối</button></div>` },
+  { id: 'p2', title: 'Kết quả', html: `<h3>Bảng 17.1</h3><table class="dt"><thead><tr><th>V chìm</th><th>F<sub>A</sub> nước (N)</th><th>P nước tràn (N)</th><th>F<sub>A</sub> nước muối (N)</th><th>P nước muối tràn (N)</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="note">Độ lớn lực đẩy Archimedes bằng trọng lượng của phần chất lỏng mà vật chiếm chỗ: <span class="eq" style="display:inline-block">F<sub>A</sub> = d·V</span> (d: trọng lượng riêng của chất lỏng, V: thể tích phần chất lỏng bị vật chiếm chỗ).</div>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const HOME = [[.05, .4, .7], [.03, .2, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.3, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const S = { V: 0, rho: 1, rows: {} };
+const P = 1.30, Vobj = 100;  // N, cm³ (quả nặng 130 g, thể tích 100 cm³)
+// giá + lực kế
+const dk = MAT.metal(0x2d3136, .45);
+const base = roundBox(.14, .012, .12, .003, dk); base.position.set(-.08, .006, -.03); scene.add(base);
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .42, 14), MAT.metal(0xc8cdd2, .25)); rod.position.set(-.12, .21, -.05); scene.add(rod);
+const arm = new THREE.Mesh(new THREE.BoxGeometry(.14, .008, .012), dk); arm.position.set(-.05, .4, -.05); scene.add(arm);
+const SB = new THREE.Group(); SB.position.set(0, .39, -.05); scene.add(SB);
+const sc = new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, .13, 24), new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: .35, roughness: .1, depthWrite: false })); sc.position.y = -.07; SB.add(sc);
+const scale = new THREE.Mesh(new THREE.PlaneGeometry(.012, .11), new THREE.MeshStandardMaterial({ map: canvasTex(64, 512, (c, w, h) => { c.fillStyle = '#f6f2d8'; c.fillRect(0, 0, w, h); c.fillStyle = '#111'; c.font = 'bold 22px Arial'; for (let i = 0; i <= 20; i++) { const y = 20 + i * (h - 40) / 20; c.fillRect(0, y, i % 5 ? 14 : 26, 2); if (i % 5 == 0) c.fillText(String(i / 10).replace('.', ','), 30, y + 8); } }) })); scale.position.set(0, -.07, .0112); SB.add(scale);
+const spring = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([...Array(120)].map((_, i) => new THREE.Vector3(Math.cos(i / 6) * .006, -i / 120, Math.sin(i / 6) * .006))), 200, .0006, 6), MAT.metal(0xbfc4c9, .3)); SB.add(spring);
+const ind = new THREE.Mesh(new THREE.BoxGeometry(.016, .0015, .004), new THREE.MeshBasicMaterial({ color: 0xc92a2a })); SB.add(ind);
+const hook = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0012, .05, 8), MAT.metal(0xbfc4c9, .3)); SB.add(hook);
+lab.label(SB, 'Lực kế (GHĐ 2 N)', [.03, -.02, 0]);
+const obj = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .051, 32), MAT.plastic(0x2f9e44, .4)); obj.castShadow = true; scene.add(obj); lab.label(obj, 'Quả nặng 130 g', [.04, 0, 0]);
+// giá nâng + bình tràn
+const jack = new THREE.Group(); jack.position.set(0, 0, -.05); scene.add(jack);
+const jb = roundBox(.12, .01, .12, .003, MAT.metal(0x8a8f95, .4)); jb.position.y = .005; jack.add(jb);
+const jt = roundBox(.12, .01, .12, .003, MAT.metal(0x8a8f95, .4)); jack.add(jt);
+const jx = [-1, 1].map(s => { const m = new THREE.Mesh(new THREE.BoxGeometry(.13, .006, .006), MAT.metal(0x6a6f75, .4)); m.rotation.z = s * .35; jack.add(m); return m; });
+const can = new THREE.Group(); jack.add(can);
+const canM = new THREE.Mesh(lathe([[0, 0], [.04, 0], [.04, .13], [.042, .13], [.042, -.002], [0, -.002]], 40), MAT.glassLite({ opacity: .28 })); canM.renderOrder = 4; can.add(canM);
+const spout = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .06, 12, 1, true), MAT.glassLite({ opacity: .4 })); spout.rotation.z = Math.PI / 2 - .5; spout.position.set(.065, .115, 0); can.add(spout);
+const canW = new THREE.Mesh(new THREE.CylinderGeometry(.039, .039, .118, 32), new THREE.MeshPhysicalMaterial({ color: 0x6fb7e6, transparent: true, opacity: .4, depthWrite: false })); canW.position.y = .059; canW.renderOrder = 3; can.add(canW);
+lab.label(can, 'Bình tràn', [-.05, .14, 0]);
+const bal = balance(lab, [.17, 0, -.03], { dec: 1 });
+const cyl = cylinder(lab, { R: .012, H: .14, max: 100 }); cyl.g.position.set(.17, bal.top - .0025, -.04); scene.add(cyl.g); lab.label(cyl.g, 'Ống đong', [0, .16, 0]);
+const stream = new THREE.Mesh(new THREE.CylinderGeometry(.0015, .0015, 1, 8), new THREE.MeshPhysicalMaterial({ color: 0x6fb7e6, transparent: true, opacity: .6 })); scene.add(stream); stream.visible = false;
+const CYL0 = 40.0;
+let cur = 0, tgt = 0;
+function apply(V) {
+  const FA = S.rho * 9.8 * V * 1e-6 * 1000 / 1000 * 1000 / 1000, F1 = P - S.rho * .01 * V / 10 * 1.0;   // F_A = ρ g V = ρ(g/cm³)·V(cm³)·0,01 N
+  const fa = S.rho * V * .0098, f1 = P - fa;
+  const hObj = .051 * V / Vobj, springL = .08 + f1 * .02;
+  spring.scale.y = springL; ind.position.set(0, -.02 - (f1 / 2) * .1 - .004, .012); hook.position.y = -springL - .02;
+  const oy = .39 - .05 - springL - .02 - .0255; obj.position.set(0, oy, -.05);
+  const waterTop = oy - .0255 + hObj; // mặt nước phải ở mức này
+  const cy = waterTop - .118; can.position.y = cy; jt.position.y = cy - .005;
+  jx.forEach((m, i) => { m.position.y = (cy - .005) / 2 + .005; m.rotation.z = (i ? 1 : -1) * Math.atan2(cy - .015, .12); });
+  cyl.set(V); bal.set(CYL0 + S.rho * V);
+  canW.material.color.set(S.rho > 1 ? 0x9ac8e0 : 0x6fb7e6); cyl.g.children[3] && (cyl.g.children[3].material.color.set(S.rho > 1 ? 0x9ac8e0 : 0x6fb7e6));
+  hud.innerHTML = `Phần chìm V = <b>${V} cm³</b> (${S.rho > 1 ? 'nước muối' : 'nước'})<br>Lực kế: P = ${fmt(P, 2)} N → F₁ = <b>${fmt(f1, 2)} N</b> · F<sub>A</sub> = P − F₁ = <b>${fmt(fa, 2)} N</b><br>Nước tràn: ${V} cm³, khối lượng ${fmt(S.rho * V, 1)} g → trọng lượng <b>${fmt(fa, 2)} N</b>`;
+  return fa; void FA; void F1;
+}
+lab.onTick(dt => { if (Math.abs(tgt - cur) > .05) { const d = Math.sign(tgt - cur) * Math.min(Math.abs(tgt - cur), dt * 25); cur += d; stream.visible = d > 0; if (stream.visible) { const a = can.localToWorld(new THREE.Vector3(.09, .1, 0)), b = new THREE.Vector3(.17, bal.top + .02 + .14, -.04), L = a.distanceTo(b); stream.position.copy(a).lerp(b, .5); stream.scale.y = L; stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), a.clone().sub(b).normalize()); } apply(Math.round(cur)); } else { stream.visible = false; if (cur != tgt) { cur = tgt; apply(cur); } } });
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { tgt = +b.dataset.v; if (tgt < cur) { cur = tgt; } setTimeout(() => record(), 3500); });
+function record() { if (!cur) return; const fa = S.rho * cur * .0098; S.rows[cur] = S.rows[cur] || {}; S.rows[cur][S.rho] = fa; $('#tb').innerHTML = [20, 40, 60, 80].map(v => { const r = S.rows[v] || {}; const f = x => x != null ? fmt(x, 2) : '?'; return `<tr><td>${v} cm³</td><td>${f(r[1])}</td><td>${f(r[1])}</td><td>${f(r[1.1])}</td><td>${f(r[1.1])}</td></tr>`; }).join(''); }
+document.querySelectorAll('[data-l]').forEach(b => b.onclick = () => { S.rho = +b.dataset.l; document.querySelectorAll('[data-l]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); cur = tgt = 0; apply(0); toast(S.rho > 1 ? 'Đã thay bằng nước muối (D = 1,1 g/cm³)' : 'Nước (D = 1 g/cm³)'); });
+quiz($('#qz'), [
+  { q: 'Lực đẩy Archimedes có độ lớn bằng', o: ['trọng lượng của vật', 'trọng lượng phần chất lỏng bị vật chiếm chỗ', 'khối lượng của vật', 'thể tích của vật'], a: 1 },
+  { q: 'Một vật có thể tích phần chìm 50 cm³ trong nước (d = 10 000 N/m³). Lực đẩy Archimedes là bao nhiêu N?', n: .5, u: 'N' },
+  { q: 'Cùng thể tích phần chìm, lực đẩy Archimedes trong nước muối so với trong nước', o: ['nhỏ hơn', 'lớn hơn', 'bằng nhau', 'bằng 0'], a: 1 },
+  { q: 'Cá điều chỉnh để nổi lên bằng cách', o: ['co bong bóng khí lại', 'làm phồng bong bóng khí → thể tích tăng, lực đẩy Archimedes tăng', 'bơi nhanh hơn', 'ăn nhiều hơn'], a: 1 },
+]);
+apply(0); record(); ready(); window.dbg = { lab };
+</script></body></html>

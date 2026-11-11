@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 11. Muối</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+const stage = shell({ title: 'Bài 11. Muối', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Thí nghiệm', html: `<h3>Tìm hiểu tính chất hoá học của muối (Hình 11.1)</h3><p><b>Chuẩn bị:</b> các dung dịch H₂SO₄ loãng, NaOH loãng, Na₂SO₄, CuSO₄; 4 ống nghiệm: ống (1) chứa 1 đinh sắt đã làm sạch, ống (2) và (3) mỗi ống chứa khoảng 1 mL dd BaCl₂, ống (4) chứa khoảng 1 mL dd CuSO₄.</p>
+<p>Ống (1) cho khoảng 2 mL dd CuSO₄; ống (2) cho khoảng 1 mL dd H₂SO₄; ống (3) cho khoảng 1 mL dd Na₂SO₄; ống (4) cho khoảng 1 mL dd NaOH.</p>
+<div class="row"><button class="btn g" id="auto">Chuẩn bị 4 ống (chưa thêm thuốc thử)</button><button class="btn p" id="go">Thêm thuốc thử vào cả 4 ống</button></div><div id="ui"></div><div id="obs" class="note"></div>` },
+  { id: 'p2', title: 'Kết luận', html: `<ul><li>Dung dịch muối tác dụng với kim loại: Fe + CuSO₄ → FeSO₄ + Cu</li><li>Muối tác dụng với acid: BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl</li><li>Muối tác dụng với muối: BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl</li><li>Muối tác dụng với base: CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄ (kết tủa xanh)</li><li>Sản phẩm của phản ứng giữa muối với acid, base, muối thường có ít nhất một chất kết tủa (không tan) hoặc chất khí.</li></ul>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const lab = createLab(stage, { cam: [.03, .26, .55], target: [.03, .07, -.02], table: 'bench', tableSize: [1.5, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'cuso4', n: 'dd CuSO₄', c: 0x1f74d6, k: 'liq', tag: '#e3f1ff' }, { id: 'bacl2', n: 'dd BaCl₂', c: 0xf3f8fa, k: 'liq' }, { id: 'h2so4', n: 'dd H₂SO₄ loãng', c: 0xf2f6f8, k: 'liq' }, { id: 'na2so4', n: 'dd Na₂SO₄', c: 0xf3f8fa, k: 'liq' }, { id: 'naoh', n: 'dd NaOH loãng', c: 0xf2f6f8, k: 'liq' }, { id: 'fe', n: 'Đinh sắt', c: 0x8f969c, k: 'sol', solid: { kind: 'nail', c: 0x8f969c, metal: true }, max: 1 }];
+const has = (it, id) => it.find(x => x.id == id), mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), clamp(t, 0, 1)).getHex();
+function react(it, heat, age) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s; s.color = 0xf3f8fa; s.op = .28;
+  const Cu = has(it, 'cuso4'), Ba = has(it, 'bacl2'), H = has(it, 'h2so4'), N = has(it, 'na2so4'), B = has(it, 'naoh'), Fe = has(it, 'fe');
+  const tot = it.filter(x => x.id != 'fe').reduce((a, x) => a + x.amt, 0) || 1;
+  if (Cu) { s.color = mix(0xf3f8fa, 0x1f74d6, Cu.amt / tot); s.op = .5 + .25 * Cu.amt / tot; }
+  if (Fe) s.solid = { kind: 'nail', c: 0x8f969c, metal: true, amt: 1 };
+  const k = clamp(age / 2, 0, 1), st = clamp((age - 3) / 25, 0, .7);
+  if (Fe && Cu) { const q = clamp(age / 20, 0, 1); s.solid.c = mix(0x8f969c, 0xb4532a, clamp(age / 6, 0, 1)); s.solid.metal = age < 5; s.color = mix(s.color, 0xcde9c8, q); s.op = .55 - .25 * q; s.notes.push('Có lớp <b>kim loại màu đỏ</b> (Cu) bám ngoài đinh sắt; màu xanh của dung dịch nhạt dần.'); s.eq.push('Fe + CuSO₄ → FeSO₄ + Cu'); }
+  if (Ba && (H || N)) { s.ppt = { c: 0xffffff, amt: .9 * k, settle: st }; s.notes.push('Xuất hiện <b>kết tủa trắng</b> (BaSO₄).'); s.eq.push(H ? 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl' : 'BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl'); }
+  if (Cu && B) { s.ppt = { c: 0x3f8fd6, amt: .9 * k, settle: st }; s.color = mix(s.color, 0xf3f8fa, k * .7); s.notes.push('Xuất hiện <b>kết tủa màu xanh lam</b> (Cu(OH)₂).'); s.eq.push('CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄'); }
+  if (!s.notes.length) s.notes.push(Cu ? 'Dung dịch CuSO₄ màu xanh lam.' : Fe ? 'Đinh sắt sạch.' : 'Dung dịch không màu.');
+  return s;
+}
+const tubes = ['Ống (1)', 'Ống (2)', 'Ống (3)', 'Ống (4)'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 1, cap: 6, heat: false, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG, heat: false });
+$('#auto').onclick = () => { [[['fe', 1]], [['bacl2', 1]], [['bacl2', 1]], [['cuso4', 1]]].forEach((p, i) => { bench.T[i].items = p.map(([id, amt]) => ({ id, amt })); bench.T[i].age = 0; }); bench.redraw(); };
+$('#go').onclick = () => { $('#auto').click(); [['cuso4', 2], ['h2so4', 1], ['na2so4', 1], ['naoh', 1]].forEach(([id, amt], i) => { bench.T[i].items.push({ id, amt }); bench.T[i].age = 0; }); bench.redraw(); toast('Đã thêm thuốc thử. Chọn từng ống để xem hiện tượng.'); };
+quiz($('#qz'), [
+  { q: 'Cho dd NaOH vào dd CuSO₄, hiện tượng là', o: ['kết tủa trắng', 'kết tủa xanh lam', 'khí thoát ra', 'không hiện tượng'], a: 1 },
+  { q: 'Cặp chất nào phản ứng tạo kết tủa trắng?', o: ['BaCl₂ và Na₂SO₄', 'NaCl và KNO₃', 'CuSO₄ và Fe', 'HCl và NaOH'], a: 0 },
+  { q: 'Muối nào tan trong nước?', o: ['BaSO₄', 'CaCO₃', 'NaCl', 'AgCl'], a: 2 },
+  { q: 'Công thức của sodium hydrogencarbonate là', o: ['Na₂CO₃', 'NaHCO₃', 'NaOH', 'NaHSO₄'], a: 1 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

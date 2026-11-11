@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 28. Sự truyền nhiệt</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, clamp } from '../core/lab3d.js';
+import { vessel, burner, thermometer } from '../core/chem.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+const stage = shell({ title: 'Bài 28. Sự truyền nhiệt', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<h3>1. Dẫn nhiệt</h3><p>Thanh kim loại được kẹp nằm ngang, các đinh ghim gắn vào thanh bằng sáp. Đun nóng một đầu thanh. Quan sát các đinh rơi xuống. So sánh thanh đồng, thanh thép, thanh thuỷ tinh.</p>
+<div class="row"><b>Thanh:</b><button class="btn on" data-r="cu">Đồng</button><button class="btn g" data-r="fe">Thép</button><button class="btn g" data-r="gl">Thuỷ tinh</button></div>
+<h3>2. Đối lưu (Hình 28.2)</h3><p>Hai ống nghiệm đựng nước: ống (1) gắn viên sáp ở <b>đáy</b>, ống (2) gắn viên sáp ở <b>miệng</b> ống. Đun nóng nước ở gần miệng ống (1); đun nóng đáy ống (2) một thời gian bằng như vậy. Xem viên sáp có bị nóng chảy không. Thêm: cốc nước có vài hạt thuốc tím được đun ở đáy.</p>
+<h3>3. Bức xạ nhiệt (Hình 28.5)</h3><p>Bình thuỷ tinh đã phủ đen, bên trong có nhiệt kế. Bật đèn điện dây tóc, theo dõi nhiệt kế; sau đó đặt tấm gỗ chắn giữa đèn và bình.</p>` },
+  { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện thí nghiệm.</div><ul><li><b>Dẫn nhiệt</b>: nhiệt truyền từ phần này sang phần khác của vật, chủ yếu trong chất rắn. Kim loại dẫn nhiệt tốt (đồng tốt hơn thép), thuỷ tinh dẫn nhiệt kém.</li><li><b>Đối lưu</b>: nhiệt truyền nhờ các dòng chất lỏng hoặc chất khí; là hình thức truyền nhiệt chủ yếu của chất lỏng, chất khí. Muốn đun nóng chất lỏng nhanh phải đun ở <b>đáy</b>.</li><li><b>Bức xạ nhiệt</b>: nhiệt truyền bằng các tia nhiệt đi thẳng, kể cả trong chân không. Vật có mặt ngoài sẫm màu, xù xì hấp thụ tia nhiệt nhiều hơn.</li></ul>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const V = { d: [[-.4, .3, .45], [-.4, .12, 0]], o: [[.05, .3, .5], [.05, .12, 0]], b: [[.45, .28, .45], [.45, .1, 0]] };
+const lab = createLab(stage, { cam: V.d[0], target: V.d[1], table: 'wood', tableSize: [1.7, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+const dk = MAT.metal(0x2d3136, .45);
+function stand(x, z, h = .25) { const b = roundBox(.1, .01, .08, .003, dk); b.position.set(x, .005, z); scene.add(b); const r = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, h, 12), MAT.metal(0xc8cdd2, .25)); r.position.set(x, h / 2, z - .025); scene.add(r); }
+/* 1. Dẫn nhiệt */
+stand(-.55, 0, .2);
+const RODS = { cu: [0xc06a3a, 1, 'Thanh đồng'], fe: [0x8f969c, .18, 'Thanh thép'], gl: [0xd8f0ff, .006, 'Thanh thuỷ tinh'] };
+const rodM = new THREE.MeshStandardMaterial({ color: 0xc06a3a, metalness: .85, roughness: .3, emissive: 0xff3000, emissiveIntensity: 0 });
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .3, 16), rodM); rod.rotation.z = Math.PI / 2; rod.position.set(-.41, .15, 0); scene.add(rod);
+const clampB = new THREE.Mesh(new THREE.BoxGeometry(.03, .02, .02), dk); clampB.position.set(-.55, .15, -.01); scene.add(clampB);
+const pins = [...Array(6)].map((_, i) => { const g = new THREE.Group(); g.position.set(-.5 + i * .045, .145, 0); scene.add(g); const wax = new THREE.Mesh(new THREE.SphereGeometry(.0045, 12, 10), new THREE.MeshStandardMaterial({ color: 0xf4e8b8, roughness: .5 })); g.add(wax); const pin = new THREE.Mesh(new THREE.CylinderGeometry(.0006, .0006, .03, 6), MAT.metal(0xd0d4d8, .3)); pin.position.y = -.016; g.add(pin); g.userData = { x: -.5 + i * .045, fall: 0, fell: false, y: .145 }; return g; });
+const lamp1 = burner(lab, [-.27, .01, 0]); lamp1.g.scale.setScalar(1); lab.label(rod, 'Thanh kim loại + đinh gắn sáp', [0, .04, 0]);
+const T1 = { on: false, t: 0, mat: 'cu' };
+/* 2. Đối lưu */
+stand(-.05, -.02, .2); stand(.12, -.02, .2);
+function tiltedTube(x, waxAtBottom) { const g = new THREE.Group(); g.position.set(x, .12, 0); g.rotation.z = .9; scene.add(g); const v = vessel(lab, { kind: 'tube', R: .009, H: .15 }); v.g.position.y = -.075; g.add(v.g); v.set({ level: .85, color: 0xd6eef8, op: .3 }); const wax = new THREE.Mesh(new THREE.SphereGeometry(.006, 12, 10), new THREE.MeshStandardMaterial({ color: 0xf4e8b8, roughness: .5 })); wax.position.y = waxAtBottom ? -.07 : .035; g.add(wax); return { g, v, wax, k: 0 }; }
+const TA = tiltedTube(-.05, true), TB = tiltedTube(.12, false);
+lab.label(TA.g, 'Ống (1): sáp ở đáy', [0, .08, 0]); lab.label(TB.g, 'Ống (2): sáp ở miệng', [0, .08, 0]);
+const lampA = burner(lab, [-.06, .0, .0]), lampB = burner(lab, [.07, 0, 0]);
+lampA.g.position.set(-.05 + Math.sin(.9) * -.03 - .01, 0, 0); lampB.g.position.set(.12 + Math.sin(.9) * .07, 0, 0);
+const T2 = { on: false, t: 0 };
+/* đối lưu trong cốc thuốc tím */
+const bk = vessel(lab, { kind: 'beaker', R: .035, H: .09 }); bk.g.position.set(.25, .05, .08); scene.add(bk.g); bk.set({ level: .75, color: 0xd6eef8, op: .3 });
+const tri = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .05, 3, 1, true), MAT.metal(0x3a3f45, .5)); tri.position.set(.25, .025, .08); scene.add(tri);
+const NP = 90, pur = new THREE.InstancedMesh(new THREE.SphereGeometry(.0018, 6, 4), new THREE.MeshBasicMaterial({ color: 0x8a1e9e, transparent: true, opacity: .6 }), NP); scene.add(pur);
+const pp = [...Array(NP)].map((_, i) => ({ a: Math.random() * 6.28, s: Math.random() })); const dmy = new THREE.Object3D();
+lab.label(bk.g, 'Nước + thuốc tím', [0, .11, 0]);
+/* 3. Bức xạ */
+const BX = new THREE.Group(); BX.position.set(.45, 0, 0); scene.add(BX);
+const flask = new THREE.Mesh(lathe([[0, 0], [.03, .005], [.04, .03], [.035, .06], [.012, .075], [.012, .1], [0, .1]], 32), new THREE.MeshStandardMaterial({ color: 0x151515, roughness: .5 })); flask.position.set(.06, 0, 0); BX.add(flask);
+const th3 = thermometer(lab, BX, [.06, .03, .0], { L: .15 }); th3.set(28);
+const bulb3 = new THREE.Mesh(new THREE.SphereGeometry(.02, 24, 16), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffd080, emissiveIntensity: 0 })); bulb3.position.set(-.07, .06, 0); BX.add(bulb3);
+const bst = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .05, 8), MAT.metal(0x777777, .4)); bst.position.set(-.07, .025, 0); BX.add(bst);
+const bl = new THREE.PointLight(0xffd090, 0, .5, 2); bl.position.copy(bulb3.position); BX.add(bl);
+const shield = roundBox(.01, .12, .12, .003, new THREE.MeshStandardMaterial({ color: 0xc9a06a, roughness: .7 })); shield.position.set(0, .06, 0); BX.add(shield); shield.visible = false;
+lab.label(flask, 'Bình phủ đen + nhiệt kế', [0, .13, 0]); lab.label(bulb3, 'Đèn dây tóc', [0, .04, 0]);
+const T3 = { on: false, T: 28 };
+lab.onTick((dt, t) => {
+  // dẫn nhiệt
+  if (T1.on) { T1.t += dt; const D = RODS[T1.mat][1] * .0025; rodM.emissiveIntensity = T1.mat == 'gl' ? 0 : Math.min(1, T1.t * .2); const front = Math.sqrt(D * T1.t) * 1.4; pins.forEach((p, i) => { const dist = -.27 - p.userData.x; const d2 = .27 - (i * .045 + .0) ; void d2; const reached = (( -.27) - p.userData.x) * -1; void reached; const dd = Math.abs(-.28 - p.userData.x); if (!p.userData.fell && dd < front) p.userData.fell = true; if (p.userData.fell) { p.userData.fall += dt * 3; p.position.y = Math.max(.012, p.userData.y - p.userData.fall * p.userData.fall * .1); } }); void dist; }
+  // đối lưu: ống
+  if (T2.on) { T2.t += dt; TB.k = Math.min(1, TB.k + dt * .15); TB.wax.scale.setScalar(1 - TB.k * .9); TB.v.set({ bubbles: T2.t > 4 ? .15 : 0 }); TA.v.set({ bubbles: T2.t > 6 ? .1 : 0 });
+    pp.forEach((q, i) => { q.s = (q.s + dt * .12) % 1; const s = q.s, r = .025 * Math.sin(s * Math.PI * 2 + i) * (s < .5 ? .3 : 1), y = s < .5 ? .055 + s * 2 * .055 : .11 - (s - .5) * 2 * .055; dmy.position.set(.25 + Math.cos(q.a) * (s < .5 ? .004 : .028), y, .08 + Math.sin(q.a) * (s < .5 ? .004 : .028)); dmy.scale.setScalar(clamp(T2.t / 3, .2, 1.5)); dmy.updateMatrix(); pur.setMatrixAt(i, dmy.matrix); void r; }); pur.instanceMatrix.needsUpdate = true; }
+  // bức xạ
+  if (T3.on) { T3.T += dt * (shield.visible ? -.05 : .6) * (T3.T < 45 ? 1 : .2); th3.set(T3.T); }
+});
+function reset1() { T1.on = false; T1.t = 0; rodM.emissiveIntensity = 0; pins.forEach(p => { p.userData.fell = false; p.userData.fall = 0; p.position.y = p.userData.y; }); lamp1.set(false); }
+document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { T1.mat = b.dataset.r; document.querySelectorAll('[data-r]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); const r = RODS[T1.mat]; rodM.color.set(r[0]); rodM.metalness = T1.mat == 'gl' ? 0 : .85; rodM.transparent = T1.mat == 'gl'; rodM.opacity = T1.mat == 'gl' ? .5 : 1; reset1(); lab.view(...V.d); });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="h1">Đun thanh kim loại</button><button class="btn p" id="h2">Đun 2 ống nghiệm + cốc</button><button class="btn p" id="h3">Bật đèn</button><button class="btn" id="sh">Đặt / bỏ tấm gỗ</button>`;
+$('#h1').onclick = () => { reset1(); T1.on = true; lamp1.set(true); lab.view(...V.d); say(T1.mat == 'gl' ? 'Thanh thuỷ tinh: sau một thời gian dài các đinh vẫn chưa rơi → thuỷ tinh <b>dẫn nhiệt kém</b>.' : `Đun một đầu ${RODS[T1.mat][2].toLowerCase()}: các đinh ghim <b>lần lượt rơi xuống</b> từ đầu gần ngọn lửa ra xa → nhiệt truyền dần dọc theo thanh (<b>dẫn nhiệt</b>). ${T1.mat == 'cu' ? 'Đồng dẫn nhiệt rất tốt: đinh rơi nhanh.' : 'Thép dẫn nhiệt kém hơn đồng: đinh rơi chậm hơn.'}`); };
+$('#h2').onclick = () => { T2.on = true; T2.t = 0; TB.k = 0; TB.wax.scale.setScalar(1); lampA.set(true); lampB.set(true); lab.view(...V.o); say('Ống (1) đun gần miệng: nước phía trên sôi nhưng <b>viên sáp ở đáy không nóng chảy</b>. Ống (2) đun ở đáy: <b>viên sáp ở miệng ống nóng chảy</b> nhanh → nước nóng ở dưới nhẹ hơn đi lên, nước lạnh đi xuống tạo thành dòng đối lưu. Trong cốc, thuốc tím vẽ nên các dòng nước màu tím đi lên ở giữa rồi đi xuống ở thành cốc.'); };
+$('#h3').onclick = () => { T3.on = !T3.on; bulb3.material.emissiveIntensity = T3.on ? 3 : 0; bl.intensity = T3.on ? .5 : 0; lab.view(...V.b); say(T3.on ? 'Bật đèn: nhiệt kế trong bình phủ đen <b>tăng dần</b> – năng lượng nhiệt truyền từ đèn đến bình bằng <b>các tia nhiệt</b> đi thẳng (bức xạ nhiệt), không phải dẫn nhiệt hay đối lưu.' : 'Tắt đèn.'); };
+$('#sh').onclick = () => { shield.visible = !shield.visible; lab.view(...V.b); if (shield.visible) say('Đặt tấm gỗ chắn giữa đèn và bình: nhiệt độ <b>không tăng nữa</b> (giảm dần) → tia nhiệt truyền thẳng, bị tấm gỗ chắn lại.'); };
+quiz($('#qz'), [
+  { q: 'Hình thức truyền nhiệt chủ yếu của chất rắn là', o: ['dẫn nhiệt', 'đối lưu', 'bức xạ nhiệt', 'cả ba'], a: 0 },
+  { q: 'Muốn đun nóng nước trong ấm nhanh, phải đặt nguồn nhiệt ở', o: ['miệng ấm', 'đáy ấm', 'giữa ấm', 'bên hông ấm'], a: 1 },
+  { q: 'Năng lượng từ Mặt Trời truyền đến Trái Đất bằng hình thức', o: ['dẫn nhiệt', 'đối lưu', 'bức xạ nhiệt', 'cả dẫn nhiệt và đối lưu'], a: 2 },
+  { q: 'Vì sao mùa hè nên mặc áo màu trắng?', o: ['Áo trắng dẫn nhiệt tốt', 'Áo trắng hấp thụ ít tia nhiệt hơn', 'Áo trắng nặng hơn', 'Áo trắng đối lưu tốt'], a: 1 },
+  { q: 'Chảo nấu ăn làm bằng kim loại, cán chảo làm bằng gỗ hoặc nhựa vì', o: ['kim loại dẫn nhiệt tốt, gỗ/nhựa dẫn nhiệt kém', 'gỗ dẫn nhiệt tốt', 'cho đẹp', 'cho nhẹ'], a: 0 },
+]);
+ready(); window.dbg = { lab };
+</script></body></html>

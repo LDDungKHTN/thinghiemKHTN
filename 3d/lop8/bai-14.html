@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 14. Thực hành xác định khối lượng riêng</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, TEX, roundBox, clamp } from '../core/lab3d.js';
+import { balance, cylinder } from '../core/kit.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+const stage = shell({ title: 'Bài 14. Thực hành xác định khối lượng riêng', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<h3>I. Khối lượng riêng của khối gỗ hình hộp chữ nhật</h3><p><b>Chuẩn bị:</b> cân điện tử; khối gỗ hình hộp chữ nhật; thước có ĐCNN 1 mm.</p>
+<ol><li>Đo độ dài các cạnh a, b, c bằng thước (bấm <b>“Đo a, b, c”</b>), tính thể tích V = a.b.c.</li><li>Đặt khối gỗ lên cân, đọc khối lượng m (bấm <b>“Đặt lên cân”</b>).</li><li>Lặp lại 3 lần, ghi Bảng 14.1 (bấm <b>“Ghi lần đo”</b>).</li></ol>
+<h3>II. Khối lượng riêng của một lượng nước</h3><p><b>Chuẩn bị:</b> cân điện tử; ống đong; cốc thuỷ tinh; nước sạch.</p>
+<ol><li>Xác định khối lượng ống đong m₁ (Hình 14.3a).</li><li>Rót nước vào ống đong, xác định thể tích V (kéo thanh trượt).</li><li>Xác định khối lượng ống đong có nước m₂ (Hình 14.3b); m = m₂ − m₁.</li></ol>
+<div class="sl">Rót nước <input type="range" id="vw" min="0" max="200" step="10" value="0"><span id="vv">0 mL</span></div>` },
+  { id: 'p2', title: 'Kết quả', html: `<h3>Bảng 14.1 – Khối gỗ</h3><table class="dt"><thead><tr><th>Lần</th><th>a (cm)</th><th>b (cm)</th><th>c (cm)</th><th>V (cm³)</th><th>m (g)</th></tr></thead><tbody id="t1"></tbody></table><div id="r1" class="note sm"></div>
+<h3>Bảng 14.2 – Nước</h3><table class="dt"><thead><tr><th>Lần</th><th>V (mL)</th><th>m₁ (g)</th><th>m₂ (g)</th><th>m (g)</th></tr></thead><tbody id="t2"></tbody></table><div id="r2" class="note sm"></div>
+<div class="eq">D = m / V</div>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const HOME = [[0, .3, .5], [0, .06, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.3, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const bal = balance(lab, [0, 0, 0]);
+const A = .08, B = .05, Cc = .04, RHO = .62;   // gỗ thông
+const block = roundBox(A, Cc, B, .002, new THREE.MeshStandardMaterial({ map: TEX.wood(), color: 0xe6c18e, roughness: .6 })); block.castShadow = true; scene.add(block);
+const BH = new THREE.Vector3(-.2, Cc / 2, .08); block.position.copy(BH); lab.label(block, 'Khối gỗ', [0, .04, 0]);
+const ruler = new THREE.Mesh(new THREE.BoxGeometry(.2, .002, .025), new THREE.MeshStandardMaterial({ map: TEX.ruler(200, { px: 6, h: 64 }) })); ruler.position.set(-.2, .001, .14); scene.add(ruler); lab.label(ruler, 'Thước (ĐCNN 1 mm)', [0, .01, .02]);
+const cyl = cylinder(lab, { max: 250 }); cyl.g.position.set(.2, 0, .03); scene.add(cyl.g); lab.label(cyl.g, 'Ống đong 250 mL', [0, .23, 0]);
+const M1 = 128.4, noise = s => Math.round((Math.random() - .5) * 2 * s * 10) / 10;
+const S = { on: null, dims: null, rows1: [], rows2: [], m1: null };
+const bTop = bal.top - .0025;
+function place(o) {
+  if (o == 'block') { block.position.set(0, bTop + Cc / 2, -.01); cyl.g.position.set(.2, 0, .03); S.on = 'block'; bal.set(Math.round(A * B * Cc * 1e6 * RHO * 10) / 10 + noise(.2)); }
+  else if (o == 'cyl') { cyl.g.position.set(0, bTop, -.01); block.position.copy(BH); S.on = 'cyl'; bal.set(M1 + cyl.V * 1.0 + noise(.1)); }
+  else { block.position.copy(BH); cyl.g.position.set(.2, 0, .03); S.on = null; bal.set(0); }
+}
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="dim">Đo a, b, c</button><button class="btn p" id="bw">Đặt khối gỗ lên cân</button><button class="btn" id="r1b">Ghi lần đo (gỗ)</button><button class="btn p" id="bc">Đặt ống đong lên cân</button><button class="btn" id="r2b">Ghi lần đo (nước)</button><button class="btn" id="off">Nhấc khỏi cân</button>`;
+$('#dim').onclick = () => { S.dims = [A * 100 + noise(.05), B * 100 + noise(.05), Cc * 100 + noise(.05)].map(v => Math.round(v * 10) / 10); hud.innerHTML = `Đo bằng thước: a = <b>${fmt(S.dims[0], 1)} cm</b>, b = <b>${fmt(S.dims[1], 1)} cm</b>, c = <b>${fmt(S.dims[2], 1)} cm</b>`; lab.view([-.2, .18, .26], [-.2, .02, .1]); };
+$('#bw').onclick = () => { place('block'); lab.view([0, .2, .3], [0, .05, 0]); hud.innerHTML = `Khối lượng khối gỗ: <b>${fmt(bal.m, 1)} g</b>`; };
+$('#bc').onclick = () => { place('cyl'); lab.view([0, .25, .4], [0, .1, 0]); hud.innerHTML = `Khối lượng ống đong ${cyl.V ? `có ${cyl.V} mL nước (m₂)` : 'rỗng (m₁)'}: <b>${fmt(bal.m, 1)} g</b>`; if (!cyl.V) S.m1 = bal.m; };
+$('#off').onclick = () => place(null);
+$('#vw').oninput = e => { const V = +e.target.value; cyl.set(V); $('#vv').textContent = V + ' mL'; if (S.on == 'cyl') place('cyl'), hud.innerHTML = `V = <b>${V} mL</b> · cân chỉ <b>${fmt(bal.m, 1)} g</b>`; };
+$('#r1b').onclick = () => { if (!S.dims) return toast('Hãy đo a, b, c trước.'); if (S.on != 'block') return toast('Hãy đặt khối gỗ lên cân.'); if (S.rows1.length >= 3) return toast('Đã đủ 3 lần.'); const V = S.dims[0] * S.dims[1] * S.dims[2]; S.rows1.push({ d: S.dims, V, m: bal.m }); S.dims = null; draw(); showPane(1); };
+$('#r2b').onclick = () => { if (S.m1 == null) return toast('Hãy cân ống đong rỗng trước (m₁).'); if (S.on != 'cyl' || !cyl.V) return toast('Rót nước vào ống đong và đặt lên cân.'); S.rows2.push({ V: cyl.V, m1: S.m1, m2: bal.m }); draw(); showPane(1); };
+function draw() {
+  $('#t1').innerHTML = S.rows1.map((r, i) => `<tr><td>${i + 1}</td><td>${fmt(r.d[0], 1)}</td><td>${fmt(r.d[1], 1)}</td><td>${fmt(r.d[2], 1)}</td><td>${fmt(r.V, 1)}</td><td>${fmt(r.m, 1)}</td></tr>`).join('');
+  if (S.rows1.length) { const V = S.rows1.reduce((a, r) => a + r.V, 0) / S.rows1.length, m = S.rows1.reduce((a, r) => a + r.m, 0) / S.rows1.length; $('#r1').innerHTML = `V<sub>tb</sub> ≈ ${fmt(V, 1)} cm³; m<sub>tb</sub> ≈ ${fmt(m, 1)} g → D<sub>gỗ</sub> = m/V ≈ <b>${fmt(m / V, 2)} g/cm³</b> = ${fmt(m / V * 1000, 0)} kg/m³.`; }
+  $('#t2').innerHTML = S.rows2.map((r, i) => `<tr><td>${i + 1}</td><td>${r.V}</td><td>${fmt(r.m1, 1)}</td><td>${fmt(r.m2, 1)}</td><td>${fmt(r.m2 - r.m1, 1)}</td></tr>`).join('');
+  if (S.rows2.length) { const D = S.rows2.reduce((a, r) => a + (r.m2 - r.m1) / r.V, 0) / S.rows2.length; $('#r2').innerHTML = `D<sub>nước</sub> ≈ <b>${fmt(D, 2)} g/mL</b> ≈ ${fmt(D * 1000, 0)} kg/m³.`; }
+}
+quiz($('#qz'), [
+  { q: 'Khối lượng riêng của một chất được xác định bằng', o: ['khối lượng của 1 đơn vị thể tích chất đó', 'thể tích của 1 kg chất', 'trọng lượng của vật', 'khối lượng nhân thể tích'], a: 0 },
+  { q: 'Một khối gỗ có V = 160 cm³, m = 99,2 g. Khối lượng riêng của gỗ là bao nhiêu g/cm³?', n: .62, u: 'g/cm³' },
+  { q: '1 g/cm³ bằng bao nhiêu kg/m³?', n: 1000, u: 'kg/m³' },
+  { q: 'Để xác định khối lượng nước trong ống đong, ta lấy', o: ['m₂ + m₁', 'm₂ − m₁', 'm₁ − m₂', 'chỉ m₂'], a: 1 },
+]);
+place(null); ready(); window.dbg = { lab };
+</script></body></html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 8. Acid</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+const stage = shell({ title: 'Bài 8. Acid', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Thí nghiệm', html: `<h3>Tính chất của dung dịch hydrochloric acid</h3><p><b>Chuẩn bị:</b> dung dịch HCl 1 M, giấy quỳ tím; hai ống nghiệm mỗi ống đựng một trong các kim loại Fe, Zn; ống hút nhỏ giọt.</p>
+<ol><li>Nhỏ 1 – 2 giọt dung dịch HCl vào mẩu giấy quỳ tím (ống 1).</li><li>Cho khoảng 3 mL dung dịch HCl vào mỗi ống nghiệm đã chuẩn bị ở trên (ống 2: Fe, ống 3: Zn).</li></ol>
+<div class="row"><button class="btn g" id="auto">Chuẩn bị nhanh</button></div><div id="ui"></div><div id="obs" class="note"></div>` },
+  { id: 'p2', title: 'Kết luận', html: `<ul><li>Acid là những hợp chất trong phân tử có nguyên tử hydrogen liên kết với gốc acid. Khi tan trong nước, acid tạo ra ion H⁺.</li><li>Dung dịch acid làm <b>quỳ tím chuyển sang màu đỏ</b>.</li><li>Dung dịch acid tác dụng với một số kim loại (Mg, Fe, Zn…) tạo muối và giải phóng khí hydrogen: Fe + 2HCl → FeCl₂ + H₂↑; Zn + 2HCl → ZnCl₂ + H₂↑.</li><li>Một số acid thông dụng: H₂SO₄, HCl, CH₃COOH. Tuyệt đối không tự ý pha loãng sulfuric acid đặc.</li></ul>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const lab = createLab(stage, { cam: [.05, .26, .5], target: [.05, .07, -.02], table: 'bench', tableSize: [1.4, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'hcl', n: 'dd HCl 1 M', c: 0xeef6f8, k: 'liq' }, { id: 'q', n: 'Giấy quỳ tím', c: 0x8e5bd6, k: 'sol', solid: { kind: 'strip', c: 0x8e5bd6 }, max: 1 }, { id: 'fe', n: 'Đinh sắt', c: 0x8f969c, k: 'sol', solid: { kind: 'nail', c: 0x8f969c, metal: true }, max: 1 }, { id: 'zn', n: 'Kẽm viên', c: 0xb8bcc4, k: 'sol', solid: { kind: 'chunk', c: 0xb8bcc4, metal: true } }];
+const has = (it, id) => it.find(x => x.id == id);
+function react(it, heat, age) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s; s.color = 0xf2f8fa; s.op = .28;
+  const A = has(it, 'hcl'), sol = ['q', 'fe', 'zn'].find(x => has(it, x)), r = sol && REAG.find(x => x.id == sol); if (r) s.solid = { ...r.solid, amt: has(it, sol).amt };
+  if (sol == 'q') { if (A) { s.solid.c = 0xd6334c; s.notes.push('Giấy quỳ tím chuyển sang <b>màu đỏ</b>.'); } else s.notes.push('Giấy quỳ tím.'); }
+  if ((sol == 'fe' || sol == 'zn') && A) { s.bubbles = sol == 'zn' ? .55 : .3; s.notes.push(`Có <b>bọt khí</b> không màu thoát ra trên bề mặt ${sol == 'fe' ? 'đinh sắt' : 'viên kẽm'}; kim loại tan dần.`); s.eq.push(sol == 'fe' ? 'Fe + 2HCl → FeCl₂ + H₂↑' : 'Zn + 2HCl → ZnCl₂ + H₂↑'); if (sol == 'fe') s.color = new THREE.Color(0xf2f8fa).lerp(new THREE.Color(0xd8efd0), clamp(age / 25, 0, .8)).getHex(); }
+  if (!s.notes.length) s.notes.push(A ? 'Dung dịch HCl không màu.' : 'Chưa có dung dịch acid.');
+  return s;
+}
+const tubes = ['Ống 1', 'Ống 2', 'Ống 3'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 3, cap: 12, heat: false, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG, heat: false });
+$('#auto').onclick = () => { [[['q', 1], ['hcl', .5]], [['fe', 1], ['hcl', 3]], [['zn', 1], ['hcl', 3]]].forEach((p, i) => { bench.T[i].items = p.map(([id, amt]) => ({ id, amt })); bench.T[i].age = 0; }); bench.redraw(); bench.select(1); };
+quiz($('#qz'), [
+  { q: 'Dung dịch acid làm quỳ tím chuyển sang màu', o: ['xanh', 'đỏ', 'vàng', 'không đổi màu'], a: 1 },
+  { q: 'Gốc acid trong H₂SO₄ là', o: ['H', 'SO₄', 'S', 'O'], a: 1 },
+  { q: 'Cho Mg tác dụng với dd HCl, sản phẩm là', o: ['MgCl₂ và H₂', 'MgO và H₂O', 'MgCl₂ và O₂', 'Mg(OH)₂'], a: 0 },
+  { q: 'Kim loại nào không tác dụng với dung dịch HCl?', o: ['Fe', 'Zn', 'Mg', 'Cu'], a: 3 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

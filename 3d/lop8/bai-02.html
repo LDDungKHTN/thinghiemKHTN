@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 2. Phản ứng hoá học</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { barMagnet } from '../core/magnet.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 2. Phản ứng hoá học', sub: 'KHTN 8 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<h3>Thí nghiệm về biến đổi hoá học (Hình 2.2)</h3>
+<p><b>Chuẩn bị:</b> bột sắt (Fe) và bột lưu huỳnh (S) theo tỉ lệ 7 : 4 về khối lượng; ống nghiệm chịu nhiệt, đèn cồn, đũa thuỷ tinh, thìa thuỷ tinh.</p>
+<ol><li>Trộn đều hỗn hợp bột sắt và bột lưu huỳnh. Lần lượt cho vào hai ống nghiệm (1) và (2), mỗi ống 3 thìa hỗn hợp (bấm “Chuẩn bị nhanh”).</li><li>Đưa nam châm lại gần ống nghiệm (1). Quan sát.</li><li>Đun nóng mạnh đáy ống nghiệm (2) khoảng 30 giây rồi ngừng đun. Để nguội và đưa nam châm lại gần ống (2).</li></ol>
+<div id="ui"></div>
+<div class="row"><button class="btn g" id="auto">Chuẩn bị nhanh</button><button class="btn p" id="mag">Đưa nam châm lại gần ống đang chọn</button></div>
+<div id="obs" class="note"></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<ul><li>Hỗn hợp bột sắt và bột lưu huỳnh khi chưa đun: nam châm <b>hút được</b> bột sắt (sắt vẫn giữ nguyên tính chất) – biến đổi vật lí.</li><li>Sau khi đun nóng: hỗn hợp nóng đỏ lên, sau đó tạo chất rắn màu đen là iron(II) sulfide (FeS); nam châm <b>không hút</b> – có chất mới tạo thành: <b>biến đổi hoá học</b>.</li>
+<li>Phương trình chữ: Iron + Sulfur → Iron(II) sulfide</li><li>Dấu hiệu nhận ra phản ứng hoá học: thay đổi màu sắc, xuất hiện chất khí, chất kết tủa…; sự toả nhiệt và phát sáng.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const lab = createLab(stage, { cam: [.05, .26, .5], target: [.05, .07, -.02], table: 'bench', tableSize: [1.4, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'fe', n: 'Bột sắt', c: 0x55595e, k: 'sol', solid: { kind: 'powder', c: 0x55595e } }, { id: 's', n: 'Bột lưu huỳnh', c: 0xe8cf2c, k: 'sol', solid: { kind: 'powder', c: 0xe8cf2c } }, { id: 'mix', n: 'Hỗn hợp Fe + S', c: 0x8a8460, k: 'sol', solid: { kind: 'powder', c: 0x8a8460 } }];
+const has = (it, id) => it.find(x => x.id == id);
+const burned = {}, heatT = {};
+function react(it, heat, age, i) {
+  const s = { notes: [], eq: [], level: 0 }; if (!it.length) return s;
+  const fe = has(it, 'fe') || has(it, 'mix'), su = has(it, 's') || has(it, 'mix'); const amt = it.reduce((a, x) => a + x.amt, 0);
+  s.solid = { kind: 'powder', c: fe && su ? 0x8a8460 : fe ? 0x55595e : 0xe8cf2c, amt: Math.min(3, amt) };
+  if (heat) heatT[i] = (heatT[i] || 0) + .125;
+  if (fe && su && (heatT[i] || 0) > 3) burned[i] = true;
+  if (burned[i]) { s.solid.c = heat ? 0xb83a10 : 0x1a1a1a; s.gas = heat ? { c: 0xddd8b0, amt: .2 } : null; s.notes.push(heat ? 'Hỗn hợp <b>nóng đỏ</b> lên, phản ứng lan dần ra toàn bộ hỗn hợp (phản ứng toả nhiệt).' : 'Sau khi nguội: thu được <b>chất rắn màu đen</b> (iron(II) sulfide).'); s.eq.push('Iron + Sulfur → Iron(II) sulfide'); return s; }
+  if (heat) s.notes.push('Đang đun nóng đáy ống nghiệm…');
+  else s.notes.push(fe && su ? 'Hỗn hợp bột màu xám vàng (sắt và lưu huỳnh trộn lẫn).' : fe ? 'Bột sắt màu xám.' : 'Bột lưu huỳnh màu vàng.');
+  return s;
+}
+const tubes = ['Ống (1)', 'Ống (2)'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, cap: 10, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG });
+const mag = barMagnet(.07, .012); mag.rotation.z = Math.PI / 2; lab.scene.add(mag); mag.visible = false;
+const grains = new THREE.Group(); lab.scene.add(grains);
+for (let i = 0; i < 26; i++) { const g = new THREE.Mesh(new THREE.IcosahedronGeometry(.0009, 0), new THREE.MeshStandardMaterial({ color: 0x55595e, metalness: .6, roughness: .5 })); g.position.set((Math.random() - .5) * .006, .005 + Math.random() * .03, .009); grains.add(g); }
+grains.visible = false;
+$('#mag').onclick = () => {
+  const i = bench.sel, t = bench.T[i], it = t.items; if (!it.length) return toast('Ống nghiệm trống.');
+  if (t.heat) return toast('Hãy ngừng đun và để nguội trước.');
+  const p = t.v.g.position; mag.position.set(p.x, p.y + .03, p.z + .03); mag.visible = true;
+  const fe = has(it, 'fe') || has(it, 'mix');
+  grains.visible = !!fe && !burned[i]; grains.position.set(p.x, p.y + .005, p.z);
+  const txt = burned[i] ? 'Nam châm <b>không hút</b> chất rắn màu đen trong ống (2): sắt đã biến đổi thành chất mới (iron(II) sulfide) – <b>biến đổi hoá học</b>.' : fe ? 'Nam châm <b>hút được</b> bột sắt trong hỗn hợp (các hạt sắt bám về phía nam châm) – sắt vẫn giữ nguyên tính chất: chưa có chất mới.' : 'Nam châm không hút bột lưu huỳnh.';
+  hud.innerHTML = txt; $('#obs').innerHTML = txt; setTimeout(() => { mag.visible = false; grains.visible = false; }, 4000);
+};
+$('#auto').onclick = () => { bench.T.forEach((t, i) => { t.items = [{ id: 'mix', amt: 3 }]; t.age = 0; delete burned[i]; heatT[i] = 0; }); bench.redraw(); bench.select(0); toast('Đã cho hỗn hợp Fe + S vào 2 ống. Ống (2): chọn ống rồi bấm “Đun nóng”.'); };
+quiz($('#qz'), [
+  { q: 'Quá trình nào là biến đổi hoá học?', o: ['Nước đá tan thành nước lỏng', 'Đốt cháy than tạo khí carbon dioxide', 'Hoà tan muối ăn vào nước', 'Cắt tờ giấy thành nhiều mảnh'], a: 1 },
+  { q: 'Sau khi đun nóng hỗn hợp Fe và S rồi để nguội, nam châm không hút chất trong ống vì', o: ['sắt đã bay hơi', 'đã tạo chất mới là iron(II) sulfide không bị nam châm hút', 'nam châm hết từ tính', 'lưu huỳnh che phủ sắt'], a: 1 },
+  { q: 'Than cháy trong không khí tạo khí carbon dioxide. Chất phản ứng là', o: ['carbon dioxide', 'than (carbon) và oxygen', 'chỉ oxygen', 'chỉ than'], a: 1 },
+  { q: 'Dấu hiệu nào cho biết có phản ứng hoá học xảy ra?', o: ['Chất thay đổi hình dạng', 'Có sự thay đổi màu sắc, tạo chất khí, kết tủa, toả nhiệt, phát sáng', 'Chất bị nghiền nhỏ', 'Chất tan trong nước'], a: 1 },
+  { q: 'Trong phản ứng giữa hydrogen và oxygen tạo nước, số nguyên tử H và O trước và sau phản ứng', o: ['thay đổi', 'không đổi', 'tăng gấp đôi', 'giảm một nửa'], a: 1 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

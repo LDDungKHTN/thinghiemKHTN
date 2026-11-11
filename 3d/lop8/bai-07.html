@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 7. Tốc độ phản ứng và chất xúc tác</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, clamp } from '../core/lab3d.js';
+import { vessel, thermometer } from '../core/chem.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 7. Tốc độ phản ứng và chất xúc tác', sub: 'KHTN 8 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<p>Bấm các nút “Chuẩn bị TN…” để bố trí nhanh từng thí nghiệm, hoặc tự cho hoá chất vào ống.</p>
+<h3>1. Ảnh hưởng của nồng độ</h3><p>Ống (1): 5 mL HCl 0,1 M; ống (2): 5 mL HCl 1 M. Đưa lần lượt 2 đinh sắt giống nhau vào 2 ống.</p>
+<h3>2. Ảnh hưởng của nhiệt độ</h3><p>Lấy hai cốc nước, một cốc nước lạnh và một cốc nước nóng, đồng thời cho vào mỗi cốc một viên C sủi.</p>
+<h3>3. Ảnh hưởng của diện tích bề mặt tiếp xúc</h3><p>Cho đá vôi dạng bột và đá vôi dạng viên (bằng nhau) vào 2 ống; cho vào mỗi ống 3 mL HCl 0,1 M.</p>
+<h3>4. Ảnh hưởng của chất xúc tác</h3><p>Cho 3 mL H₂O₂ 3% vào 2 ống; cho một ít bột MnO₂ vào ống (2).</p>
+<div class="row"><button class="btn g" data-p="1">Chuẩn bị TN1</button><button class="btn g" data-p="3">Chuẩn bị TN3</button><button class="btn g" data-p="4">Chuẩn bị TN4</button><button class="btn p" id="vc">TN2: Thả viên C sủi</button></div>
+<div id="ui"></div><div id="obs" class="note"></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<ul><li>Tăng <b>nồng độ</b> chất phản ứng → tốc độ phản ứng tăng (HCl 1 M phản ứng với sắt nhanh hơn HCl 0,1 M).</li><li>Tăng <b>nhiệt độ</b> → tốc độ phản ứng tăng (viên C sủi tan nhanh hơn trong nước nóng).</li><li>Tăng <b>diện tích bề mặt tiếp xúc</b> → tốc độ phản ứng tăng (đá vôi dạng bột phản ứng nhanh hơn dạng viên).</li><li><b>Chất xúc tác</b> làm tăng tốc độ phản ứng nhưng không bị biến đổi sau phản ứng (MnO₂ làm H₂O₂ phân huỷ nhanh: 2H₂O₂ → 2H₂O + O₂↑).</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const lab = createLab(stage, { cam: [.1, .28, .55], target: [.1, .07, -.02], table: 'bench', tableSize: [1.6, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'h1', n: 'HCl 1 M', c: 0xeef6f8, k: 'liq' }, { id: 'h01', n: 'HCl 0,1 M', c: 0xf2f8fa, k: 'liq' }, { id: 'h2o2', n: 'H₂O₂ 3%', c: 0xf4f9fb, k: 'liq' },
+  { id: 'fe', n: 'Đinh sắt', c: 0x8f969c, k: 'sol', solid: { kind: 'nail', c: 0x8f969c, metal: true }, max: 1 }, { id: 'cav', n: 'Đá vôi viên', c: 0xe9e4d8, k: 'sol', solid: { kind: 'chunk', c: 0xe9e4d8 }, max: 1 }, { id: 'cab', n: 'Đá vôi bột', c: 0xf2efe6, k: 'sol', solid: { kind: 'powder', c: 0xf2efe6 }, max: 1 }, { id: 'mno2', n: 'Bột MnO₂', c: 0x2a2420, k: 'sol', solid: { kind: 'powder', c: 0x2a2420 }, max: 1 }];
+const has = (it, id) => it.find(x => x.id == id);
+function react(it, heat, age) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s; s.color = 0xf2f8fa; s.op = .28;
+  const H1 = has(it, 'h1'), H01 = has(it, 'h01'), P = has(it, 'h2o2'), fe = has(it, 'fe'), cav = has(it, 'cav'), cab = has(it, 'cab'), mn = has(it, 'mno2');
+  const sol = fe || cav || cab || mn, sr = sol && REAG.find(r => r.id == sol.id); if (sol) s.solid = { ...sr.solid, amt: 1 };
+  if (fe && (H1 || H01)) { const r = H1 ? .55 : .08; s.bubbles = r; s.notes.push(`Bọt khí thoát ra trên đinh sắt <b>${H1 ? 'nhiều, nhanh' : 'ít, chậm'}</b> (HCl ${H1 ? '1 M' : '0,1 M'}).`); s.eq.push('Fe + 2HCl → FeCl₂ + H₂↑'); }
+  if ((cav || cab) && (H1 || H01)) { const r = (cab ? .7 : .18) * (H1 ? 1.5 : 1), left = 1 - clamp(age / (cab ? 15 : 60), 0, 1); s.bubbles = r * left; s.solid.amt = .2 + .8 * left; s.notes.push(cab ? 'Đá vôi dạng bột: sủi bọt khí <b>mạnh, nhanh</b>; bột tan nhanh.' : 'Đá vôi dạng viên: sủi bọt khí <b>chậm hơn</b>.'); s.eq.push('CaCO₃ + 2HCl → CaCl₂ + CO₂↑ + H₂O'); }
+  if (P) { if (mn) { s.bubbles = .85; s.gas = { c: 0xffffff, amt: .15 }; s.notes.push('Có MnO₂: khí thoát ra <b>rất mạnh</b> (oxygen). Sau phản ứng bột MnO₂ vẫn còn nguyên.'); s.eq.push('2H₂O₂ → 2H₂O + O₂↑ (xúc tác MnO₂)'); } else { s.bubbles = .03; s.notes.push('Không có MnO₂: hầu như không thấy bọt khí (H₂O₂ phân huỷ rất chậm).'); } }
+  if (!s.notes.length) s.notes.push(sol && !(H1 || H01 || P) ? 'Chưa có dung dịch.' : 'Dung dịch không màu.');
+  return s;
+}
+const tubes = ['Ống (1)', 'Ống (2)'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 3, cap: 12, heat: false, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG, heat: false });
+const PLAN = { 1: [[['h01', 5], ['fe', 1]], [['h1', 5], ['fe', 1]]], 3: [[['cab', 1], ['h01', 3]], [['cav', 1], ['h01', 3]]], 4: [[['h2o2', 3]], [['h2o2', 3], ['mno2', 1]]] };
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { PLAN[b.dataset.p].forEach((p, i) => { bench.T[i].items = p.map(([id, amt]) => ({ id, amt })); bench.T[i].age = 0; }); bench.redraw(); bench.select(1); toast('Đã bố trí thí nghiệm ' + b.dataset.p + '. So sánh 2 ống.'); });
+// TN2: viên C sủi trong nước lạnh / nóng
+const cups = [[-.35, 0x9fd0ff, 8, 'Cốc nước lạnh'], [-.2, 0xdcf0fa, 70, 'Cốc nước nóng']].map(([x, c, T, n]) => { const v = vessel(lab, { kind: 'beaker', R: .035, H: .09 }); v.g.position.set(x, 0, .05); scene.add(v.g); v.set({ level: .65, color: c, op: .3 }); const th = thermometer(lab, v.g, [.02, .005, .015], { L: .13 }); th.set(T); lab.label(v.g, n, [0, .12, 0]); const tab = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .005, 24), new THREE.MeshStandardMaterial({ color: 0xf3c54a, roughness: .7 })); tab.visible = false; v.g.add(tab); return { v, tab, T, k: 0 }; });
+let vt = -1;
+lab.onTick(dt => { if (vt < 0) return; vt += dt; cups.forEach(c => { const rate = c.T > 50 ? 1 / 6 : 1 / 22; c.k = Math.min(1, c.k + dt * rate); c.tab.visible = c.k < 1; c.tab.position.y = .004; c.tab.scale.set(1 - c.k * .9, 1, 1 - c.k * .9); c.v.set({ bubbles: c.k < 1 ? (c.T > 50 ? .9 : .3) : .02, gas: c.k < 1 ? { c: 0xffffff, amt: c.T > 50 ? .2 : .05 } : null, color: c.T > 50 ? 0xf6e6b0 : 0xb8d8f0 }); });
+  if (cups[1].k >= 1 && !vt.done) { hud.innerHTML = 'Viên C sủi trong <b>cốc nước nóng tan hết nhanh hơn</b>, sủi bọt mạnh hơn; ở cốc nước lạnh vẫn còn viên C đang tan chậm → nhiệt độ càng cao, tốc độ phản ứng càng lớn.'; } });
+$('#vc').onclick = () => { cups.forEach(c => { c.k = 0; c.tab.visible = true; }); vt = 0; lab.view([-.27, .2, .32], [-.27, .05, .05]); hud.innerHTML = 'Đồng thời thả viên C sủi vào 2 cốc…'; };
+quiz($('#qz'), [
+  { q: 'Đá vôi dạng bột phản ứng với dd HCl nhanh hơn dạng viên vì', o: ['bột nặng hơn', 'diện tích bề mặt tiếp xúc lớn hơn', 'bột có nhiệt độ cao hơn', 'bột là chất xúc tác'], a: 1 },
+  { q: 'Yếu tố nào KHÔNG làm tăng tốc độ phản ứng?', o: ['Tăng nồng độ', 'Tăng nhiệt độ', 'Dùng chất xúc tác', 'Giảm diện tích bề mặt tiếp xúc'], a: 3 },
+  { q: 'Chất xúc tác là chất', o: ['bị tiêu hao hết sau phản ứng', 'làm tăng tốc độ phản ứng nhưng không bị biến đổi sau phản ứng', 'làm giảm tốc độ phản ứng', 'luôn là chất lỏng'], a: 1 },
+  { q: 'Bảo quản thực phẩm trong tủ lạnh để', o: ['tăng tốc độ phân huỷ', 'làm chậm các phản ứng làm hỏng thực phẩm (giảm nhiệt độ)', 'làm thực phẩm ngon hơn', 'diệt khuẩn hoàn toàn'], a: 1 },
+  { q: 'Enzyme amylase trong nước bọt có vai trò', o: ['chất xúc tác giúp tinh bột chuyển hoá thành đường nhanh hơn', 'chất phản ứng', 'làm chậm tiêu hoá', 'tạo khí'], a: 0 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

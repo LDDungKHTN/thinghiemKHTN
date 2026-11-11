@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 20. Hiện tượng nhiễm điện do cọ xát</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+const stage = shell({ title: 'Bài 20. Hiện tượng nhiễm điện do cọ xát', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<h3>Thí nghiệm 1</h3><p>Cọ xát đũa nhựa vào mảnh vải len, đưa lại gần các mẩu giấy vụn. Quan sát.</p>
+<h3>Thí nghiệm 2 (Hình 20.2)</h3><p><b>Chuẩn bị:</b> hai đũa nhựa và một đũa thuỷ tinh; mảnh vải len (hoặc dạ) và mảnh vải lụa; giá thí nghiệm và dây treo.</p>
+<ol><li>Lấy một đũa nhựa cọ vào mảnh vải len, sau đó treo lên giá thí nghiệm. Lấy chiếc đũa nhựa thứ hai cọ vào mảnh vải len rồi đưa lại gần đầu đũa nhựa kia.</li><li>Thay đũa nhựa bằng đũa thuỷ tinh đã cọ vào mảnh vải lụa, rồi đưa lại gần đầu đũa nhựa.</li></ol>` },
+  { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện thí nghiệm.</div><ul><li>Nhiều vật bị nhiễm điện khi cọ xát; vật nhiễm điện có khả năng hút các vật khác.</li><li>Có hai loại điện tích: điện tích dương (+) (đũa thuỷ tinh cọ vào lụa) và điện tích âm (−) (đũa nhựa cọ vào len).</li><li>Các điện tích <b>cùng loại thì đẩy nhau</b>, <b>khác loại thì hút nhau</b>.</li><li>Giải thích: khi cọ xát, electron dịch chuyển từ vật này sang vật kia; vật nhận thêm electron nhiễm điện âm, vật mất bớt electron nhiễm điện dương.</li></ul>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const lab = createLab(stage, { cam: [0, .3, .55], target: [0, .15, 0], table: 'wood', tableSize: [1.3, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+const dk = MAT.metal(0x2d3136, .45);
+const base = roundBox(.12, .012, .1, .003, dk); base.position.set(.05, .006, -.04); scene.add(base);
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .3, 12), MAT.metal(0xc8cdd2, .25)); rod.position.set(.05, .15, -.06); scene.add(rod);
+const arm = new THREE.Mesh(new THREE.BoxGeometry(.012, .008, .08), dk); arm.position.set(.05, .3, -.03); scene.add(arm);
+const thr = new THREE.Mesh(new THREE.CylinderGeometry(.0004, .0004, .08, 6), new THREE.MeshStandardMaterial({ color: 0xeeeeee })); thr.position.set(.05, .26, 0); scene.add(thr);
+const hung = new THREE.Group(); hung.position.set(.05, .22, 0); scene.add(hung);
+const plasticM = MAT.plastic(0xd9480f, .35), glassM = MAT.glassLite({ color: 0xd6f0ff, opacity: .5 });
+const hr = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .22, 14), plasticM); hr.rotation.z = Math.PI / 2; hung.add(hr);
+const knot = new THREE.Mesh(new THREE.SphereGeometry(.004, 8, 6), new THREE.MeshStandardMaterial({ color: 0xeeeeee })); hung.add(knot);
+lab.label(hung, 'Đũa nhựa treo (đã cọ len)', [.0, .03, 0]);
+// đũa cầm tay
+const handRod = new THREE.Group(); scene.add(handRod);
+const hrM = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .2, 14), plasticM); hrM.rotation.z = Math.PI / 2; handRod.add(hrM);
+const hand = new THREE.Mesh(new THREE.SphereGeometry(.018, 16, 12), new THREE.MeshStandardMaterial({ color: 0xe8b98f, roughness: .6 })); hand.scale.set(1.4, 1, 1); hand.position.x = .1; handRod.add(hand);
+// giấy vụn
+const bits = []; for (let i = 0; i < 18; i++) { const b = new THREE.Mesh(new THREE.PlaneGeometry(.006 + Math.random() * .005, .005 + Math.random() * .004), new THREE.MeshStandardMaterial({ color: 0xfafafa, side: THREE.DoubleSide })); b.rotation.x = -Math.PI / 2; b.rotation.z = Math.random() * 3; b.userData.home = new THREE.Vector3(-.25 + Math.random() * .08, .001, .05 + Math.random() * .06); b.position.copy(b.userData.home); scene.add(b); bits.push(b); }
+lab.label(bits[0], 'Giấy vụn', [0, .02, 0]);
+// vải
+const wool = new THREE.Mesh(new THREE.BoxGeometry(.08, .004, .06), new THREE.MeshStandardMaterial({ color: 0x7a2d2d, roughness: 1 })); wool.position.set(.28, .002, .1); scene.add(wool); lab.label(wool, 'Vải len', [0, .02, 0]);
+const silk = new THREE.Mesh(new THREE.BoxGeometry(.08, .002, .06), new THREE.MeshStandardMaterial({ color: 0xf1e4f5, roughness: .3, metalness: .1 })); silk.position.set(.38, .001, .1); scene.add(silk); lab.label(silk, 'Vải lụa', [0, .02, 0]);
+const S = { mode: null, t: 0, charge: 0, ang: 0, w: 0 };
+function setRod(glass) { hrM.material = glass ? glassM : plasticM; }
+lab.onTick(dt => {
+  S.t += dt; const t = S.t;
+  if (S.mode == 'paper') { const rubT = 1.5; if (t < rubT) { handRod.position.set(.28 + Math.sin(t * 25) * .03, .012, .1); } else { const k = clamp((t - rubT) / 1, 0, 1); handRod.position.set(.28 - .5 * k, .012 + .04 * k, .1 - .02 * k); if (k >= 1) bits.forEach((b, i) => { const jump = clamp((t - rubT - 1 - i * .05) / .3, 0, 1); const tgt = new THREE.Vector3(handRod.position.x - .05 + (i % 6) * .015 + .02, handRod.position.y - .005, handRod.position.z + (i % 3 - 1) * .003); if (i < 13) b.position.lerpVectors(b.userData.home, tgt, jump); }); } if (t > rubT + 2 && !S.said) { S.said = 1; say('Đũa nhựa đã cọ xát vào vải len <b>hút các mẩu giấy vụn</b> → đũa nhựa bị nhiễm điện.'); } }
+  if (S.mode == 'rep' || S.mode == 'att') { const glass = S.mode == 'att', rubT = 1.5; if (t < rubT) handRod.position.set((glass ? .38 : .28) + Math.sin(t * 25) * .03, .012, .1); else { const k = clamp((t - rubT) / 1.2, 0, 1); handRod.position.set(.38 * (1 - k) + (.05 + .21) * k, .012 + (.22 - .012) * k, .1 * (1 - k) + .03 * k); }
+    const near = clamp((t - rubT - .8) / .6, 0, 1), F = (glass ? 1 : -1) * near; S.w += (F * 6 - S.ang * 8 - S.w * 2) * dt; S.ang += S.w * dt; hung.rotation.y = S.ang;
+    if (t > rubT + 2 && !S.said) { S.said = 1; say(glass ? 'Đũa thuỷ tinh (cọ vào lụa) đưa lại gần: đầu đũa nhựa treo <b>bị hút lại gần</b> → hai đũa nhiễm điện <b>khác loại hút nhau</b>.' : 'Đũa nhựa thứ hai (cọ vào len) đưa lại gần: đầu đũa nhựa treo <b>bị đẩy ra xa</b> → hai đũa nhiễm điện <b>cùng loại đẩy nhau</b>.'); } }
+});
+function start(m) { S.mode = m; S.t = 0; S.said = 0; S.ang = 0; S.w = 0; hung.rotation.y = 0; bits.forEach(b => b.position.copy(b.userData.home)); setRod(m == 'att'); lab.view(...(m == 'paper' ? [[-.1, .2, .35], [-.12, .03, .05]] : [[.1, .3, .45], [.12, .2, 0]])); say('Đang cọ xát…'); }
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="m1">TN1: Đũa nhựa và giấy vụn</button><button class="btn p" id="m2">TN2a: Đũa nhựa (len)</button><button class="btn p" id="m3">TN2b: Đũa thuỷ tinh (lụa)</button>`;
+$('#m1').onclick = () => start('paper'); $('#m2').onclick = () => start('rep'); $('#m3').onclick = () => start('att');
+quiz($('#qz'), [
+  { q: 'Đũa thuỷ tinh cọ xát vào lụa nhiễm điện', o: ['âm', 'dương', 'không nhiễm điện', 'cả âm và dương'], a: 1 },
+  { q: 'Hai vật nhiễm điện cùng loại khi đặt gần nhau thì', o: ['hút nhau', 'đẩy nhau', 'không tương tác', 'dính vào nhau'], a: 1 },
+  { q: 'Khi cọ xát, vật nhận thêm electron sẽ', o: ['nhiễm điện dương', 'nhiễm điện âm', 'trung hoà', 'mất điện tích'], a: 1 },
+  { q: 'Vì sao màn hình ti vi thường bám nhiều bụi?', o: ['Vì màn hình nóng', 'Vì màn hình bị nhiễm điện nên hút bụi', 'Vì màn hình phẳng', 'Vì bụi thích ánh sáng'], a: 1 },
+]);
+handRod.position.set(.28, .012, .1); ready(); window.dbg = { lab };
+</script></body></html>

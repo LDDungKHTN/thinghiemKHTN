@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 29. Sự nở vì nhiệt</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, clamp } from '../core/lab3d.js';
+import { burner } from '../core/chem.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+const stage = shell({ title: 'Bài 29. Sự nở vì nhiệt', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<h3>1. Sự nở vì nhiệt của chất rắn</h3><p>Quả cầu kim loại và vòng kim loại: khi chưa hơ nóng, quả cầu lọt qua vòng. Hơ nóng quả cầu rồi thả lại; nhúng quả cầu vào nước lạnh rồi thả lại.</p>
+<div class="row"><button class="btn p" id="dr">Thả quả cầu qua vòng</button><button class="btn o" id="ht">Hơ nóng quả cầu</button><button class="btn g" id="cl">Nhúng nước lạnh</button></div>
+<h3>Băng kép (Hình 29.2)</h3><p>Hai thanh đồng và sắt ghép chặt thành băng kép. Hơ nóng: băng kép cong về phía nào?</p>
+<div class="row"><button class="btn o" id="bk">Hơ nóng băng kép</button><button class="btn g" id="bkf">Lật băng kép</button></div>
+<h3>2. Sự nở vì nhiệt của chất lỏng (Hình 29.3, 29.4)</h3><p>Bình thuỷ tinh đựng nước màu có ống thuỷ tinh xuyên qua nút. Đặt bình vào chậu nước nóng, rồi vào chậu nước lạnh. So sánh với rượu và dầu.</p>
+<div class="row"><button class="btn o" id="hw">Đặt vào nước nóng</button><button class="btn g" id="cw">Đặt vào nước lạnh</button></div>` },
+  { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện thí nghiệm.</div><ul><li>Chất rắn, chất lỏng, chất khí đều <b>nở ra khi nóng lên, co lại khi lạnh đi</b>.</li><li>Các chất rắn khác nhau nở vì nhiệt khác nhau (đồng nở nhiều hơn sắt → băng kép cong về phía thanh sắt khi nóng).</li><li>Các chất lỏng khác nhau nở vì nhiệt khác nhau (rượu nở nhiều hơn dầu, dầu nhiều hơn nước).</li><li>Chất khí nở vì nhiệt nhiều hơn chất lỏng, chất lỏng nhiều hơn chất rắn.</li><li>Ứng dụng: khe hở ở đường ray, băng kép trong bàn là, nhiệt kế…</li></ul>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const V = { a: [[-.4, .28, .45], [-.4, .12, 0]], b: [[0, .25, .42], [0, .1, 0]], c: [[.42, .25, .45], [.42, .1, 0]] };
+const lab = createLab(stage, { cam: V.a[0], target: V.a[1], table: 'wood', tableSize: [1.7, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+const dk = MAT.metal(0x2d3136, .45), steel = MAT.metal(0xb8bcc2, .3);
+/* quả cầu – vòng */
+const A = new THREE.Group(); A.position.set(-.4, 0, 0); scene.add(A);
+const ab = roundBox(.12, .01, .1, .003, dk); ab.position.y = .005; A.add(ab);
+const arod = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .2, 10), MAT.metal(0xc8cdd2, .25)); arod.position.set(-.05, .1, -.03); A.add(arod);
+const ringArm = new THREE.Mesh(new THREE.BoxGeometry(.06, .005, .006), steel); ringArm.position.set(-.02, .14, -.03); A.add(ringArm);
+const ring = new THREE.Mesh(new THREE.TorusGeometry(.0205, .003, 12, 40), steel); ring.rotation.x = Math.PI / 2; ring.position.set(.01, .14, -.0); A.add(ring);
+const ballG = new THREE.Group(); A.add(ballG);
+const ballM = new THREE.MeshStandardMaterial({ color: 0xb8bcc2, metalness: .9, roughness: .3, emissive: 0xff3300, emissiveIntensity: 0 });
+const ball = new THREE.Mesh(new THREE.SphereGeometry(.02, 32, 24), ballM); ballG.add(ball);
+const chain = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0012, .12, 6), MAT.metal(0x666666, .4)); chain.position.y = .08; ballG.add(chain);
+const handle = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .04, 10), new THREE.MeshStandardMaterial({ color: 0x8a5a2b })); handle.position.y = .15; ballG.add(handle);
+const lampA = burner(lab, [-.33, 0, .06]);
+const beakA = new THREE.Mesh(lathe([[0, 0], [.035, 0], [.035, .07], [.037, .07], [.037, -.002], [0, -.002]], 32), MAT.glassLite({ opacity: .25 })); beakA.position.set(-.47, 0, .06); scene.add(beakA);
+const bwA = new THREE.Mesh(new THREE.CylinderGeometry(.034, .034, .05, 24), new THREE.MeshPhysicalMaterial({ color: 0x6fb7e6, transparent: true, opacity: .45 })); bwA.position.set(-.47, .026, .06); scene.add(bwA);
+lab.label(ring, 'Vòng kim loại', [.04, 0, 0]); lab.label(ball, 'Quả cầu kim loại', [.04, 0, 0]);
+const SA = { r: 1, heat: 0, anim: null };
+function ballAt(x, y, z) { ballG.position.set(x, y, z); }
+ballAt(.01, .2, 0);
+/* băng kép */
+const B = new THREE.Group(); B.position.set(0, 0, 0); scene.add(B);
+const bb = roundBox(.12, .01, .1, .003, dk); bb.position.set(-.08, .005, 0); B.add(bb);
+const brod = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .14, 10), MAT.metal(0xc8cdd2, .25)); brod.position.set(-.12, .07, -.03); B.add(brod);
+const NS = 30, stripG = new THREE.Group(); stripG.position.set(-.11, .13, 0); B.add(stripG);
+const segs = [...Array(NS)].map((_, i) => { const g = new THREE.Group(); const cu = new THREE.Mesh(new THREE.BoxGeometry(.006, .002, .012), MAT.metal(0xc06a3a, .3)); cu.position.y = .001; g.add(cu); const fe = new THREE.Mesh(new THREE.BoxGeometry(.006, .002, .012), MAT.metal(0x6c7178, .4)); fe.position.y = -.001; g.add(fe); stripG.add(g); return g; });
+lab.label(stripG, 'Băng kép: đồng (trên) – sắt (dưới)', [.1, .03, 0]);
+const lampB = burner(lab, [.0, 0, 0]);
+const SB = { k: 0, tgt: 0, flip: 1 };
+function bend(k) { let x = 0, y = 0, a = 0; const L = .006, curv = k * SB.flip * 8; segs.forEach(s => { s.position.set(x, y, 0); s.rotation.z = a; x += Math.cos(a) * L; y += Math.sin(a) * L; a -= curv * L; }); }
+/* chất lỏng */
+const C = new THREE.Group(); C.position.set(.42, 0, 0); scene.add(C);
+const basinM = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: .2, roughness: .05, depthWrite: false });
+const basin = new THREE.Mesh(lathe([[0, 0], [.13, 0], [.13, .07], [.132, .07], [.132, -.002], [0, -.002]], 48), basinM); C.add(basin);
+const bW = new THREE.Mesh(new THREE.CylinderGeometry(.128, .128, .055, 40), new THREE.MeshPhysicalMaterial({ color: 0x9fd0ff, transparent: true, opacity: .3, depthWrite: false })); bW.position.y = .028; C.add(bW);
+const LQ = [['Rượu', 0xd6203a, 3], ['Dầu', 0xe8b02a, 1.6], ['Nước', 0x2f6fd6, .5]];
+const flasks = LQ.map(([n, col, k], i) => { const g = new THREE.Group(); g.position.set(-.07 + i * .07, .004, 0); C.add(g); const f = new THREE.Mesh(lathe([[0, 0], [.022, .004], [.028, .03], [.022, .055], [.008, .065], [.008, .075], [0, .075]], 32), MAT.glassLite({ opacity: .3 })); f.renderOrder = 4; g.add(f); const liq = new THREE.Mesh(new THREE.SphereGeometry(.026, 24, 16), new THREE.MeshPhysicalMaterial({ color: col, transparent: true, opacity: .75 })); liq.scale.set(1, .95, 1); liq.position.y = .03; g.add(liq); const st = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, .012, 16), MAT.plastic(0x222222, .6)); st.position.y = .075; g.add(st); const tube = new THREE.Mesh(new THREE.CylinderGeometry(.0025, .0025, .12, 10, 1, true), MAT.glassLite({ opacity: .4 })); tube.position.y = .12; g.add(tube); const col_ = new THREE.Mesh(new THREE.CylinderGeometry(.0018, .0018, 1, 8), new THREE.MeshStandardMaterial({ color: col })); g.add(col_); lab.label(g, n, [0, .19, 0]); return { g, col_, k, h: .02 }; });
+const SC = { T: 0, tgt: 0 };
+lab.onTick((dt, t) => {
+  // quả cầu
+  if (SA.heat > 0 && lampA.lit) { SA.r = Math.min(1.06, SA.r + dt * .02); ballM.emissiveIntensity = (SA.r - 1) * 20; }
+  ball.scale.setScalar(SA.r);
+  if (SA.anim) { const a = SA.anim; a.t += dt; const fits = SA.r < 1.02, yStop = fits ? .06 : .14 + .02 * SA.r + .001; const y = Math.max(yStop, .2 - a.t * .15); ballAt(.01, y, 0); if (y <= yStop && !a.done) { a.done = 1; say(fits ? 'Quả cầu <b>lọt qua</b> vòng kim loại.' : 'Quả cầu đã hơ nóng <b>không lọt qua</b> vòng kim loại → quả cầu nở ra khi nóng lên.'); } }
+  // băng kép
+  SB.k += (SB.tgt - SB.k) * Math.min(1, dt * .8); bend(SB.k);
+  // chất lỏng
+  SC.T += (SC.tgt - SC.T) * Math.min(1, dt * .5); flasks.forEach(f => { const h = .02 + f.k * .012 * SC.T; f.col_.scale.y = Math.max(.001, h); f.col_.position.y = .075 + h / 2; });
+});
+$('#dr').onclick = () => { lab.view(...V.a); SA.anim = { t: 0 }; lampA.set(false); };
+$('#ht').onclick = () => { lab.view(...V.a); ballAt(.07, .09, .06); SA.heat = 1; lampA.set(true); SA.anim = null; say('Đang hơ nóng quả cầu trên ngọn lửa đèn cồn…'); setTimeout(() => { lampA.set(false); SA.heat = 0; ballAt(.01, .2, 0); say('Quả cầu đã nóng. Bấm “Thả quả cầu qua vòng”.'); }, 5000); };
+$('#cl').onclick = () => { lab.view(...V.a); SA.r = 1; ballM.emissiveIntensity = 0; ballAt(-.06, .05, .06); SA.anim = null; setTimeout(() => { ballAt(.01, .2, 0); say('Quả cầu đã nguội (co lại). Thả lại: quả cầu lại lọt qua vòng.'); }, 1500); };
+$('#bk').onclick = () => { lab.view(...V.b); SB.tgt = SB.tgt ? 0 : 1; lampB.set(!!SB.tgt); say(SB.tgt ? `Hơ nóng: băng kép <b>cong về phía thanh ${SB.flip > 0 ? 'sắt (phía dưới)' : 'sắt (phía trên)'}</b> → đồng nở vì nhiệt nhiều hơn sắt.` : 'Băng kép nguội dần và trở lại thẳng.'); };
+$('#bkf').onclick = () => { SB.flip = -SB.flip; stripG.rotation.x = SB.flip > 0 ? 0 : Math.PI; lab.view(...V.b); say(SB.flip > 0 ? 'Đồng ở trên, sắt ở dưới.' : 'Đã lật: sắt ở trên, đồng ở dưới.'); };
+$('#hw').onclick = () => { lab.view(...V.c); SC.tgt = 1; bW.material.color.set(0xffb0a0); say('Đặt bình vào chậu nước nóng: mực chất lỏng trong ống thuỷ tinh <b>dâng lên</b> → chất lỏng nở ra khi nóng lên. Rượu dâng nhiều nhất, rồi đến dầu, nước dâng ít nhất → các chất lỏng khác nhau nở vì nhiệt khác nhau.'); };
+$('#cw').onclick = () => { lab.view(...V.c); SC.tgt = -1; bW.material.color.set(0x9fd0ff); say('Đặt bình vào chậu nước lạnh: mực chất lỏng trong ống <b>hạ xuống</b> → chất lỏng co lại khi lạnh đi.'); };
+quiz($('#qz'), [
+  { q: 'Khi hơ nóng quả cầu kim loại thì', o: ['thể tích quả cầu giảm', 'thể tích quả cầu tăng', 'khối lượng quả cầu tăng', 'quả cầu nhẹ đi'], a: 1 },
+  { q: 'Băng kép đồng – sắt khi bị hơ nóng sẽ cong về phía thanh', o: ['đồng', 'sắt', 'không cong', 'tuỳ ý'], a: 1, e: 'Đồng nở nhiều hơn sắt nên đồng nằm ở mặt ngoài chỗ cong.' },
+  { q: 'Vì sao giữa các thanh ray đường sắt có khe hở?', o: ['Để tiết kiệm thép', 'Để khi nóng lên thanh ray nở ra không bị cong vênh', 'Để thoát nước', 'Để tàu chạy êm'], a: 1 },
+  { q: 'Sắp xếp sự nở vì nhiệt từ nhiều tới ít:', o: ['rắn, lỏng, khí', 'khí, lỏng, rắn', 'lỏng, khí, rắn', 'như nhau'], a: 1 },
+]);
+bend(0); ready(); window.dbg = { lab };
+</script></body></html>

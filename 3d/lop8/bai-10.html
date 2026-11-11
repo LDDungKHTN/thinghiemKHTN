@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 10. Oxide</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, tubeAlong, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+const stage = shell({ title: 'Bài 10. Oxide', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Thí nghiệm', html: `<h3>Tính chất hoá học của oxide acid</h3><p><b>Chuẩn bị:</b> đá vôi đập nhỏ (CaCO₃), HCl 0,1 M, giấy pH; ống nghiệm (2) đựng nước vôi trong (Ca(OH)₂), thìa lấy hoá chất, panh, ống thuỷ tinh hình chữ L, nút cao su.</p>
+<ol><li>Cho vào ống nghiệm (1) 3 thìa bột đá vôi đã đập nhỏ và khoảng 5 mL dung dịch HCl 0,1 M để điều chế khí carbon dioxide.</li><li>Đậy ống nghiệm bằng nút cao su có ống thuỷ tinh chữ L xuyên qua (bấm <b>“Nối ống chữ L”</b>). Dẫn khí carbon dioxide vào ống nghiệm (2). Quan sát.</li></ol>
+<p class="sm">Thêm: ống (3) – bột CuO (oxide base) + dd HCl, đun nhẹ.</p>
+<div class="row"><button class="btn g" id="auto">Chuẩn bị nhanh</button><button class="btn p" id="lt">Nối ống chữ L</button></div><div id="ui"></div><div id="obs" class="note"></div>` },
+  { id: 'p2', title: 'Kết luận', html: `<ul><li>Oxide là hợp chất của hai nguyên tố, trong đó có một nguyên tố là oxygen.</li><li><b>Oxide acid</b> (CO₂, SO₂, P₂O₅…) tác dụng với dung dịch base tạo thành muối và nước: Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O (nước vôi trong vẩn đục).</li><li><b>Oxide base</b> (CuO, CaO, Fe₂O₃…) tác dụng với dung dịch acid tạo thành muối và nước: CuO + 2HCl → CuCl₂ + H₂O.</li><li>Oxide lưỡng tính (Al₂O₃, ZnO) và oxide trung tính (CO, NO…).</li></ul>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const lab = createLab(stage, { cam: [.03, .26, .5], target: [.03, .08, -.02], table: 'bench', tableSize: [1.4, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'hcl', n: 'dd HCl 0,1 M', c: 0xeef6f8, k: 'liq' }, { id: 'vt', n: 'Nước vôi trong', c: 0xf4f8fa, k: 'liq' }, { id: 'caco3', n: 'Đá vôi', c: 0xe9e4d8, k: 'sol', solid: { kind: 'chunk', c: 0xe9e4d8 } }, { id: 'cuo', n: 'Bột CuO', c: 0x1c1c1c, k: 'sol', solid: { kind: 'powder', c: 0x1c1c1c } }];
+const has = (it, id) => it.find(x => x.id == id), mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), clamp(t, 0, 1)).getHex();
+const S = { link: false, co2: 0 };
+function react(it, heat, age, i) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s; s.color = 0xf2f8fa; s.op = .28;
+  const A = has(it, 'hcl'), V = has(it, 'vt'), C = has(it, 'caco3'), O = has(it, 'cuo');
+  if (C) s.solid = { kind: 'chunk', c: 0xe9e4d8, amt: has(it, 'caco3').amt };
+  if (O) s.solid = { kind: 'powder', c: 0x1c1c1c, amt: 1 };
+  if (C && A) { s.bubbles = .45; s.notes.push('Đá vôi sủi bọt khí: khí <b>carbon dioxide</b> được tạo thành.'); s.eq.push('CaCO₃ + 2HCl → CaCl₂ + CO₂↑ + H₂O'); }
+  if (V && !C && !A) { if (S.link && i == 1) { const k = clamp(S.co2 / 8, 0, 1); s.bubbles = .4; s.cloud = .7 * k; s.cloudC = 0xffffff; s.op = .28 + .35 * k; s.color = mix(0xf4f8fa, 0xf8f8f6, k); s.notes.push(k < .2 ? 'Khí CO₂ sục vào nước vôi trong…' : 'Nước vôi trong bị <b>vẩn đục</b> (kết tủa trắng CaCO₃).'); s.eq.push('Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O'); } else s.notes.push('Nước vôi trong (dung dịch Ca(OH)₂) trong suốt.'); }
+  if (O && A) { const k = clamp(age / (heat ? 8 : 40), 0, 1); s.solid.amt = 1 - .85 * k; s.color = mix(0xf2f8fa, 0x3fa58a, k); s.op = .3 + .3 * k; s.notes.push(heat ? 'Bột CuO màu đen tan dần, dung dịch có <b>màu xanh</b>.' : 'CuO tan chậm; hãy đun nhẹ.'); s.eq.push('CuO + 2HCl → CuCl₂ + H₂O'); }
+  if (!s.notes.length) s.notes.push('Chưa có hiện tượng.');
+  return s;
+}
+const tubes = ['Ống (1)', 'Ống (2)', 'Ống (3)'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 3, cap: 12, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG });
+const T0 = bench.T[0].v.g.position, T1 = bench.T[1].v.g.position;
+const stopM = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: .8 });
+const stp = new THREE.Mesh(new THREE.CylinderGeometry(.0095, .008, .014, 16), stopM); stp.position.set(T0.x, T0.y + .155, T0.z); lab.scene.add(stp);
+const Lt = new THREE.Mesh(tubeAlong([[T0.x, T0.y + .15, T0.z], [T0.x, T0.y + .2, T0.z], [T0.x + .01, T0.y + .21, T0.z], [T1.x - .01, T0.y + .21, T1.z], [T1.x, T0.y + .2, T1.z], [T1.x, T0.y + .03, T1.z]], .0022), MAT.glassLite({ opacity: .45 })); Lt.renderOrder = 4; lab.scene.add(Lt);
+stp.visible = Lt.visible = false; lab.label(Lt, 'Ống dẫn chữ L', [(T0.x + T1.x) / 2 - T0.x, .02, 0]);
+lab.onTick(dt => { if (!S.link) return; const t0 = bench.T[0].items; if (has(t0, 'caco3') && has(t0, 'hcl')) { S.co2 += dt; if (((S.co2 * 4) | 0) != (((S.co2 - dt) * 4) | 0)) bench.draw(1); } });
+$('#lt').onclick = () => { S.link = !S.link; stp.visible = Lt.visible = S.link; S.co2 = 0; bench.draw(1); toast(S.link ? 'Đã nối ống chữ L từ ống (1) sang ống (2)' : 'Đã tháo ống chữ L'); };
+$('#auto').onclick = () => { bench.T[0].items = [{ id: 'caco3', amt: 3 }, { id: 'hcl', amt: 5 }]; bench.T[1].items = [{ id: 'vt', amt: 5 }]; bench.T[2].items = [{ id: 'cuo', amt: 1 }, { id: 'hcl', amt: 3 }]; bench.T.forEach(t => t.age = 0); bench.redraw(); toast('Bấm “Nối ống chữ L” để dẫn khí CO₂ sang ống (2).'); };
+quiz($('#qz'), [
+  { q: 'Dẫn khí CO₂ vào nước vôi trong, hiện tượng là', o: ['dung dịch chuyển màu xanh', 'nước vôi trong bị vẩn đục', 'có khí màu nâu', 'không hiện tượng'], a: 1 },
+  { q: 'Oxide nào là oxide acid?', o: ['CaO', 'CuO', 'SO₂', 'Fe₂O₃'], a: 2 },
+  { q: 'Oxide base tác dụng với dung dịch acid tạo thành', o: ['muối và nước', 'base', 'acid', 'khí hydrogen'], a: 0 },
+  { q: 'Tên gọi của Fe₂O₃ là', o: ['iron(II) oxide', 'iron(III) oxide', 'iron oxide (II)', 'sắt từ'], a: 1 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

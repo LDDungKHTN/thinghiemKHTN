@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 16. Áp suất chất lỏng. Áp suất khí quyển</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+const stage = shell({ title: 'Bài 16. Áp suất chất lỏng. Áp suất khí quyển', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<h3>1. Áp suất chất lỏng (Hình 16.1, 16.2)</h3><p>Bình trụ có đáy C và các lỗ A, B ở thành bình được bịt bằng màng cao su mỏng. Rót nước vào bình (kéo thanh trượt). Quan sát các màng cao su.</p>
+<div class="sl">Rót nước <input type="range" id="lv" min="0" max="100" value="0"><span id="vl">0 %</span></div>
+<h3>2. Áp suất truyền nguyên vẹn mọi hướng (Hình 16.3)</h3><p>Pit-tông (1) có tiết diện lớn gấp 2 lần tiết diện pit-tông (2). Các quả nặng giống hệt nhau. Ban đầu hai pit-tông ở vị trí cân bằng.</p>
+<div class="row"><button class="btn g" data-w="4,0">4 quả ở (1)</button><button class="btn g" data-w="4,2">4 ở (1), 2 ở (2)</button><button class="btn g" data-w="0,2">2 quả ở (2)</button><button class="btn g" data-w="0,0">Bỏ hết</button></div>
+<h3>3. Áp suất khí quyển</h3><p>Đổ đầy nước vào cốc, đậy kín bằng tờ giấy rồi lộn ngược cốc. Bấm <b>“Lộn ngược cốc”</b>.</p>` },
+  { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện thí nghiệm.</div><ul>
+<li>Chất lỏng gây áp suất lên đáy bình, thành bình và các vật ở trong lòng nó. Càng xuống sâu, áp suất chất lỏng càng lớn.</li>
+<li><b>Định luật Pascal:</b> áp suất tác dụng vào chất lỏng được chất lỏng truyền đi nguyên vẹn theo mọi hướng. Ứng dụng: máy nén thuỷ lực F/f = S/s.</li>
+<li>Trái Đất được bao bọc bởi lớp không khí dày hàng nghìn kilômét; không khí có trọng lượng nên gây ra <b>áp suất khí quyển</b> lên mọi vật theo mọi phương.</li></ul>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const V = { a: [[-.35, .28, .45], [-.35, .1, 0]], b: [[.05, .3, .5], [.05, .12, 0]], c: [[.42, .25, .4], [.42, .1, 0]] };
+const lab = createLab(stage, { cam: V.a[0], target: V.a[1], table: 'wood', tableSize: [1.6, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+const water = c => new THREE.MeshPhysicalMaterial({ color: c || 0x6fb7e6, transparent: true, opacity: .45, roughness: .05, depthWrite: false });
+/* 1. Bình có màng cao su */
+const A = new THREE.Group(); A.position.set(-.35, 0, 0); scene.add(A);
+const R = .04, H = .2;
+const tube = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 40, 1, true), MAT.glassLite({ opacity: .22 })); tube.position.y = .04 + H / 2; tube.renderOrder = 4; A.add(tube);
+for (const x of [-.03, .03]) { const l = new THREE.Mesh(new THREE.BoxGeometry(.006, .04, .04), MAT.plastic(0x444444, .5)); l.position.set(x, .02, 0); A.add(l); }
+const rub = new THREE.MeshStandardMaterial({ color: 0xd9a050, roughness: .6, side: THREE.DoubleSide, transparent: true, opacity: .9 });
+function membrane() { return new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), rub); }
+const mC = membrane(); mC.rotation.x = Math.PI; mC.position.y = .04; A.add(mC);
+const holes = [{ y: .16, n: 'A' }, { y: .09, n: 'B' }].map(h => { const m = membrane(); m.rotation.z = -Math.PI / 2; m.position.set(R, h.y, 0); A.add(m); lab.label(m, h.n, [.02, 0, 0], 'read'); return { ...h, m }; });
+lab.label(mC, 'C', [0, -.012, .03], 'read');
+const wA = new THREE.Mesh(new THREE.CylinderGeometry(R * .97, R * .97, 1, 40), water()); wA.renderOrder = 3; A.add(wA);
+function setLevel(k) { const h = H * .95 * k; wA.visible = k > 0; wA.scale.y = Math.max(.001, h); wA.position.y = .04 + h / 2;
+  const top = .04 + h; mC.scale.set(R * .98, .002 + .025 * (h / H), R * .98);
+  holes.forEach(o => { const d = Math.max(0, top - o.y); o.m.scale.set(.012, .001 + .02 * d / H * 1.8, .012); });
+  say(k == 0 ? 'Bình chưa có nước: các màng cao su phẳng.' : `Màng ở đáy C và các màng A, B ở thành bình (nằm dưới mặt nước) <b>phồng ra</b>; màng càng ở sâu càng phồng nhiều (B phồng hơn A) → chất lỏng gây áp suất lên đáy và thành bình, càng sâu áp suất càng lớn.`); }
+/* 2. Máy nén thuỷ lực */
+const B = new THREE.Group(); B.position.set(.05, 0, 0); scene.add(B);
+const r1 = .03, r2 = .0212, base = .06;
+const c1 = new THREE.Mesh(new THREE.CylinderGeometry(r1, r1, .16, 32, 1, true), MAT.glassLite({ opacity: .25 })); c1.position.set(-.08, base + .08, 0); B.add(c1);
+const c2 = new THREE.Mesh(new THREE.CylinderGeometry(r2, r2, .16, 32, 1, true), MAT.glassLite({ opacity: .25 })); c2.position.set(.08, base + .08, 0); B.add(c2);
+const pipe = new THREE.Mesh(new THREE.BoxGeometry(.19, .02, .02), water()); pipe.position.set(0, base - .01, 0); B.add(pipe);
+const pipeG = new THREE.Mesh(new THREE.BoxGeometry(.2, .026, .026), MAT.glassLite({ opacity: .2 })); pipeG.position.copy(pipe.position); B.add(pipeG);
+const w1 = new THREE.Mesh(new THREE.CylinderGeometry(r1 * .95, r1 * .95, 1, 24), water()), w2 = new THREE.Mesh(new THREE.CylinderGeometry(r2 * .95, r2 * .95, 1, 24), water()); B.add(w1, w2);
+const pis = [r1, r2].map(r => { const g = new THREE.Group(); const p = new THREE.Mesh(new THREE.CylinderGeometry(r * .95, r * .95, .01, 24), MAT.plastic(0x2b6cb0, .4)); g.add(p); const plate = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.4, r * 1.4, .003, 24), MAT.metal(0x8a8f95, .4)); plate.position.y = .03; g.add(plate); const rod = new THREE.Mesh(new THREE.CylinderGeometry(.002, .002, .03, 8), MAT.metal(0x8a8f95, .4)); rod.position.y = .015; g.add(rod); B.add(g); return g; });
+lab.label(pis[0], '(1)', [0, .06, 0], 'read'); lab.label(pis[1], '(2)', [0, .06, 0], 'read');
+const wts = [[], []]; const wM = MAT.metal(0x6c7178, .3);
+function setW(n1, n2) {
+  wts.forEach(L => L.forEach(m => B.remove(m))); wts[0] = []; wts[1] = [];
+  // S1 = 2·S2: cân bằng khi n1 = 2·n2. d > 0: pit-tông (1) đi xuống, (2) đi lên
+  const d = n1 - 2 * n2, k = clamp(d / 6, -1, 1), h1 = .08 - .02 * k, h2 = .08 + .04 * k;
+  [[0, h1, n1, -.08], [1, h2, n2, .08]].forEach(([i, h, n, x]) => { pis[i].position.set(x, base + h, 0); const w = i ? w2 : w1; w.scale.y = h; w.position.set(x, base + h / 2, 0); for (let j = 0; j < n; j++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, .012, 20), wM); m.position.set(x + (i ? 0 : (j % 2 - .5) * .02), base + h + .038 + Math.floor(i ? j : j / 2) * .013, 0); m.castShadow = true; B.add(m); wts[i].push(m); } });
+  say(n1 == 0 && n2 == 0 ? 'Hai pit-tông ở vị trí cân bằng ban đầu.' : d > 0 ? 'Đặt 4 quả nặng lên pit-tông (1): pit-tông (2) <b>dịch chuyển lên trên</b>. Muốn hai pit-tông trở về vị trí ban đầu cần đặt 2 quả nặng lên pit-tông (2).' : d == 0 ? 'Đặt 4 quả ở (1) và 2 quả ở (2): hai pit-tông <b>trở về vị trí ban đầu</b> → áp suất do các quả nặng gây ra được chất lỏng truyền đi nguyên vẹn (S₁ = 2S₂ nên F₁ = 2F₂).' : 'Đặt 2 quả nặng lên pit-tông (2): pit-tông (1) <b>dịch chuyển lên trên</b>. Muốn pit-tông (1) trở về vị trí ban đầu cần đặt 4 quả nặng lên pit-tông (1).');
+}
+/* 3. Cốc nước úp ngược + tờ giấy */
+const Cg = new THREE.Group(); Cg.position.set(.42, .12, 0); scene.add(Cg);
+const cup = new THREE.Mesh(lathe([[0, 0], [.03, 0], [.034, .09], [.036, .09], [.032, -.002], [0, -.002]], 40), MAT.glassLite({ opacity: .25 })); cup.renderOrder = 4; cup.position.y = -.045; Cg.add(cup);
+const cw = new THREE.Mesh(new THREE.CylinderGeometry(.033, .03, .085, 32), water()); cw.position.y = -.002; cw.renderOrder = 3; Cg.add(cw);
+const paper = new THREE.Mesh(new THREE.BoxGeometry(.085, .0006, .085), new THREE.MeshStandardMaterial({ color: 0xfafaf6, roughness: .9 })); paper.position.y = .046; Cg.add(paper);
+const hand = new THREE.Mesh(new THREE.BoxGeometry(.05, .012, .08), new THREE.MeshStandardMaterial({ color: 0xe8b98f, roughness: .6 })); hand.position.y = .056; Cg.add(hand);
+const basin = new THREE.Mesh(lathe([[0, 0], [.08, 0], [.09, .03], [.092, .03], [.082, -.002], [0, -.002]], 40), MAT.plastic(0x3a8bd6, .5)); basin.position.set(.42, 0, 0); scene.add(basin);
+lab.label(Cg, 'Cốc nước + tờ giấy', [0, .1, 0]);
+let flip = -1;
+lab.onTick(dt => { if (flip < 0) return; flip += dt; const k = clamp(flip / 1.2, 0, 1); Cg.rotation.z = Math.PI * k; hand.visible = flip < 1.6; if (flip > 1.6 && !flip.done) { say('Lộn ngược cốc rồi bỏ tay ra: tờ giấy <b>không rơi</b>, nước không chảy ra ngoài → áp suất khí quyển tác dụng lên tờ giấy từ dưới lên, giữ tờ giấy và nước lại.'); } });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" data-v="a">Bình màng cao su</button><button class="btn" data-v="b">Pit-tông</button><button class="btn" data-v="c">Áp suất khí quyển</button><button class="btn p" id="fl">Lộn ngược cốc</button>`;
+tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => lab.view(...V[b.dataset.v]));
+$('#fl').onclick = () => { lab.view(...V.c); Cg.rotation.z = 0; hand.visible = true; flip = 0; };
+$('#lv').oninput = e => { const k = +e.target.value / 100; $('#vl').textContent = e.target.value + ' %'; setLevel(k); lab.view(...V.a); };
+document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const [a, c] = b.dataset.w.split(',').map(Number); setW(a, c); lab.view(...V.b); });
+quiz($('#qz'), [
+  { q: 'Càng xuống sâu trong lòng chất lỏng, áp suất chất lỏng', o: ['càng giảm', 'càng tăng', 'không đổi', 'bằng 0'], a: 1 },
+  { q: 'Chất lỏng gây áp suất theo', o: ['chỉ phương thẳng đứng', 'mọi phương', 'chỉ lên đáy bình', 'chỉ phương ngang'], a: 1 },
+  { q: 'Pit-tông nhỏ có tiết diện s, pit-tông lớn có tiết diện S = 4s. Tác dụng lực f = 100 N lên pit-tông nhỏ thì lực nâng ở pit-tông lớn là bao nhiêu N?', n: 400, u: 'N' },
+  { q: 'Hiện tượng nào do áp suất khí quyển gây ra?', o: ['Quả bóng bay lên', 'Hút nước bằng ống hút', 'Thuyền nổi', 'Đinh lún vào gỗ'], a: 1 },
+]);
+setLevel(0); setW(0, 0); ready(); window.dbg = { lab };
+</script></body></html>

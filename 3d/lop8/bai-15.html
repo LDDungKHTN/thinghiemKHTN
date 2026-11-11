@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 15. Áp suất trên một bề mặt</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+const stage = shell({ title: 'Bài 15. Áp suất trên một bề mặt', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<h3>Thí nghiệm (Hình 15.2)</h3><p><b>Chuẩn bị:</b> hai khối sắt giống nhau có dạng hình hộp chữ nhật; một khay nhựa hoặc thuỷ tinh trong suốt đựng bột mịn.</p>
+<ol><li>Bố trí thí nghiệm lần lượt theo Hình 15.2 a, b, c (bấm nút tương ứng).</li><li>Quan sát độ lún của khối sắt xuống bột mịn ứng với mỗi trường hợp.</li><li>So sánh độ lớn của áp lực, diện tích bị ép, độ lún, điền Bảng 15.1.</li></ol>
+<div class="row"><button class="btn p" data-c="a">a) Một khối nằm</button><button class="btn p" data-c="b">b) Hai khối chồng</button><button class="btn p" data-c="c">c) Một khối dựng đứng</button><button class="btn g" id="sm">Làm phẳng bột</button></div>` },
+  { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>TH</th><th>Áp lực F (N)</th><th>Diện tích bị ép S (cm²)</th><th>Độ lún h (mm)</th></tr></thead><tbody id="tb"></tbody></table>
+<div id="cmp" class="note"></div><div class="eq">p = F / S &nbsp; (Pa = N/m²)</div><p class="sm">1 atm = 1,013·10⁵ Pa; 1 mmHg = 133,3 Pa; 1 bar = 10⁵ Pa.</p>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const lab = createLab(stage, { cam: [0, .3, .45], target: [0, .03, 0], table: 'wood', tableSize: [1.2, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const W = .3, D = .2, LV = .04;   // khay
+const tray = new THREE.Group(); scene.add(tray);
+for (const [w, h, d, x, y, z] of [[W, .004, D, 0, .002, 0], [W, .06, .004, 0, .03, -D / 2], [W, .06, .004, 0, .03, D / 2], [.004, .06, D, -W / 2, .03, 0], [.004, .06, D, W / 2, .03, 0]]) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), MAT.glassLite({ opacity: .3 })); m.position.set(x, y, z); m.renderOrder = 4; tray.add(m); }
+const NG = 120, geo = new THREE.PlaneGeometry(W - .006, D - .006, NG, Math.round(NG * D / W)); geo.rotateX(-Math.PI / 2);
+const powder = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xf1ece0, roughness: 1, map: canvasTex(256, 256, (c, w, h) => { c.fillStyle = '#f1ece0'; c.fillRect(0, 0, w, h); for (let i = 0; i < 6000; i++) { c.fillStyle = `rgba(0,0,0,${Math.random() * .05})`; c.fillRect(Math.random() * w, Math.random() * h, 1, 1); } }) })); powder.position.y = LV; powder.receiveShadow = true; scene.add(powder);
+const sideP = new THREE.Mesh(new THREE.BoxGeometry(W - .006, LV - .004, D - .006), new THREE.MeshStandardMaterial({ color: 0xe9e3d4, roughness: 1 })); sideP.position.y = .004 + (LV - .004) / 2; scene.add(sideP);
+lab.label(tray, 'Khay đựng bột mịn', [0, .08, .1]);
+const pp = geo.attributes.position, p0 = Float32Array.from(pp.array);
+const BL = [.08, .04, .03];   // khối sắt: dài 8, rộng 4, cao 3 cm; m = 750 g
+const ironM = MAT.metal(0x55595e, .5);
+const blocks = [0, 1].map(() => { const b = roundBox(BL[0], BL[2], BL[1], .002, ironM); b.castShadow = true; scene.add(b); return b; });
+blocks.forEach((b, i) => { b.position.set(.25 + i * .1, BL[2] / 2, .12); }); lab.label(blocks[0], 'Khối sắt', [0, .03, 0]);
+const S = { rows: {}, cfg: null };
+const P1 = 7.5;   // N
+function dent(cx, cz, sx, sz, h) {  // lõm hình hộp, mép thoải
+  for (let i = 0; i < pp.count; i++) { const x = p0[i * 3], z = p0[i * 3 + 2], dx = Math.max(0, Math.abs(x - cx) - sx / 2), dz = Math.max(0, Math.abs(z - cz) - sz / 2), r = Math.hypot(dx, dz); let y = 0; if (r == 0) y = -h; else if (r < .012) y = -h * (1 - r / .012) + h * .25 * Math.sin(r / .012 * Math.PI); pp.setY(i, y); }
+  pp.needsUpdate = true; geo.computeVertexNormals();
+}
+function smooth() { for (let i = 0; i < pp.count; i++) pp.setY(i, 0); pp.needsUpdate = true; geo.computeVertexNormals(); blocks.forEach((b, i) => { b.position.set(.25 + i * .1, BL[2] / 2, .12); b.rotation.set(0, 0, 0); }); }
+let anim = null;
+function run(c) {
+  smooth(); S.cfg = c;
+  const F = c == 'b' ? 2 * P1 : P1, Sx = c == 'c' ? BL[2] : BL[0], Sz = BL[1], Scm = Sx * Sz * 1e4, p = F / (Sx * Sz), h = clamp(p / 2300 * .004, .001, .012);
+  anim = { t: 0, c, h, F, Scm };
+}
+lab.onTick(dt => {
+  if (!anim) return; anim.t += dt; const k = clamp(anim.t / 1.2, 0, 1), sink = anim.h * clamp((anim.t - .8) / .6, 0, 1), c = anim.c;
+  const H = c == 'c' ? BL[0] : BL[2], y0 = LV + H / 2 + .1 * (1 - k) - sink;
+  blocks[0].position.set(0, y0, 0); blocks[0].rotation.set(0, 0, c == 'c' ? Math.PI / 2 : 0);
+  if (c == 'b') blocks[1].position.set(0, y0 + BL[2], 0); else blocks[1].position.set(.35, BL[2] / 2, .12);
+  if (anim.t > .8) dent(0, 0, c == 'c' ? BL[2] : BL[0], BL[1], sink);
+  if (anim.t > 1.5 && !anim.done) { anim.done = 1; const hmm = Math.round(anim.h * 1000 * 10) / 10; S.rows[c] = { F: anim.F, S: anim.Scm, h: hmm }; hud.innerHTML = `Trường hợp ${c}: F = ${anim.F} N, S = ${fmt(anim.Scm, 0)} cm² → độ lún h ≈ <b>${fmt(hmm, 1)} mm</b>`; draw(); }
+});
+function draw() {
+  $('#tb').innerHTML = ['a', 'b', 'c'].map(c => { const r = S.rows[c]; return `<tr><td>${c}</td><td>${r ? r.F : '?'}</td><td>${r ? fmt(r.S, 0) : '?'}</td><td>${r ? fmt(r.h, 1) : '?'}</td></tr>`; }).join('');
+  const r = S.rows; if (r.a && r.b && r.c) { $('#cmp').innerHTML = `F<sub>b</sub> &gt; F<sub>a</sub>, S<sub>b</sub> = S<sub>a</sub> → h<sub>b</sub> &gt; h<sub>a</sub>: cùng diện tích bị ép, <b>áp lực càng lớn thì độ lún càng lớn</b>.<br>F<sub>c</sub> = F<sub>a</sub>, S<sub>c</sub> &lt; S<sub>a</sub> → h<sub>c</sub> &gt; h<sub>a</sub>: cùng áp lực, <b>diện tích bị ép càng nhỏ thì độ lún càng lớn</b>.`; showPane(1); }
+}
+document.querySelectorAll('[data-c]').forEach(b => b.onclick = () => run(b.dataset.c));
+$('#sm').onclick = () => { anim = null; smooth(); };
+quiz($('#qz'), [
+  { q: 'Áp suất được tính bằng công thức', o: ['p = F·S', 'p = F/S', 'p = S/F', 'p = F + S'], a: 1 },
+  { q: 'Một người nặng 500 N đứng trên mặt sàn, diện tích tiếp xúc của hai bàn chân là 0,025 m². Áp suất người đó tác dụng lên sàn là bao nhiêu Pa?', n: 20000, u: 'Pa' },
+  { q: 'Muốn tăng áp suất, ta có thể', o: ['tăng diện tích bị ép, giữ nguyên áp lực', 'giảm diện tích bị ép hoặc tăng áp lực', 'giảm áp lực', 'giảm cả áp lực'], a: 1 },
+  { q: 'Vì sao lưỡi dao, lưỡi kéo được mài sắc?', o: ['Để giảm diện tích bị ép, tăng áp suất, dễ cắt', 'Để đẹp', 'Để nhẹ hơn', 'Để giảm áp suất'], a: 0 },
+]);
+draw(); ready(); window.dbg = { lab };
+</script></body></html>

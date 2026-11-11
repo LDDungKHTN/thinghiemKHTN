@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 23. Tác dụng của dòng điện</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, clamp } from '../core/lab3d.js';
+import { supply, bulb, resistor, knife, wire, led, board } from '../core/elec.js';
+import { vessel } from '../core/chem.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+const stage = shell({ title: 'Bài 23. Tác dụng của dòng điện', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<h3>1. Tác dụng nhiệt</h3><p>Dòng điện qua dây điện trở (dây nung) làm dây nóng lên, mẩu giấy vắt trên dây bị cháy sém.</p>
+<h3>2. Tác dụng phát sáng (Hình 23.2)</h3><p><b>Dụng cụ:</b> nguồn điện 3 V; đèn LED; điện trở R (bảo vệ đèn LED); công tắc K.</p><ol><li>Đóng công tắc K, quan sát đèn LED.</li><li>Đảo ngược hai đầu dây đèn LED (bấm “Đảo cực LED”), đóng công tắc K. Đèn LED có sáng không?</li></ol>
+<h3>3. Tác dụng hoá học</h3><p><b>Dụng cụ:</b> nguồn điện 6 V; bóng đèn pin; công tắc K; bình đựng dung dịch CuSO₄; hai thỏi than nối với hai cực của nguồn điện. Đóng K, quan sát bóng đèn và thỏi than nối với cực âm sau vài phút.</p>
+<p class="sm">Bấm vào từng công tắc K trong khung 3D để đóng/mở. Bật các nguồn điện bằng nút đỏ.</p>` },
+  { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện thí nghiệm.</div><ul><li><b>Tác dụng nhiệt:</b> dòng điện làm vật dẫn nóng lên (bàn là, ấm điện…).</li><li><b>Tác dụng phát sáng:</b> làm đèn LED, đèn huỳnh quang phát sáng. Đèn LED chỉ sáng khi dòng điện chạy theo một chiều nhất định (từ cực dương sang cực âm của LED).</li><li><b>Tác dụng hoá học:</b> dòng điện qua dung dịch CuSO₄ làm thỏi than nối với cực âm được phủ một lớp đồng màu đỏ (mạ điện).</li><li>Ngoài ra dòng điện còn có tác dụng từ và tác dụng sinh lí.</li></ul>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const V = { h: [[-.42, .28, .45], [-.42, .06, 0]], l: [[0, .3, .5], [0, .04, 0]], c: [[.42, .3, .48], [.42, .06, 0]] };
+const lab = createLab(stage, { cam: V.l[0], target: V.l[1], table: 'wood', tableSize: [1.7, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+/* 1. nhiệt */
+board(lab, [-.42, 0, 0], .32, .26);
+const ps1 = supply(lab, [-.5, .008, -.08], { onToggle: () => upd() }); ps1.setV(6);
+const K1 = knife(lab, [-.33, .008, -.08], { onToggle: () => upd() });
+const pst = [-1, 1].map(s => { const p = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .07, 10), MAT.metal(0x8a8f95, .4)); p.position.set(-.42 + s * .06, .043, .07); scene.add(p); return p; });
+const nichM = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, metalness: .7, roughness: .4, emissive: 0xff3300, emissiveIntensity: 0 });
+const nich = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([...Array(60)].map((_, i) => new THREE.Vector3(-.48 + i * .002, .078 + Math.sin(i * 1.4) * .0015, .07 + Math.cos(i * 1.4) * .0015))), 120, .0006, 6), nichM); scene.add(nich);
+const paper = new THREE.Mesh(new THREE.PlaneGeometry(.012, .03), new THREE.MeshStandardMaterial({ color: 0xfafaf2, side: THREE.DoubleSide })); paper.position.set(-.42, .065, .07); scene.add(paper);
+lab.label(nich, 'Dây nung + mẩu giấy', [-.42 + .48, .1, 0]);
+wire(lab, ps1.term(0), K1.term(0)); wire(lab, K1.term(1), new THREE.Vector3(-.48, .01, .07)); wire(lab, ps1.term(1), new THREE.Vector3(-.36, .01, .07), { color: 0x1b1b1b });
+/* 2. LED */
+board(lab, [0, 0, 0], .32, .26);
+const ps2 = supply(lab, [-.08, .008, -.08], { onToggle: () => upd() }); ps2.setV(3);
+const K2 = knife(lab, [.1, .008, -.08], { onToggle: () => upd() });
+const R2 = resistor(lab, [-.05, .008, .07], { R: 100, name: 'R' });
+const ledBase = new THREE.Group(); ledBase.position.set(.09, .008, .07); scene.add(ledBase);
+const lb = roundBox(.05, .012, .04, .003, MAT.plastic(0xe9edf0, .5)); lb.position.y = .006; ledBase.add(lb);
+const L = led(lab, ledBase, [0, .022, 0], { color: 0xff2020 }); L.g.scale.setScalar(1.8);
+lab.label(ledBase, 'Đèn LED', [0, .05, 0]);
+let ledRev = false;
+wire(lab, ps2.term(0), K2.term(0)); wire(lab, K2.term(1), R2.term(1)); wire(lab, R2.term(0), new THREE.Vector3(.075, .03, .07)); wire(lab, new THREE.Vector3(.105, .03, .07), ps2.term(1), { color: 0x1b1b1b });
+/* 3. điện phân CuSO4 */
+board(lab, [.42, 0, 0], .32, .26);
+const ps3 = supply(lab, [.36, .008, -.08], { onToggle: () => upd() }); ps3.setV(6);
+const K3 = knife(lab, [.53, .008, -.08], { onToggle: () => upd() });
+const Lb3 = bulb(lab, [.52, .008, .08], { Unom: 6, Pnom: 1.8, label: 'Bóng đèn pin' });
+const cell = vessel(lab, { kind: 'beaker', R: .035, H: .08 }); cell.g.position.set(.38, .008, .07); scene.add(cell.g); cell.set({ level: .7, color: 0x1f74d6, op: .7 });
+const carbon = [-1, 1].map(s => { const c = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .1, 14), new THREE.MeshStandardMaterial({ color: 0x1e1e1e, roughness: .7 })); c.position.set(.38 + s * .018, .07, .07); scene.add(c); return c; });
+lab.label(cell.g, 'Bình dd CuSO₄ + 2 thỏi than', [0, .14, 0]); lab.label(carbon[0], '−', [0, .06, 0], 'read'); lab.label(carbon[1], '+', [0, .06, 0], 'read');
+wire(lab, ps3.term(0), K3.term(0)); wire(lab, K3.term(1), Lb3.term(1)); wire(lab, Lb3.term(0), new THREE.Vector3(.398, .12, .07)); wire(lab, new THREE.Vector3(.362, .12, .07), ps3.term(1), { color: 0x1b1b1b });
+const S = { burn: 0, cu: 0 };
+function upd() {
+  const on1 = ps1.on && K1.closed, on2 = ps2.on && K2.closed, on3 = ps3.on && K3.closed;
+  L.set(on2 && !ledRev ? 1 : 0); Lb3.set(on3 ? 1.6 : 0);
+  const t = [];
+  t.push(on1 ? 'Dây nung <b>nóng đỏ</b>, mẩu giấy vắt trên dây <b>bị cháy sém</b> → tác dụng nhiệt.' : 'Mạch 1 hở.');
+  t.push(on2 ? (ledRev ? 'Đảo cực đèn LED: đèn LED <b>không sáng</b> (dòng điện chỉ qua LED theo một chiều).' : 'Đèn LED <b>sáng</b> → tác dụng phát sáng.') : 'Mạch 2 hở.');
+  t.push(on3 ? 'Bóng đèn sáng (dung dịch CuSO₄ dẫn điện); sau vài phút thỏi than nối với cực âm <b>được phủ lớp đồng màu đỏ</b> → tác dụng hoá học.' : 'Mạch 3 hở.');
+  say(t.join('<br>'));
+}
+lab.onTick(dt => {
+  const on1 = ps1.on && K1.closed, on3 = ps3.on && K3.closed;
+  nichM.emissiveIntensity += ((on1 ? 2.5 : 0) - nichM.emissiveIntensity) * Math.min(1, dt * 3);
+  if (on1) { S.burn = Math.min(1, S.burn + dt * .15); paper.material.color.set(new THREE.Color(0xfafaf2).lerp(new THREE.Color(0x3a2a18), S.burn)); }
+  if (on3) { S.cu = Math.min(1, S.cu + dt * .08); carbon[0].material.color.set(new THREE.Color(0x1e1e1e).lerp(new THREE.Color(0xb4532a), S.cu)); cell.set({ bubbles: .12 }); } else cell.set({ bubbles: 0 });
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" data-v="h">Tác dụng nhiệt</button><button class="btn" data-v="l">Phát sáng (LED)</button><button class="btn" data-v="c">Tác dụng hoá học</button><button class="btn p" id="rev">Đảo cực LED</button>`;
+tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => lab.view(...V[b.dataset.v]));
+$('#rev').onclick = () => { ledRev = !ledRev; L.g.rotation.z = ledRev ? Math.PI * .0 + .3 : 0; upd(); toast(ledRev ? 'Đã đảo ngược hai đầu dây đèn LED' : 'Đã nối LED đúng chiều'); };
+quiz($('#qz'), [
+  { q: 'Thiết bị nào hoạt động dựa vào tác dụng nhiệt của dòng điện?', o: ['Quạt điện', 'Ấm điện', 'Đèn LED', 'Chuông điện'], a: 1 },
+  { q: 'Đèn LED chỉ sáng khi', o: ['dòng điện chạy theo một chiều nhất định qua nó', 'có dòng điện theo mọi chiều', 'không có dòng điện', 'được đun nóng'], a: 0 },
+  { q: 'Mạ đồng cho một vật bằng cách nối vật đó với cực nào của nguồn điện trong dung dịch CuSO₄?', o: ['Cực dương', 'Cực âm', 'Không cần nối', 'Cả hai cực'], a: 1 },
+  { q: 'Vì sao trong mạch đèn LED cần mắc thêm điện trở R?', o: ['Để LED sáng hơn', 'Để bảo vệ đèn LED không bị hỏng', 'Để đổi chiều dòng điện', 'Để tiết kiệm dây'], a: 1 },
+]);
+upd(); ready(); window.dbg = { lab };
+</script></body></html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 9. Base. Thang pH</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, lathe, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $, showPane } from '../core/ui.js';
+const PH = ['#e5262a', '#ee4a2b', '#f37a2d', '#f7a52b', '#f6c928', '#d8d82a', '#a4cc3a', '#5fb246', '#2f9e66', '#228b8a', '#2d6db0', '#334f9e', '#3f3a8f', '#4a2f80', '#55276e'];
+const stage = shell({ title: 'Bài 9. Base. Thang pH', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Thí nghiệm', html: `<h3>Tính chất hoá học của base (Hình 9.1)</h3><p><b>Chuẩn bị:</b> dd NaOH loãng, dd HCl loãng, giấy quỳ tím, dd phenolphthalein; ống nghiệm, ống hút nhỏ giọt.</p>
+<ol><li><b>TN1:</b> nhỏ 1 – 2 giọt dd NaOH vào mẩu giấy quỳ tím (ống 1).</li><li><b>TN2:</b> cho khoảng 1 mL dd NaOH vào ống 2, nhỏ 2 – 3 giọt phenolphthalein. Nhỏ từ từ dd HCl vào (bấm nhiều lần), vừa nhỏ vừa lắc.</li></ol>
+<div class="row"><button class="btn g" id="auto">Chuẩn bị nhanh</button></div><div id="ui"></div><div id="obs" class="note"></div>
+<h3>Xác định pH bằng giấy pH</h3><p>6 mẫu giấy pH trên đĩa thuỷ tinh; nhỏ lên mỗi mẫu một loại dung dịch: nước lọc, nước chanh, nước ngọt có ga, nước rửa bát, giấm ăn, dung dịch baking soda. So sánh màu với bảng màu chuẩn. Bấm <b>“Nhỏ dung dịch lên giấy pH”</b>.</p>
+<table class="dt"><thead><tr><th>Dung dịch</th><th>pH</th><th>Môi trường</th></tr></thead><tbody id="tph"></tbody></table>` },
+  { id: 'p2', title: 'Kết luận', html: `<ul><li>Base là những hợp chất trong phân tử có nguyên tử kim loại liên kết với nhóm hydroxide (–OH). Base tan trong nước gọi là kiềm.</li><li>Dung dịch base làm <b>quỳ tím chuyển màu xanh</b>, làm <b>phenolphthalein không màu chuyển màu hồng</b>.</li><li>Base tác dụng với acid tạo muối và nước (phản ứng trung hoà): NaOH + HCl → NaCl + H₂O.</li><li><b>Thang pH</b> (1 – 14): pH &lt; 7 môi trường acid; pH = 7 trung tính; pH &gt; 7 môi trường base.</li></ul>
+<div style="display:flex;height:22px;border-radius:4px;overflow:hidden">${PH.map((c, i) => `<div style="flex:1;background:${c};color:#fff;font-size:10px;text-align:center;line-height:22px">${i}</div>`).join('')}</div>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const lab = createLab(stage, { cam: [.05, .28, .55], target: [.05, .06, -.02], table: 'bench', tableSize: [1.5, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'naoh', n: 'dd NaOH loãng', c: 0xf2f6f8, k: 'liq' }, { id: 'hcl', n: 'dd HCl loãng', c: 0xeef6f8, k: 'drop' }, { id: 'php', n: 'Phenolphthalein', c: 0xf8f8f8, k: 'drop' }, { id: 'q', n: 'Giấy quỳ tím', c: 0x8e5bd6, k: 'sol', solid: { kind: 'strip', c: 0x8e5bd6 }, max: 1 }];
+const has = (it, id) => it.find(x => x.id == id);
+function react(it, heat, age) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s; s.color = 0xf2f8fa; s.op = .28;
+  const B = has(it, 'naoh'), A = has(it, 'hcl'), P = has(it, 'php'), Q = has(it, 'q');
+  const nb = (B ? B.amt : 0) * 1.0, na = A ? A.amt : 0, excessB = nb - na;   // 1 mL NaOH ≈ 2 giọt HCl
+  if (Q) { s.solid = { kind: 'strip', c: B && excessB > 0 ? 0x2f66d6 : A && !B ? 0xd6334c : 0x8e5bd6, amt: 1 }; s.notes.push(B && excessB > 0 ? 'Giấy quỳ tím chuyển sang <b>màu xanh</b>.' : 'Giấy quỳ tím.'); }
+  if (B && P) { const k = clamp(excessB / Math.max(nb, .01), 0, 1); s.color = new THREE.Color(0xf2f8fa).lerp(new THREE.Color(0xe64aa8), k > 0 ? .4 + .6 * k : 0).getHex(); s.op = .3 + .45 * (k > 0 ? 1 : 0);
+    s.notes.push(k > 0 ? (A ? 'Màu hồng nhạt dần khi nhỏ thêm HCl… (tiếp tục nhỏ)' : 'Dung dịch NaOH + phenolphthalein có <b>màu hồng</b>.') : 'Dung dịch <b>mất màu hồng</b>: HCl đã trung hoà hết NaOH.'); if (A) s.eq.push('NaOH + HCl → NaCl + H₂O'); }
+  if (!s.notes.length) s.notes.push(B ? 'Dung dịch NaOH không màu.' : 'Chưa có dung dịch base.');
+  return s;
+}
+const tubes = ['Ống 1', 'Ống 2'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 1, cap: 6, heat: false, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG, heat: false });
+$('#auto').onclick = () => { bench.T[0].items = [{ id: 'q', amt: 1 }, { id: 'naoh', amt: .5 }]; bench.T[1].items = [{ id: 'naoh', amt: 2 }, { id: 'php', amt: 1 }]; bench.T.forEach(t => t.age = 0); bench.redraw(); bench.select(1); toast('Ống 2: bấm “dd HCl loãng” nhiều lần để nhỏ từ từ.'); };
+// giấy pH
+const SOL = [['Nước lọc', 7, 0xe6f3fa], ['Nước chanh', 2, 0xf3f0c8], ['Nước ngọt có ga', 4, 0xb57a3a], ['Nước rửa bát', 9, 0xa8e0a0], ['Giấm ăn', 3, 0xf6f3e6], ['Dd baking soda', 9, 0xf4f6f8]];
+const plate = roundBox(.3, .004, .12, .002, MAT.glassLite({ opacity: .35 })); plate.position.set(.5, .002, .02); scene.add(plate);
+const strips = SOL.map((s, i) => { const m = new THREE.Mesh(new THREE.BoxGeometry(.03, .0008, .01), new THREE.MeshStandardMaterial({ color: 0xf2c94a, roughness: .9 })); m.position.set(.38 + i * .048, .0045, .0); scene.add(m); lab.label(m, s[0], [0, .015, .03]);
+  const cup = new THREE.Mesh(lathe([[0, 0], [.014, 0], [.016, .03], [.0165, .03], [.0145, .001], [0, .001]], 24), MAT.glassLite({ opacity: .3 })); cup.position.set(.38 + i * .048, 0, -.07); scene.add(cup);
+  const liq = new THREE.Mesh(new THREE.CylinderGeometry(.0145, .013, .02, 20), new THREE.MeshPhysicalMaterial({ color: s[2], transparent: true, opacity: .55, depthWrite: false })); liq.position.set(.38 + i * .048, .011, -.07); scene.add(liq); return m; });
+const chart = new THREE.Mesh(new THREE.PlaneGeometry(.24, .03), new THREE.MeshStandardMaterial({ map: canvasTex(720, 90, (c, w, h) => { PH.forEach((col, i) => { c.fillStyle = col; c.fillRect(i * w / 15, 0, w / 15, h * .7); c.fillStyle = '#111'; c.font = 'bold 22px Arial'; c.textAlign = 'center'; c.fillText(i, (i + .5) * w / 15, h - 4); }); }) })); chart.rotation.x = -Math.PI / 2; chart.position.set(.5, .0045, .07); scene.add(chart);
+lab.label(chart, 'Bảng màu pH chuẩn', [0, .01, .02]);
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="ph">Nhỏ dung dịch lên giấy pH</button><button class="btn" id="vph">Nhìn giấy pH</button><button class="btn" id="vt">Nhìn ống nghiệm</button>`;
+$('#ph').onclick = () => { strips.forEach((m, i) => m.material.color.set(PH[SOL[i][1]])); $('#tph').innerHTML = SOL.map(s => `<tr><td>${s[0]}</td><td>${s[1]}</td><td>${s[1] < 7 ? 'Acid' : s[1] > 7 ? 'Base' : 'Trung tính'}</td></tr>`).join(''); lab.view([.5, .22, .22], [.5, 0, 0]); hud.innerHTML = 'So màu với bảng màu chuẩn: nước chanh, giấm ăn, nước ngọt có ga có pH &lt; 7 (tính acid); nước lọc pH = 7 (trung tính); nước rửa bát, dd baking soda có pH &gt; 7 (tính base).'; };
+$('#vph').onclick = () => lab.view([.5, .22, .22], [.5, 0, 0]); $('#vt').onclick = () => lab.view([.05, .28, .55], [.05, .06, -.02]);
+quiz($('#qz'), [
+  { q: 'Dung dịch base làm phenolphthalein không màu chuyển sang màu', o: ['xanh', 'đỏ', 'hồng', 'vàng'], a: 2 },
+  { q: 'Dung dịch có pH = 3 có môi trường', o: ['acid', 'base', 'trung tính', 'không xác định'], a: 0 },
+  { q: 'Base nào sau đây không tan trong nước?', o: ['NaOH', 'KOH', 'Cu(OH)₂', 'Ba(OH)₂'], a: 2 },
+  { q: 'Phản ứng giữa acid và base tạo ra', o: ['muối và khí hydrogen', 'muối và nước', 'oxide', 'chỉ có nước'], a: 1 },
+  { q: 'HCl 0,1 M có pH = 1; CH₃COOH 0,1 M có pH = 3. Acid nào mạnh hơn?', o: ['HCl', 'CH₃COOH', 'Như nhau', 'Không so sánh được'], a: 0 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 27. Thực hành đo năng lượng nhiệt bằng joulemeter</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, lathe, cable, clamp } from '../core/lab3d.js';
+import { thermometer } from '../core/chem.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+const stage = shell({ title: 'Bài 27. Thực hành đo năng lượng nhiệt bằng joulemeter', sub: 'KHTN 8 – Kết nối tri thức', panes: [
+  { id: 'p1', title: 'Hướng dẫn', html: `<p><b>Chuẩn bị:</b> bình nhiệt lượng kế có dây đốt, que khuấy (1); nhiệt kế (2); dụng cụ đo năng lượng điện – joulemeter (3); nguồn điện 12 V (4); dây nối (5); nước sạch.</p>
+<ol><li>Đổ một lượng nước xác định (200 g) vào bình nhiệt lượng kế cho nước ngập dây đốt và đầu đo nhiệt kế.</li><li>Khuấy liên tục, đọc nhiệt độ ban đầu t₀.</li><li>Bật công tắc nguồn, đồng thời khuấy nhẹ; đọc năng lượng trên joulemeter khi nhiệt độ tăng 3 °C, 6 °C, 9 °C so với giá trị ban đầu (bấm “Ghi” đúng lúc).</li></ol>
+<div class="row"><button class="btn p" id="on">Bật nguồn</button><button class="btn" id="rec">Ghi số liệu</button><button class="btn g" id="rs">Làm lại</button></div>` },
+  { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Độ tăng nhiệt độ Δt (°C)</th><th>Năng lượng E (J)</th></tr></thead><tbody id="tb"></tbody></table><div id="cm" class="note"></div>
+<div class="note sm">Nhiệt lượng nước nhận được tỉ lệ với độ tăng nhiệt độ: Q = m·c·Δt (c<sub>nước</sub> = 4 200 J/kg.K). Năng lượng đo được lớn hơn một chút do một phần nhiệt làm nóng bình và toả ra môi trường.</div>` },
+  { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` }] });
+const lab = createLab(stage, { cam: [0, .3, .5], target: [0, .08, 0], table: 'wood', tableSize: [1.2, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+// nhiệt lượng kế
+const cal = new THREE.Group(); cal.position.set(-.12, 0, 0); scene.add(cal);
+const outer = new THREE.Mesh(lathe([[0, 0], [.05, 0], [.05, .1], [.052, .1], [.052, -.002], [0, -.002]], 40), MAT.metal(0xbfc4c9, .3)); cal.add(outer);
+const inner = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .07, 32), new THREE.MeshPhysicalMaterial({ color: 0x6fb7e6, transparent: true, opacity: .5 })); inner.position.y = .045; cal.add(inner);
+const lid = new THREE.Mesh(new THREE.CylinderGeometry(.054, .054, .01, 40), MAT.plastic(0x2a2a2a, .5)); lid.position.y = .105; cal.add(lid);
+const th = thermometer(lab, cal, [.02, .04, .0], { L: .17 });
+const stir = new THREE.Mesh(new THREE.CylinderGeometry(.002, .002, .14, 8), MAT.metal(0xc8cdd2, .3)); stir.position.set(-.02, .1, .01); cal.add(stir);
+for (const x of [-.03, .0]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .01, 12), MAT.plastic(x ? 0xc92a2a : 0x111111, .4)); p.position.set(x, .114, -.03); cal.add(p); }
+lab.label(cal, 'Bình nhiệt lượng kế (1)', [0, .25, 0]);
+// joulemeter
+const jm = new THREE.Group(); jm.position.set(.13, 0, .02); scene.add(jm);
+const jb = roundBox(.16, .06, .1, .006, MAT.plastic(0xe9ecef, .45)); jb.position.y = .03; jm.add(jb);
+const dt_ = canvasTex(400, 120, () => { }); const dm = new THREE.Mesh(new THREE.PlaneGeometry(.12, .036), new THREE.MeshStandardMaterial({ map: dt_, emissive: 0xffffff, emissiveMap: dt_, emissiveIntensity: .9 })); dm.position.set(0, .038, .0505); jm.add(dm);
+lab.label(jm, 'Joulemeter (3)', [0, .09, 0]);
+const ps = new THREE.Group(); ps.position.set(.15, 0, -.16); scene.add(ps); const pb = roundBox(.16, .07, .1, .006, MAT.plastic(0x2f3a45, .45)); pb.position.y = .035; ps.add(pb); lab.label(ps, 'Nguồn 12 V (4)', [0, .1, 0]);
+scene.add(cable([.13, .05, -.11], [.13, .02, -.03], { color: 0xc92a2a, sag: .03 }), cable([.06, .02, .02], [-.15, .115, -.03], { color: 0xc92a2a, sag: .05 }), cable([.06, .02, .04], [-.12, .115, -.03], { color: 0x222222, sag: .06 }));
+const S = { on: false, E: 0, T0: 25.0, T: 25.0, rows: [] };
+const m = .2, c = 4200, P = 38, loss = 1.12;    // công suất dây đốt 38 W; 12% hao phí
+function draw() { const g = dt_.image.getContext('2d'); g.fillStyle = '#0d1a10'; g.fillRect(0, 0, 400, 120); g.fillStyle = '#8cff8a'; g.font = 'bold 64px "Courier New",monospace'; g.textAlign = 'right'; g.fillText(Math.round(S.E) + ' J', 390, 85); dt_.needsUpdate = true; }
+lab.onTick((dt, t) => { if (S.on) { const k = 8; S.E += P * dt * k; S.T = S.T0 + S.E / loss / (m * c); th.set(S.T); stir.position.y = .1 + Math.sin(t * 6) * .01; } draw(); hud.innerHTML = `Nhiệt độ: <b>${fmt(S.T, 1)} °C</b> (Δt = ${fmt(S.T - S.T0, 1)} °C) · Joulemeter: <b>${Math.round(S.E)} J</b>${S.on ? '<br><span style="opacity:.8">(thời gian được tua nhanh 8 lần)</span>' : ''}`; });
+$('#on').onclick = () => { S.on = !S.on; $('#on').textContent = S.on ? 'Tắt nguồn' : 'Bật nguồn'; };
+$('#rec').onclick = () => { const d = Math.round((S.T - S.T0) * 10) / 10; if (d < .5) return toast('Nhiệt độ chưa tăng.'); S.rows.push([d, Math.round(S.E)]); $('#tb').innerHTML = S.rows.map(r => `<tr><td>${fmt(r[0], 1)}</td><td>${r[1]}</td></tr>`).join(''); $('#cm').innerHTML = S.rows.map(r => `Δt = ${fmt(r[0], 1)} °C: Q = m·c·Δt = 0,2·4200·${fmt(r[0], 1)} = ${Math.round(.2 * 4200 * r[0])} J; E/Δt ≈ ${fmt(r[1] / r[0], 0)} J/°C`).join('<br>') + '<br>→ Năng lượng cần cung cấp <b>tỉ lệ thuận</b> với độ tăng nhiệt độ.'; showPane(1); };
+$('#rs').onclick = () => { S.on = false; S.E = 0; S.T = S.T0; S.rows = []; th.set(S.T0); $('#tb').innerHTML = ''; $('#cm').innerHTML = ''; $('#on').textContent = 'Bật nguồn'; };
+quiz($('#qz'), [
+  { q: 'Joulemeter dùng để đo', o: ['nhiệt độ', 'năng lượng điện cung cấp (J)', 'khối lượng', 'thời gian'], a: 1 },
+  { q: 'Năng lượng cần để làm 0,2 kg nước nóng thêm 3 °C (c = 4 200 J/kg.K) là bao nhiêu J?', n: 2520, u: 'J' },
+  { q: 'Năng lượng đo được trên joulemeter thường lớn hơn Q = mcΔt vì', o: ['joulemeter sai', 'một phần năng lượng làm nóng bình, dây đốt và toả ra môi trường', 'nước bay hơi hết', 'nhiệt kế sai'], a: 1 },
+  { q: 'Vì sao phải khuấy nước liên tục?', o: ['để nước nhanh sôi', 'để nhiệt độ nước đồng đều', 'để nước không tràn', 'để nước lạnh đi'], a: 1 },
+]);
+th.set(S.T0); ready(); window.dbg = { lab };
+</script></body></html>
