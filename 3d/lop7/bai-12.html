@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 12. Sóng âm</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, clamp } from '../core/lab3d.js';
+import { tone } from '../core/sound.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 12. Sóng âm', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p class="note sm">Bật loa của máy để nghe âm thanh.</p>
+<h3>1. Dao động (Hình 12.1)</h3><p>Thanh thép đàn hồi kẹp trên giá. <b>Kéo đầu tự do</b> của thanh thép xuống rồi thả tay (hoặc bấm “Kéo và thả thanh thép”). Thanh thép chuyển động qua lại quanh vị trí cân bằng – đó là dao động. Thanh càng ngắn dao động càng nhanh và phát ra âm.</p>
+<div class="sl">Phần thanh thò ra <input type="range" id="L" min="6" max="25" value="20"><span id="vL">20 cm</span></div>
+<h3>2. Sóng trên mặt nước (Hình 12.2)</h3><p>Bấm “Tạo sóng nước”: vật nhỏ S dao động theo thanh thép làm mặt nước dao động, tạo thành sóng nước hình tròn có tâm S.</p>
+<h3>3. Sóng trên lò xo (Hình 12.3)</h3><p>Bấm “Rung lò xo”: dọc theo lò xo xuất hiện những đoạn nén và dãn liên tiếp.</p>
+<h3>4. Nguồn âm: âm thoa (Hình 12.4d)</h3><p>Bấm vào <b>búa cao su</b> để gõ âm thoa: âm thoa phát ra âm, quả bóng bàn treo chạm vào nhánh âm thoa bị bật ra liên tục – chứng tỏ nguồn âm đang dao động.</p>` },
+    { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện các thí nghiệm.</div><ul>
+<li>Chuyển động qua lại quanh một vị trí cân bằng gọi là <b>dao động</b>.</li><li><b>Sóng</b> là sự lan truyền dao động trong môi trường.</li><li>Nguồn âm là vật phát ra âm; <b>các nguồn âm đều dao động</b>.</li><li><b>Sóng âm</b> là sự lan truyền dao động của nguồn âm trong môi trường. Âm truyền được trong chất rắn, lỏng, khí; không truyền được trong chân không.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const V = { r: [[-.42, .28, .45], [-.45, .1, 0]], f: [[-.12, .26, .42], [-.14, .1, 0]], w: [[.17, .32, .38], [.17, .02, 0]], s: [[.47, .3, .45], [.47, .05, 0]], all: [[0, .5, 1.1], [0, .08, 0]] };
+const lab = createLab(stage, { cam: V.all[0], target: V.all[1], table: 'wood', tableSize: [1.6, .7], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+const dk = MAT.metal(0x2d3136, .45), steel = MAT.metal(0xd2d6db, .25);
+function standPost(x, h = .25) { const b = roundBox(.12, .012, .1, .003, dk); b.position.set(x, .006, -.02); scene.add(b); const r = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, h, 14), MAT.metal(0xc8cdd2, .25)); r.position.set(x - .04, h / 2, -.04); scene.add(r); lab.shadow(b); return r; }
+
+/* ===== 1. Thanh thép ===== */
+standPost(-.48, .2);
+const clampB = new THREE.Mesh(new THREE.BoxGeometry(.04, .025, .04), dk); clampB.position.set(-.5, .15, -.04); scene.add(clampB);
+const NS = 40, rulerGeo = new THREE.BoxGeometry(1, .0012, .025, NS, 1, 1), rp = rulerGeo.attributes.position, r0 = Float32Array.from(rp.array);
+const ruler = new THREE.Mesh(rulerGeo, steel); ruler.castShadow = true; scene.add(ruler);
+lab.label(clampB, 'Thanh thép đàn hồi', [.12, .04, 0]);
+const R = { L: .2, A: 0, t: 0, held: false, snd: null };
+const fR = () => .83 / (R.L * R.L);
+function shapeRuler(y) {
+  const L = R.L + .03; ruler.scale.set(L, 1, 1); ruler.position.set(-.5 + L / 2 - .015, .15 + .0135, -.04);
+  for (let i = 0; i < rp.count; i++) { const x = r0[i * 3] + .5, s = Math.max(0, (x * L - .03) / R.L); rp.setY(i, r0[i * 3 + 1] + y * s * s * (3 - s) / 2); }
+  rp.needsUpdate = true; rulerGeo.computeVertexNormals();
+}
+const tipH = new THREE.Mesh(new THREE.SphereGeometry(.012, 8, 8), new THREE.MeshBasicMaterial({ visible: false })); scene.add(tipH);
+lab.draggable({ obj: tipH, axis: new THREE.Vector3(0, 1, 0), min: .08, max: .2, get: () => tipH.position.y, onStart() { R.held = true; R.snd && R.snd.stop(); }, onEnd() { R.held = false; release(); }, set(v) { tipH.position.y = v; R.A = clamp(v - .1635, -.06, .03); shapeRuler(R.A); } });
+function release() { R.t = 0; R.A0 = R.A; const f = fR(); if (f >= 20) R.snd = tone(f, clamp(Math.abs(R.A0) * 12, .05, .6), .6, { type: 'triangle' }); say(f >= 20 ? `Thanh thép dao động nhanh (khoảng ${Math.round(f)} lần/giây) và <b>phát ra âm</b> (vù vù).` : `Thanh thép dao động chậm (khoảng ${fmt(f, 1)} lần/giây): nhìn rõ chuyển động qua lại quanh vị trí cân bằng O; tai không nghe thấy âm.`); }
+
+/* ===== 2. Âm thoa + quả bóng bàn ===== */
+const F = new THREE.Group(); F.position.set(-.14, 0, 0); scene.add(F);
+const box = roundBox(.12, .05, .06, .004, new THREE.MeshStandardMaterial({ color: 0xb9874f, roughness: .6 })); box.position.y = .025; F.add(box);
+const hole = new THREE.Mesh(new THREE.CircleGeometry(.012, 24), new THREE.MeshBasicMaterial({ color: 0x1a120a })); hole.position.set(.061, .025, 0); hole.rotation.y = Math.PI / 2; F.add(hole);
+const fork = new THREE.Group(); fork.position.set(0, .05, 0); F.add(fork);
+const stem = new THREE.Mesh(new THREE.CylinderGeometry(.0035, .0035, .03, 12), steel); stem.position.y = .015; fork.add(stem);
+const ubend = new THREE.Mesh(new THREE.TorusGeometry(.009, .0035, 10, 20, Math.PI), steel); ubend.rotation.z = Math.PI; ubend.position.y = .039; fork.add(ubend);
+const prong = s => { const p = new THREE.Mesh(new THREE.BoxGeometry(.006, .11, .007), steel); p.geometry.translate(0, .055, 0); p.position.set(s * .009, .039, 0); fork.add(p); return p; };
+const pr = [prong(-1), prong(1)];
+lab.label(fork, 'Âm thoa (440 Hz)', [0, .17, 0]);
+const ballP = new THREE.Group(); ballP.position.set(.02, .22, 0); F.add(ballP);
+const sp = standPost(-.14 + .1, .26); void sp;
+const arm = new THREE.Mesh(new THREE.BoxGeometry(.08, .006, .006), dk); arm.position.set(.0, .222, 0); F.add(arm);
+const thread = new THREE.Mesh(new THREE.CylinderGeometry(.0004, .0004, .1, 6), new THREE.MeshStandardMaterial({ color: 0xeeeeee })); thread.position.y = -.05; ballP.add(thread);
+const pball = new THREE.Mesh(new THREE.SphereGeometry(.0125, 30, 20), new THREE.MeshStandardMaterial({ color: 0xff8c1a, roughness: .45 })); pball.position.y = -.1 - .0125; ballP.add(pball); pball.castShadow = true;
+lab.label(pball, 'Quả bóng bàn', [.03, 0, 0]);
+const hammer = new THREE.Group(); hammer.position.set(-.06, .06, .06); F.add(hammer);
+const hh = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .03, 20), MAT.rubber(0x8a1c1c)); hh.rotation.z = Math.PI / 2; hh.position.y = .09; hammer.add(hh);
+const hs = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .1, 10), new THREE.MeshStandardMaterial({ color: 0xc9a06a })); hs.position.y = .04; hammer.add(hs);
+hammer.rotation.z = .5; lab.label(hammer, 'Búa cao su (bấm)', [0, .12, 0]);
+const FK = { A: 0, t: 0, ang: 0, w: 0, hit: -1 };
+// góc treo: bóng chạm vào nhánh phải khi đứng yên (dây hơi lệch)
+const restAng = Math.asin((.009 + .0035 + .0125 - .02) / .1125);
+FK.ang = restAng;
+lab.clickable(hammer, () => strike()); lab.clickable(fork, () => strike());
+function strike() { FK.hit = 0; }
+
+/* ===== 3. Sóng nước ===== */
+const W = new THREE.Group(); W.position.set(.17, 0, 0); scene.add(W);
+const tray = new THREE.Mesh(lathe([[0, 0], [.1, 0], [.1, .025], [.104, .025], [.104, -.0], [0, -.0]], 4), new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: .25, roughness: .05, clearcoat: 1, depthWrite: false })); tray.rotation.y = Math.PI / 4; tray.scale.set(1.4, 1, 1);
+const trayB = new THREE.Mesh(new THREE.BoxGeometry(.2, .004, .2), MAT.plastic(0x2d3a4a, .6)); trayB.position.y = .002; W.add(trayB);
+for (const [x, z, w, d] of [[0, -.1, .2, .004], [0, .1, .2, .004], [-.1, 0, .004, .2], [.1, 0, .004, .2]]) { const s = new THREE.Mesh(new THREE.BoxGeometry(w, .03, d), MAT.glassLite({ opacity: .25 })); s.position.set(x, .015, z); W.add(s); }
+void tray;
+const NW = 90, wGeo = new THREE.PlaneGeometry(.196, .196, NW, NW); wGeo.rotateX(-Math.PI / 2);
+const water = new THREE.Mesh(wGeo, new THREE.MeshPhysicalMaterial({ color: 0x2f7fb8, roughness: .05, metalness: .1, transparent: true, opacity: .85, clearcoat: 1 })); water.position.y = .018; W.add(water);
+const dip = new THREE.Mesh(new THREE.SphereGeometry(.004, 12, 8), MAT.plastic(0xc92a2a, .4)); dip.position.set(0, .02, 0); W.add(dip);
+const dipRod = new THREE.Mesh(new THREE.BoxGeometry(.12, .0012, .012), steel); dipRod.position.set(-.06, .06, 0); W.add(dipRod);
+const dipStr = new THREE.Mesh(new THREE.CylinderGeometry(.0004, .0004, .04, 6), new THREE.MeshStandardMaterial({ color: 0xeeeeee })); dipStr.position.set(0, .04, 0); W.add(dipStr);
+lab.label(dip, 'S', [0, .015, 0], 'read'); lab.label(trayB, 'Khay nước', [0, .05, .1]);
+const WV = { on: false, t: 0 };
+const wp = wGeo.attributes.position;
+
+/* ===== 4. Lò xo ===== */
+const SL = new THREE.Group(); SL.position.set(.47, 0, 0); scene.add(SL);
+const NC = 46, coilI = new THREE.InstancedMesh(new THREE.TorusGeometry(.016, .0012, 8, 24), MAT.metal(0xb0b6bc, .3), NC); SL.add(coilI);
+const hand = new THREE.Mesh(new THREE.BoxGeometry(.012, .04, .04), MAT.plastic(0xe8590c, .5)); SL.add(hand);
+const wall = new THREE.Mesh(new THREE.BoxGeometry(.01, .06, .06), dk); wall.position.set(.17, .03, 0); SL.add(wall);
+lab.label(hand, 'Đầu lò xo dao động', [0, .04, 0]);
+const SP = { on: false, t: 0 }, dmy = new THREE.Object3D();
+function drawSpring(t) {
+  for (let i = 0; i < NC; i++) {
+    const x0 = -.17 + i * (.34 / (NC - 1)), k = 2 * Math.PI / .12, w = 2 * Math.PI * 1.6, front = SP.on ? (t * .12 * 1.6) : 0;
+    const env = SP.on && (x0 + .17) < front ? 1 : 0, dx = env * .006 * Math.sin(k * (x0 + .17) - w * t) * (i == NC - 1 ? 0 : 1);
+    dmy.position.set(x0 + dx, .03, 0); dmy.rotation.set(0, Math.PI / 2, 0); dmy.updateMatrix(); coilI.setMatrixAt(i, dmy.matrix);
+    if (i == 0) hand.position.set(x0 + dx - .008, .03, 0);
+  }
+  coilI.instanceMatrix.needsUpdate = true;
+}
+
+/* ===== Vòng lặp ===== */
+lab.onTick((dt, t) => {
+  // thanh thép
+  if (!R.held && R.A0) { R.t += dt; const f = fR(), A = R.A0 * Math.exp(-R.t / (f > 20 ? .5 : 1.8)) * Math.cos(2 * Math.PI * f * R.t); shapeRuler(A); if (Math.abs(R.A0) * Math.exp(-R.t / (f > 20 ? .5 : 1.8)) < .0005) { R.A0 = 0; shapeRuler(0); } }
+  if (!R.held) tipH.position.set(-.5 + R.L + .015, .1635, -.04);
+  // âm thoa
+  if (FK.hit >= 0) { FK.hit += dt; hammer.rotation.z = .5 - Math.sin(Math.min(1, FK.hit / .12) * Math.PI) * .9; if (FK.hit > .06 && !FK.struck) { FK.struck = true; FK.A = 1; FK.t = 0; tone(440, .45, 1.6); say('Âm thoa <b>phát ra âm</b> và <b>quả bóng bàn bị bật ra</b> liên tục khi chạm vào nhánh âm thoa → nhánh âm thoa đang <b>dao động</b>.'); } if (FK.hit > .3) { FK.hit = -1; FK.struck = false; hammer.rotation.z = .5; } }
+  FK.t += dt; const fa = FK.A * Math.exp(-FK.t / 1.6);
+  pr.forEach((p, i) => p.rotation.z = (i ? 1 : -1) * fa * .012 * Math.sin(t * 2 * Math.PI * 37));
+  // con lắc bóng: lực đàn hồi khi chạm nhánh
+  const g = 9.8, L = .1125; let acc = -(g / L) * Math.sin(FK.ang - 0) - .6 * FK.w;
+  const contact = FK.ang <= restAng + .0005;
+  if (contact && fa > .02) { FK.w = Math.abs(FK.w) + fa * .9; }
+  FK.w += acc * dt; FK.ang += FK.w * dt; if (FK.ang < restAng) { FK.ang = restAng; if (FK.w < 0) FK.w = -FK.w * .3; }
+  ballP.rotation.z = FK.ang;
+  // sóng nước
+  if (WV.on) { WV.t += dt; dip.position.y = .02 + .003 * Math.sin(WV.t * 2 * Math.PI * 4); }
+  if (WV.on || WV.t) { const c = WV.t * .06; for (let i = 0; i < wp.count; i++) { const x = wp.getX(i), z = wp.getZ(i), r = Math.hypot(x, z); wp.setY(i, r < c ? .0016 * Math.exp(-r * 14) * Math.sin(2 * Math.PI * (r / .015 - WV.t * 4)) : 0); } wp.needsUpdate = true; wGeo.computeVertexNormals(); if (!WV.on && WV.t > 0) { WV.t = 0; for (let i = 0; i < wp.count; i++) wp.setY(i, 0); wp.needsUpdate = true; } }
+  // lò xo
+  if (SP.on) SP.t += dt; drawSpring(SP.t);
+});
+
+/* ===== Giao diện ===== */
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bR">Kéo và thả thanh thép</button><button class="btn p" id="bF">Gõ âm thoa</button><button class="btn p" id="bW">Tạo sóng nước</button><button class="btn p" id="bS">Rung lò xo</button><button class="btn" id="bAll">Toàn cảnh</button><button class="btn" id="bLbl">Tên</button>`;
+$('#bR').onclick = () => { lab.view(...V.r); R.A = -.035; R.A0 = 0; shapeRuler(R.A); setTimeout(() => { R.A0 = R.A; release(); }, 500); };
+$('#bF').onclick = () => { lab.view(...V.f); strike(); };
+$('#bW').onclick = () => { WV.on = !WV.on; WV.t = WV.on ? .001 : WV.t; $('#bW').textContent = WV.on ? 'Dừng sóng nước' : 'Tạo sóng nước'; if (WV.on) { lab.view(...V.w); say('Vật S dao động làm mặt nước dao động; dao động lan truyền trên mặt nước tạo thành <b>sóng nước hình tròn</b> có tâm S.'); } };
+$('#bS').onclick = () => { SP.on = !SP.on; SP.t = 0; $('#bS').textContent = SP.on ? 'Dừng lò xo' : 'Rung lò xo'; if (SP.on) { lab.view(...V.s); say('Dao động của đầu lò xo truyền đi dọc theo lò xo: xuất hiện những <b>đoạn nén và dãn liên tiếp</b> – sóng trên lò xo.'); } };
+$('#bAll').onclick = () => lab.view(...V.all);
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+$('#L').oninput = e => { R.L = +e.target.value / 100; $('#vL').textContent = e.target.value + ' cm'; R.A0 = 0; shapeRuler(0); };
+quiz($('#qz'), [
+  { q: 'Các nguồn âm có đặc điểm chung là', o: ['đều nóng lên', 'đều dao động', 'đều phát sáng', 'đều là chất rắn'], a: 1 },
+  { q: 'Sóng âm không truyền được trong', o: ['không khí', 'nước', 'thép', 'chân không'], a: 3 },
+  { q: 'Vì sao áp tai xuống đất có thể nghe tiếng vó ngựa từ xa?', o: ['Vì đất truyền âm tốt hơn không khí', 'Vì tai gần mặt đất ấm hơn', 'Vì ngựa chạy chậm', 'Vì đất phản xạ ánh sáng'], a: 0 },
+  { q: 'Khi gảy đàn ghi-ta, bộ phận nào dao động phát ra âm?', o: ['Cần đàn', 'Dây đàn (và hộp đàn)', 'Phím đàn', 'Tay người gảy'], a: 1 },
+  { q: 'Sóng trên lò xo có đặc điểm', o: ['không có gì thay đổi', 'xuất hiện các đoạn nén và dãn liên tiếp', 'lò xo đứt', 'lò xo nóng lên'], a: 1 },
+]);
+shapeRuler(0); drawSpring(0); say('Chọn thí nghiệm trên thanh công cụ.'); ready();
+window.dbg = { lab, R, FK };
+</script></body></html>

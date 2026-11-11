@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 24. Thực hành: Chứng minh quang hợp ở cây xanh</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, canvasTex, clamp } from '../core/lab3d.js';
+import { vessel, burner } from '../core/chem.js';
+import { pot, leafGeo, leafMat } from '../core/bio.js';
+import { shell, ready, toast, quiz, $, showPane } from '../core/ui.js';
+
+const STEPS1 = ['Đặt chậu cây khoai lang trong bóng tối 2 ngày', 'Bịt băng giấy đen lên lá, chiếu đèn 4 – 6 giờ', 'Ngắt chiếc lá, bỏ băng giấy đen', 'Đun lá trong cồn 90° đến khi sôi', 'Rửa sạch lá trong cốc nước ấm', 'Nhúng lá vào dung dịch iodine trong đĩa Petri'];
+const STEPS2 = ['Cho 2 cành rong đuôi chó vào 2 ống nghiệm (ngọn rong ở phía đáy ống)', 'Đổ đầy nước, bịt miệng ống, úp ngược vào cốc nước A, B', 'Để cốc A trong chỗ tối, cốc B ra chỗ nắng (6 giờ)', 'Rút 2 cành rong, bịt miệng ống, lật ngược; đưa que đóm còn tàn đỏ vào miệng ống'];
+const stage = shell({
+  title: 'Bài 24. Thực hành: Chứng minh quang hợp ở cây xanh', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p><b>Dụng cụ:</b> giá thí nghiệm, băng giấy đen, bóng đèn 500 W, nước ấm, cốc thuỷ tinh, nhiệt kế, panh, đĩa Petri, đèn cồn, ống nghiệm. <b>Mẫu vật:</b> chậu cây khoai lang, rong đuôi chó. <b>Hoá chất:</b> cồn 90°, dung dịch iodine.</p>
+<div class="warn sm">Đặc biệt cẩn thận khi làm thí nghiệm với dụng cụ thuỷ tinh và lửa.</div>
+<h3>1. Chứng minh tinh bột được tạo thành trong quang hợp</h3><ol id="s1">${STEPS1.map((s, i) => `<li id="s1-${i}">${s}</li>`).join('')}</ol>
+<div class="row"><button class="btn p" id="n1">Thực hiện bước 1</button><button class="btn g" id="r1">Làm lại</button></div>
+<h3>2. Chứng minh quang hợp giải phóng khí oxygen</h3><ol id="s2">${STEPS2.map((s, i) => `<li id="s2-${i}">${s}</li>`).join('')}</ol>
+<div class="row"><button class="btn p" id="n2">Thực hiện bước 1</button><button class="btn g" id="r2">Làm lại</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<h3>Bảng 24.1</h3><table class="dt"><thead><tr><th>Thí nghiệm</th><th>Hiện tượng / Kết quả</th></tr></thead><tbody>
+<tr><td>Chứng minh tinh bột được tạo thành trong quang hợp</td><td id="k1">?</td></tr><tr><td>Chứng minh quang hợp giải phóng khí oxygen</td><td id="k2">?</td></tr></tbody></table>
+<div id="obs" class="note">Thực hiện các bước thí nghiệm.</div>
+<ul class="sm"><li>Để cây trong tối 2 ngày: lá sử dụng hết tinh bột có sẵn.</li><li>Đun lá trong cồn: tẩy hết chất diệp lục để dễ thấy màu của iodine.</li><li>Iodine làm tinh bột chuyển màu xanh tím (xanh đen).</li><li>Khí oxygen làm que đóm còn tàn đỏ bùng cháy.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const V = { plant: [[-.3, .3, .55], [-.32, .1, 0]], lab: [[.0, .28, .45], [0, .06, 0]], weed: [[.35, .28, .48], [.35, .08, 0]] };
+const lab = createLab(stage, { cam: V.plant[0], target: V.plant[1], table: 'wood', tableSize: [1.6, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+
+/* ===== Lá (kết cấu vẽ theo trạng thái) ===== */
+const leafTex = canvasTex(256, 256, () => { });
+function paintLeaf(st) {   // st: 'green' | 'green-strip' | 'pale' | 'iodine'
+  const c = leafTex.image.getContext('2d'), W = 256;
+  const base = { green: '#3f8f2f', 'green-strip': '#3f8f2f', pale: '#e6dca8', iodine: '#1d2350' }[st];
+  c.fillStyle = base; c.fillRect(0, 0, W, W);
+  c.strokeStyle = st == 'iodine' ? 'rgba(80,90,150,.6)' : st == 'pale' ? 'rgba(180,160,100,.7)' : 'rgba(150,200,110,.7)'; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(128, 256); c.lineTo(128, 40); c.stroke(); for (let i = 0; i < 6; i++) { const y = 220 - i * 30; c.beginPath(); c.moveTo(128, y); c.lineTo(40, y - 40); c.moveTo(128, y); c.lineTo(216, y - 40); c.stroke(); }
+  if (st == 'iodine') { c.fillStyle = '#d8c47a'; c.fillRect(0, 108, W, 46); }       // phần bị bịt giấy đen: không có tinh bột → màu vàng nâu của iodine
+  if (st == 'green-strip') { c.fillStyle = '#111'; c.fillRect(0, 108, W, 46); }
+  leafTex.needsUpdate = true;
+}
+const lgeo = leafGeo('heart', .07); { const p = lgeo.attributes.position, uv = lgeo.attributes.uv; for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / .1 + .5, p.getY(i) / .055); uv.needsUpdate = true; }
+/* ===== Chậu khoai lang ===== */
+const P = new THREE.Group(); P.position.set(-.32, 0, 0); scene.add(P);
+const pt = pot(.05, .065); P.add(pt);
+const vineM = new THREE.MeshStandardMaterial({ color: 0x6b4a6e, roughness: .6 });
+const normalLeaf = leafMat(0x3f8f2f);
+const leaves = [];
+for (let i = 0; i < 7; i++) { const a = i * .9, h = .1 + (i % 3) * .035, pts = [new THREE.Vector3(0, .06, 0), new THREE.Vector3(Math.cos(a) * .02, .06 + h * .6, Math.sin(a) * .02), new THREE.Vector3(Math.cos(a) * .04, .06 + h, Math.sin(a) * .04)];
+  P.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 12, .0018, 6), vineM));
+  const l = new THREE.Mesh(lgeo, i == 0 ? new THREE.MeshStandardMaterial({ map: leafTex, roughness: .55, side: THREE.DoubleSide }) : normalLeaf); l.position.copy(pts[2]); l.rotation.set(-.6, -a + Math.PI / 2, 0); l.castShadow = true; P.add(l); leaves.push(l); }
+const testLeaf = leaves[0]; lab.label(testLeaf, 'Lá thí nghiệm', [0, .04, 0]); lab.label(pt, 'Chậu khoai lang', [0, .02, .07]);
+const darkBox = roundBox(.16, .22, .16, .006, new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: .9 })); darkBox.position.set(-.32, .11, 0); scene.add(darkBox); darkBox.visible = false;
+const lamp5 = new THREE.Group(); lamp5.position.set(-.32, .32, .06); scene.add(lamp5);
+const shade = new THREE.Mesh(lathe([[.01, 0], [.05, -.04], [.052, -.04], [.012, .002]], 32), new THREE.MeshStandardMaterial({ color: 0x8a8f95, metalness: .6, roughness: .4, side: THREE.DoubleSide })); lamp5.add(shade);
+const bulb5 = new THREE.Mesh(new THREE.SphereGeometry(.02, 20, 14), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2c8, emissiveIntensity: 0 })); bulb5.position.y = -.03; lamp5.add(bulb5);
+const lt5 = new THREE.SpotLight(0xfff2d0, 0, 1, .8, .5, 1.5); lt5.position.set(0, -.03, 0); lt5.target.position.set(0, -.3, -.06); lamp5.add(lt5, lt5.target);
+lab.label(lamp5, 'Bóng đèn 500 W', [0, .03, 0]);
+/* ===== Dụng cụ xử lí lá ===== */
+const L = new THREE.Group(); scene.add(L);
+const lampC = burner(lab, [0, 0, .02]); lab.label(lampC.g, 'Đèn cồn', [0, .12, 0]);
+const ring = new THREE.Mesh(new THREE.TorusGeometry(.04, .002, 8, 32), MAT.metal(0x3a3f45, .5)); ring.rotation.x = Math.PI / 2; ring.position.set(0, .1, .02); L.add(ring);
+for (let k = 0; k < 3; k++) { const a = k * 2.09, l = new THREE.Mesh(new THREE.CylinderGeometry(.002, .002, .1, 8), MAT.metal(0x3a3f45, .5)); l.position.set(Math.cos(a) * .04, .05, .02 + Math.sin(a) * .04); L.add(l); }
+const bigB = vessel(lab, { kind: 'beaker', R: .036, H: .08 }); bigB.g.position.set(0, .101, .02); L.add(bigB.g); bigB.set({ level: .55, color: 0xdcf0fa, op: .3 });
+const alcT = vessel(lab, { kind: 'beaker', R: .016, H: .07 }); alcT.g.position.set(0, .104, .02); L.add(alcT.g); alcT.set({ level: .6, color: 0xf3f8fa, op: .3 });
+lab.label(bigB.g, 'Cốc nước (đun cách thuỷ)', [.06, .1, 0]); lab.label(alcT.g, 'Cốc nhỏ đựng cồn 90°', [-.06, .12, 0]);
+const warm = vessel(lab, { kind: 'beaker', R: .03, H: .06 }); warm.g.position.set(.12, 0, .05); L.add(warm.g); warm.set({ level: .6, color: 0xdcf0fa, op: .3 }); lab.label(warm.g, 'Nước ấm', [0, .08, 0]);
+const petri = new THREE.Group(); petri.position.set(.12, 0, -.06); L.add(petri);
+const pd = new THREE.Mesh(lathe([[0, 0], [.05, 0], [.05, .012], [.0515, .012], [.0515, -.0], [0, -.0]], 40), MAT.glassLite({ opacity: .3 })); pd.renderOrder = 4; petri.add(pd);
+const iod = new THREE.Mesh(new THREE.CylinderGeometry(.049, .049, .006, 32), new THREE.MeshPhysicalMaterial({ color: 0xb5651d, transparent: true, opacity: .3, depthWrite: false })); iod.position.y = .003; iod.scale.y = .6; petri.add(iod);
+lab.label(petri, 'Đĩa Petri: dung dịch iodine', [0, .04, 0]);
+const cut = new THREE.Mesh(lgeo, new THREE.MeshStandardMaterial({ map: leafTex, roughness: .55, side: THREE.DoubleSide })); cut.visible = false; scene.add(cut);
+/* ===== Rong đuôi chó ===== */
+const W = new THREE.Group(); W.position.set(.35, 0, 0); scene.add(W);
+function weedSet(x, label) {
+  const g = new THREE.Group(); g.position.set(x, 0, 0); W.add(g);
+  const cup = vessel(lab, { kind: 'beaker', R: .035, H: .09 }); g.add(cup.g); cup.set({ level: .7, color: 0xd6eef8, op: .3 });
+  const tube = vessel(lab, { kind: 'tube', R: .009, H: .15 }); tube.g.rotation.z = Math.PI; tube.g.position.set(0, .158, 0); g.add(tube.g); tube.set({ level: 1, color: 0xd6eef8, op: .3 });
+  const weed = new THREE.Group(); weed.position.set(0, .03, 0); g.add(weed); const wm = new THREE.MeshStandardMaterial({ color: 0x3f8f2f, roughness: .6 });
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(.001, .001, .12, 6), wm); stem.position.y = .06; weed.add(stem);
+  for (let k = 0; k < 18; k++) for (let j = 0; j < 4; j++) { const n = new THREE.Mesh(new THREE.ConeGeometry(.0009, .01, 4), wm); n.position.y = .01 + k * .0065; n.rotation.z = 1.1; n.rotation.y = j * 1.57 + k * .4; n.position.x = Math.cos(j * 1.57 + k * .4) * .004; n.position.z = -Math.sin(j * 1.57 + k * .4) * .004; weed.add(n); }
+  const pocket = new THREE.Mesh(new THREE.CylinderGeometry(.0086, .0086, 1, 20), new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: .55, roughness: .05, depthWrite: false })); pocket.renderOrder = 5; pocket.visible = false; g.add(pocket);
+  lab.label(g, label, [0, .2, 0]);
+  return { g, cup, tube, weed, gas: 0, pocket };
+}
+const A = weedSet(-.06, 'Cốc A'), B = weedSet(.06, 'Cốc B');
+const cover = roundBox(.1, .2, .1, .004, new THREE.MeshStandardMaterial({ color: 0x151515, roughness: .9 })); cover.position.set(-.06, .1, 0); W.add(cover); cover.visible = false;
+const splint = new THREE.Group(); scene.add(splint); splint.visible = false;
+const sp = new THREE.Mesh(new THREE.CylinderGeometry(.0018, .0018, .12, 8), new THREE.MeshStandardMaterial({ color: 0xd9b07a })); sp.rotation.z = Math.PI / 2; sp.position.x = -.06; splint.add(sp);
+const ember = new THREE.Mesh(new THREE.SphereGeometry(.0025, 10, 8), new THREE.MeshStandardMaterial({ color: 0x331100, emissive: 0xff4400, emissiveIntensity: 2 })); splint.add(ember);
+const flame = new THREE.Mesh(lathe([[0, 0], [.004, .004], [.005, .012], [.003, .02], [0, .026]], 16), new THREE.MeshBasicMaterial({ color: 0xffb030, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); flame.rotation.z = -Math.PI / 2; splint.add(flame); flame.visible = false;
+
+/* ===== Điều khiển bước ===== */
+const S = { s1: 0, s2: 0, t1: 0, t2: 0, anim1: -1, anim2: -1 };
+function mark(id, n) { document.querySelectorAll(`#${id} li`).forEach((li, i) => { li.style.color = i < n ? 'var(--ok)' : ''; li.style.fontWeight = i == n ? '600' : ''; }); }
+function reset1() { S.s1 = 0; paintLeaf('green'); darkBox.visible = false; bulb5.material.emissiveIntensity = 0; lt5.intensity = 0; testLeaf.visible = true; cut.visible = false; alcT.set({ color: 0xf3f8fa, bubbles: 0 }); bigB.set({ bubbles: 0 }); lampC.set(false); P.traverse(o => { if (o.material && o.material.color && o !== pt) { } }); lab.roomLight(1); $('#n1').textContent = 'Thực hiện bước 1'; mark('s1', 0); }
+function step1() {
+  const s = S.s1;
+  if (s == 0) { darkBox.visible = true; lab.view(...V.plant); say('Đặt chậu khoai lang trong <b>bóng tối 2 ngày</b> để lá sử dụng hết tinh bột có sẵn. <i>(⏱ +2 ngày)</i>'); }
+  if (s == 1) { darkBox.visible = false; paintLeaf('green-strip'); bulb5.material.emissiveIntensity = 3; lt5.intensity = 3; say('Dùng băng giấy đen bịt kín một phần lá ở cả 2 mặt; đặt chậu dưới ánh sáng đèn <b>4 – 6 giờ</b>. <i>(⏱ +5 giờ)</i>'); }
+  if (s == 2) { bulb5.material.emissiveIntensity = 0; lt5.intensity = 0; testLeaf.visible = false; cut.visible = true; paintLeaf('green'); cut.position.set(-.14, .02, .12); cut.rotation.set(-Math.PI / 2, 0, 0); say('Ngắt chiếc lá, bỏ băng giấy đen.'); }
+  if (s == 3) { lab.view(...V.lab); lampC.set(true); S.anim1 = 0; cut.position.set(0, .115, .02); cut.rotation.set(0, 0, 0); cut.scale.setScalar(.5); say('Đun lá trong cồn 90° (cách thuỷ) đến khi sôi: <b>lá mất dần màu xanh</b>, cồn chuyển sang <b>màu xanh lục</b> (diệp lục tan trong cồn).'); }
+  if (s == 4) { lampC.set(false); S.anim1 = -1; alcT.set({ bubbles: 0 }); bigB.set({ bubbles: 0 }); paintLeaf('pale'); cut.position.set(.12, .03, .05); cut.scale.setScalar(.6); cut.rotation.set(-.3, 0, 0); say('Rửa sạch lá trong cốc nước ấm. Lá có màu vàng nhạt.'); }
+  if (s == 5) { cut.position.set(.12, .0078, -.06); cut.rotation.set(-Math.PI / 2, 0, 0); cut.scale.setScalar(.7); S.anim1 = 100; lab.view([.12, .2, .12], [.12, .0, -.06]); }
+  S.s1 = Math.min(6, s + 1); mark('s1', S.s1); $('#n1').textContent = S.s1 < 6 ? `Thực hiện bước ${S.s1 + 1}` : 'Đã xong';
+}
+function reset2() { S.s2 = 0; A.tube.g.visible = B.tube.g.visible = false; A.weed.visible = B.weed.visible = true; A.weed.position.y = B.weed.position.y = .03; cover.visible = false; A.gas = B.gas = 0; A.pocket.visible = B.pocket.visible = false; A.tube.set({ level: 1, bubbles: 0 }); B.tube.set({ level: 1, bubbles: 0 }); splint.visible = false; flame.visible = false; $('#n2').textContent = 'Thực hiện bước 1'; mark('s2', 0); }
+function step2() {
+  const s = S.s2; lab.view(...V.weed);
+  if (s == 0) { [A, B].forEach(X => { X.weed.position.y = .03; }); say('Cho 2 cành rong đuôi chó vào 2 ống nghiệm sao cho phần ngọn rong ở phía đáy ống nghiệm.'); }
+  if (s == 1) { A.tube.g.visible = B.tube.g.visible = true; say('Đổ đầy nước vào 2 ống nghiệm, bịt miệng ống rồi úp ngược mỗi ống vào cốc nước A, B sao cho bọt khí không lọt vào.'); }
+  if (s == 2) { cover.visible = true; S.anim2 = 0; lab.roomLight(1); say('Để cốc A trong chỗ tối (bọc giấy đen), cốc B ra chỗ nắng. Sau 6 giờ: ở ống B <b>có nhiều bọt khí</b> nổi lên, tích tụ ở đáy ống (mực nước trong ống hạ xuống); ống A không có. <i>(⏱ tua nhanh 6 giờ)</i>'); }
+  if (s == 3) { S.anim2 = -1; cover.visible = false; B.tube.set({ bubbles: 0 }); splint.visible = true; S.splint = 0; say('Đưa que đóm còn tàn đỏ vào miệng ống nghiệm…'); }
+  S.s2 = Math.min(4, s + 1); mark('s2', S.s2); $('#n2').textContent = S.s2 < 4 ? `Thực hiện bước ${S.s2 + 1}` : 'Đã xong';
+}
+lab.onTick((dt, t) => {
+  if (S.anim1 >= 0 && S.anim1 < 100) { S.anim1 += dt; const k = clamp(S.anim1 / 6, 0, 1); alcT.set({ color: new THREE.Color(0xf3f8fa).lerp(new THREE.Color(0x4f9a3a), k).getHex(), op: .3 + .3 * k, bubbles: k > .3 ? .3 : 0 }); bigB.set({ bubbles: .2 }); const c = new THREE.Color(0x3f8f2f).lerp(new THREE.Color(0xe6dca8), k); cut.material.color.set(c.r > .9 ? 0xffffff : 0xffffff); if (k >= 1 && !S.pale) { S.pale = 1; paintLeaf('pale'); } }
+  if (S.anim1 >= 100) { S.anim1 += dt; if (S.anim1 > 101.5 && !S.iod) { S.iod = 1; paintLeaf('iodine'); say('Lá nhúng iodine: phần lá <b>được chiếu sáng chuyển màu xanh tím (xanh đen)</b> – có tinh bột; phần lá <b>bị bịt giấy đen không chuyển màu</b> – không có tinh bột.<br><b>Kết luận:</b> lá chỉ tạo được tinh bột khi có ánh sáng.'); $('#k1').innerHTML = 'Phần lá được chiếu sáng có màu xanh tím (có tinh bột); phần bị bịt giấy đen không đổi màu (không có tinh bột).'; showPane(1); } }
+  if (S.anim2 >= 0) { S.anim2 += dt; B.gas = Math.min(.35, B.gas + dt * .035); B.tube.set({ bubbles: .5 }); const gh = B.gas * .13; B.pocket.visible = gh > .001; B.pocket.scale.y = gh; B.pocket.position.y = .157 - gh / 2; }
+  if (S.splint != null && splint.visible) { S.splint += dt; const k = Math.min(1, S.splint / 1.2); splint.position.set(.35 + .06 + .07 * (1 - k), .175, 0); flame.visible = S.splint > 1.4; if (flame.visible && !S.flamed) { S.flamed = 1; say('Que đóm còn tàn đỏ đưa vào miệng ống nghiệm B <b>bùng cháy</b> → khí tích tụ trong ống B là <b>oxygen</b>. Ống A không có khí, que đóm không bùng cháy.<br><b>Kết luận:</b> cây quang hợp (khi có ánh sáng) giải phóng khí oxygen.'); $('#k2').innerHTML = 'Ống B (để ngoài sáng) có bọt khí, khí làm que đóm còn tàn đỏ bùng cháy (oxygen); ống A (để trong tối) không có.'; showPane(1); } flame.scale.set(1, 1 + .15 * Math.sin(t * 20), 1); }
+});
+$('#n1').onclick = () => { if (S.s1 < 6) step1(); }; $('#r1').onclick = reset1;
+$('#n2').onclick = () => { if (S.s2 < 4) step2(); }; $('#r2').onclick = () => { reset2(); S.splint = null; S.flamed = 0; };
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="t1">Bước tiếp – TN tinh bột</button><button class="btn p" id="t2">Bước tiếp – TN oxygen</button><button class="btn" id="bLbl">Tên</button>`;
+$('#t1').onclick = () => $('#n1').click(); $('#t2').onclick = () => $('#n2').click();
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Mục đích của việc dùng băng giấy đen bịt kín một phần lá ở cả 2 mặt là', o: ['để lá không bị héo', 'để phần lá đó không nhận được ánh sáng, so sánh với phần lá được chiếu sáng', 'để lá nhanh lớn', 'để giữ ẩm'], a: 1 },
+  { q: 'Cho chiếc lá vào cồn 90° đun sôi cách thuỷ để', o: ['luộc chín lá', 'tẩy hết chất diệp lục, dễ quan sát màu của iodine', 'tạo tinh bột', 'diệt vi khuẩn'], a: 1 },
+  { q: 'Phần lá nào chuyển màu xanh tím khi nhúng vào iodine?', o: ['Phần bị bịt giấy đen', 'Phần được chiếu sáng', 'Cả lá', 'Không phần nào'], a: 1 },
+  { q: 'Khí làm que đóm còn tàn đỏ bùng cháy là', o: ['carbon dioxide', 'oxygen', 'nitrogen', 'hơi nước'], a: 1 },
+  { q: 'Vì sao khi nuôi cá cảnh trong bể kính người ta thường thả thêm rong và cây thuỷ sinh?', o: ['Để trang trí', 'Vì cây quang hợp thải khí oxygen cung cấp cho cá hô hấp', 'Để cá ăn', 'Để nước trong hơn'], a: 1 },
+]);
+paintLeaf('green'); reset1(); reset2(); ready(); window.dbg = { lab, S };
+</script></body></html>

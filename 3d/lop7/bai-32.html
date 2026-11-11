@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 32. Thực hành: Chứng minh thân vận chuyển nước và lá thoát hơi nước</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, lathe, canvasTex, clamp } from '../core/lab3d.js';
+import { vessel } from '../core/chem.js';
+import { pot, leafGeo, leafMat, timeHud } from '../core/bio.js';
+import { shell, ready, toast, quiz, $, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 32. Thực hành: Chứng minh thân vận chuyển nước và lá thoát hơi nước', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p><b>Dụng cụ:</b> cốc thuỷ tinh; dao mổ; kính lúp; túi nylon trong suốt. <b>Mẫu vật:</b> cây cần tây; 2 cây trồng trong chậu đất ẩm. <b>Hoá chất:</b> nước pha màu (mực đỏ, mực xanh).</p>
+<h3>1. Chứng minh thân vận chuyển nước (Hình 32.1)</h3><ol><li>Cắt ngang phần cuống lá cần tây (gần gốc) rồi cắm vào cốc nước pha màu, để ra chỗ thoáng. Bấm <b>“Tua 60 phút”</b>.</li><li>Cắt ngang phần cuống lá đã bị nhuộm màu (bấm <b>“Cắt ngang cuống lá”</b>).</li><li>Dùng kính lúp quan sát phần mạch dẫn.</li></ol>
+<h3>2. Chứng minh lá thoát hơi nước (Hình 32.2)</h3><ol><li>Chậu A: ngắt toàn bộ lá; chậu B: giữ nguyên lá.</li><li>Trùm túi nylon trong suốt lên cây ở 2 chậu, buộc kín, đặt ra ngoài sáng.</li><li>Sau 15 – 30 phút quan sát mặt trong túi (bấm <b>“Tua 30 phút”</b>).</li></ol>` },
+    { id: 'p2', title: 'Kết quả', html: `<h3>Bảng 32.1</h3><table class="dt"><thead><tr><th>Thí nghiệm</th><th>Hiện tượng / Kết quả</th></tr></thead><tbody><tr><td>Chứng minh thân vận chuyển nước</td><td id="k1">?</td></tr><tr><td>Chứng minh lá thoát hơi nước</td><td id="k2">?</td></tr></tbody></table>
+<div id="obs" class="note">Thực hiện thí nghiệm.</div>
+<ul class="sm"><li>Dùng nước pha màu để thấy rõ đường đi của nước trong cây.</li><li>Trùm túi nylon trong suốt, kín toàn bộ phần lá để hơi nước thoát ra không bay đi mà ngưng tụ lại trên mặt túi.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const V = { c: [[-.15, .32, .55], [-.15, .14, 0]], x: [[.08, .12, .18], [.08, .02, .05]], b: [[.32, .3, .6], [.32, .14, 0]] };
+const lab = createLab(stage, { cam: V.c[0], target: V.c[1], table: 'wood', tableSize: [1.6, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const clock = timeHud(stage);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+/* ===== Cần tây trong nước màu ===== */
+function celery(x, ink) {
+  const g = new THREE.Group(); g.position.set(x, 0, 0); scene.add(g);
+  const cup = vessel(lab, { kind: 'beaker', R: .03, H: .1 }); g.add(cup.g); cup.set({ level: .6, color: ink, op: .8 });
+  const stalkM = new THREE.MeshStandardMaterial({ color: 0xb8d68a, roughness: .5 }), leafM = leafMat(0x5a9a3a);
+  const vein = new THREE.MeshStandardMaterial({ color: ink, transparent: true, opacity: 0, roughness: .5 });
+  for (let i = 0; i < 4; i++) { const a = i * 1.6, top = new THREE.Vector3(Math.cos(a) * .03, .27 + i * .01, Math.sin(a) * .03), pts = [new THREE.Vector3(Math.cos(a) * .005, .01, Math.sin(a) * .005), new THREE.Vector3(Math.cos(a) * .012, .14, Math.sin(a) * .012), top];
+    const c = new THREE.CatmullRomCurve3(pts); g.add(new THREE.Mesh(new THREE.TubeGeometry(c, 20, .0045, 10), stalkM));
+    const vn = new THREE.Mesh(new THREE.TubeGeometry(c, 20, .0047, 10, false), vein); g.add(vn); vn.userData.v = 1;
+    for (let k = 0; k < 4; k++) { const l = new THREE.Mesh(leafGeo('oval', .035), leafM); l.position.copy(top); l.rotation.set(-.4, a + k * 1.5, 0); l.castShadow = true; g.add(l); } }
+  lab.label(cup.g, ink == 0x1c5fd6 ? 'Nước pha mực xanh' : 'Nước pha mực đỏ', [0, .12, .03]);
+  return { g, cup, vein, leafM, ink };
+}
+const C1 = celery(-.24, 0x1c5fd6), C2 = celery(-.08, 0xd6203a);
+lab.label(C1.g, 'Cuống lá cần tây', [0, .32, 0]);
+// lát cắt ngang
+const slice = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .006, 40), [new THREE.MeshStandardMaterial({ color: 0xb8d68a }), new THREE.MeshStandardMaterial({ map: canvasTex(256, 256, () => { }) }), new THREE.MeshStandardMaterial({ color: 0xb8d68a })]); slice.position.set(.08, .003, .05); scene.add(slice); slice.visible = false;
+const sliceT = slice.material[1].map;
+function drawSlice(k, ink) { const c = sliceT.image.getContext('2d'); c.fillStyle = '#e8efd6'; c.fillRect(0, 0, 256, 256); c.fillStyle = '#cfe0a8'; c.beginPath(); c.arc(128, 128, 120, 0, 7); c.fill(); c.fillStyle = '#e9f0dc'; c.beginPath(); c.arc(128, 150, 70, Math.PI, 0); c.fill(); const col = new THREE.Color(0xb8d68a).lerp(new THREE.Color(ink), k).getStyle(); for (let i = 0; i < 11; i++) { const a = Math.PI * (1.05 + i * .09); c.fillStyle = col; c.beginPath(); c.arc(128 + Math.cos(a) * 95, 135 + Math.sin(a) * 95 * .8 + 40, 8, 0, 7); c.fill(); } sliceT.needsUpdate = true; }
+const loupe = new THREE.Group(); loupe.position.set(.13, .05, .08); scene.add(loupe); loupe.visible = false;
+const lr = new THREE.Mesh(new THREE.TorusGeometry(.025, .003, 10, 32), MAT.plastic(0x222222, .4)); loupe.add(lr); const lg = new THREE.Mesh(new THREE.CircleGeometry(.024, 32), MAT.glassLite({ opacity: .2 })); loupe.add(lg); const lh = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .06, 10), MAT.plastic(0x222222, .4)); lh.position.y = -.055; loupe.add(lh); loupe.rotation.x = -1.1;
+lab.label(slice, 'Lát cắt ngang cuống lá', [0, .02, 0]);
+/* ===== Hai chậu cây + túi nylon ===== */
+function plantPot(x, withLeaves, label) {
+  const g = new THREE.Group(); g.position.set(x, 0, 0); scene.add(g); const p = pot(.045, .06); g.add(p);
+  const stM = new THREE.MeshStandardMaterial({ color: 0x6b5a3a, roughness: .8 }), lm = leafMat(0x3f8f2f);
+  for (let i = 0; i < 5; i++) { const a = i * 1.3, top = new THREE.Vector3(Math.cos(a) * .03, .16 + (i % 2) * .03, Math.sin(a) * .03); g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0, .055, 0), new THREE.Vector3(Math.cos(a) * .01, .11, Math.sin(a) * .01), top]), 10, .002, 6), stM));
+    if (withLeaves) for (let k = 0; k < 5; k++) { const l = new THREE.Mesh(leafGeo('oval', .028), lm); l.position.copy(top).add(new THREE.Vector3(0, -k * .015, 0)); l.rotation.set(-.6, a + k * 1.3, 0); g.add(l); } }
+  const bag = new THREE.Mesh(lathe([[.0, .25], [.04, .245], [.07, .22], [.08, .15], [.07, .08], [.05, .06]], 40), new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: .12, roughness: .15, clearcoat: 1, side: THREE.DoubleSide, depthWrite: false })); bag.renderOrder = 5; g.add(bag); bag.visible = false;
+  const fogM = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0, roughness: .3, side: THREE.DoubleSide, depthWrite: false }); const fog = new THREE.Mesh(bag.geometry, fogM); fog.scale.setScalar(.995); fog.renderOrder = 6; g.add(fog); fog.visible = false;
+  const NDp = 160, drops = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: .7, roughness: 0, clearcoat: 1 }), NDp); drops.count = 0; g.add(drops);
+  const d = new THREE.Object3D(); for (let i = 0; i < NDp; i++) { const t = .08 + Math.random() * .16, ang = Math.random() * 6.28, r = t < .15 ? .07 + (t - .08) * .14 : .08 - (t - .15) * .4; d.position.set(Math.cos(ang) * r * .97, t, Math.sin(ang) * r * .97); d.scale.setScalar(.0012 + Math.random() * .0014); d.updateMatrix(); drops.setMatrixAt(i, d.matrix); }
+  lab.label(g, label, [0, .29, 0]); lab.shadow(p);
+  return { g, bag, fog, drops };
+}
+const PA = plantPot(.26, false, 'Chậu A (ngắt hết lá)'), PB = plantPot(.42, true, 'Chậu B (giữ nguyên lá)');
+const S = { t1: -1, t2: -1 };
+lab.onTick(dt => {
+  if (S.t1 >= 0) { S.t1 += dt; const k = clamp(S.t1 / 8, 0, 1); clock.set(`${Math.round(k * 60)} phút`);
+    [C1, C2].forEach(C => { C.vein.opacity = .6 * k; C.leafM.color.set(new THREE.Color(0x5a9a3a).lerp(new THREE.Color(C.ink), .35 * k)); C.cup.set({ level: .6 - .08 * k }); });
+    if (k >= 1 && !S.d1) { S.d1 = 1; S.t1 = -1; say('Sau khoảng 60 phút: phần <b>cuống lá và lá cần tây chuyển dần sang màu</b> của nước pha màu (xanh / đỏ) – nước màu đã được vận chuyển từ cuống lên lá. Mực nước trong cốc giảm.'); } }
+  if (S.t2 >= 0) { S.t2 += dt; const k = clamp(S.t2 / 7, 0, 1); clock.set(`${Math.round(k * 30)} phút`);
+    PB.fog.visible = true; PB.fog.material.opacity = .28 * k; PB.drops.count = Math.round(160 * k); PA.drops.count = Math.round(6 * k); PA.fog.visible = true; PA.fog.material.opacity = .02 * k;
+    if (k >= 1 && !S.d2) { S.d2 = 1; S.t2 = -1; say('Sau 30 phút: mặt trong túi nylon trùm <b>cây ở chậu B</b> (có lá) <b>xuất hiện nhiều giọt nước</b>, túi mờ đi; túi trùm cây ở chậu A (không có lá) hầu như không có giọt nước.<br><b>Kết luận:</b> lá thoát hơi nước.'); $('#k2').textContent = 'Túi trùm cây có lá (chậu B) có nhiều giọt nước bám ở mặt trong; túi trùm cây không có lá (chậu A) hầu như không có → lá thoát hơi nước.'; showPane(1); } }
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="b1">Tua 60 phút (cần tây)</button><button class="btn" id="bc">Cắt ngang cuống lá</button><button class="btn p" id="bBag">Trùm túi nylon</button><button class="btn p" id="b2">Tua 30 phút (2 chậu)</button><button class="btn" id="bLbl">Tên</button>`;
+$('#b1').onclick = () => { lab.view(...V.c); S.d1 = 0; S.t1 = 0; };
+$('#bc').onclick = () => { if (!S.d1) return toast('Hãy để cần tây trong nước màu khoảng 60 phút trước.'); slice.visible = true; loupe.visible = true; drawSlice(1, 0xd6203a); lab.view(...V.x); say('Lát cắt ngang cuống lá: quan sát bằng kính lúp thấy các <b>chấm màu đỏ xếp thành vòng</b> – đó là các <b>mạch dẫn</b> (mạch gỗ) đã vận chuyển nước màu.<br><b>Kết luận:</b> nước được vận chuyển qua mạch dẫn của thân (cuống lá) lên lá.'); $('#k1').textContent = 'Cuống và lá cần tây chuyển màu của nước pha màu; lát cắt ngang có các chấm màu (mạch dẫn) → thân vận chuyển nước.'; showPane(1); };
+$('#bBag').onclick = () => { PA.bag.visible = PB.bag.visible = true; lab.view(...V.b); say('Đã trùm túi nylon trong suốt kín phần lá ở 2 chậu, buộc kín miệng túi, đặt ra ngoài sáng.'); };
+$('#b2').onclick = () => { if (!PA.bag.visible) return toast('Hãy trùm túi nylon trước.'); lab.view(...V.b); S.d2 = 0; S.t2 = 0; };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Tại sao trong thí nghiệm chứng minh thân vận chuyển nước phải dùng nước pha màu?', o: ['Để cây đẹp hơn', 'Để quan sát được đường đi của nước trong cây', 'Để cây hút nước nhanh hơn', 'Để diệt khuẩn'], a: 1 },
+  { q: 'Nước và muối khoáng được vận chuyển từ rễ lên lá qua', o: ['mạch rây', 'mạch gỗ (mạch dẫn)', 'vỏ cây', 'lỗ khí'], a: 1 },
+  { q: 'Vì sao phải trùm túi nylon trong suốt, kín toàn bộ phần lá cây?', o: ['Để cây không bị nắng', 'Để hơi nước thoát ra từ lá không bay đi mà ngưng tụ thành giọt nước trên mặt túi', 'Để giữ ấm cho cây', 'Để côn trùng không cắn lá'], a: 1 },
+  { q: 'Túi nylon trùm cây ở chậu nào có nhiều giọt nước?', o: ['Chậu A (đã ngắt hết lá)', 'Chậu B (giữ nguyên lá)', 'Cả hai như nhau', 'Không chậu nào'], a: 1 },
+]);
+drawSlice(0, 0xd6203a); clock.set('0 phút'); say('Bấm “Tua 60 phút” để bắt đầu thí nghiệm 1.'); ready(); window.dbg = { lab, S };
+</script></body></html>

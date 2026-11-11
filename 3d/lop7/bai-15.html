@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 15. Năng lượng ánh sáng. Tia sáng, vùng tối</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, lathe, roundBox, canvasTex, cable, clamp } from '../core/lab3d.js';
+import { meter } from '../core/elec.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 15. Năng lượng ánh sáng. Tia sáng, vùng tối', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>1. Ánh sáng mang năng lượng (Hình 15.1)</h3><p>Pin quang điện nối với điện kế. Bấm <b>vào đèn</b> để bật/tắt; kéo đèn lại gần hoặc ra xa pin. Quan sát kim điện kế.</p>
+<h3>2. Chùm sáng, tia sáng (Hình 15.3, 15.6)</h3><p>Chọn loại chùm sáng của đèn chiếu. Chắn miếng bìa có lỗ nhỏ trước đèn để tạo chùm sáng hẹp song song – mô hình tia sáng.</p>
+<div class="row"><button class="btn on" data-b="par">Song song</button><button class="btn g" data-b="conv">Hội tụ</button><button class="btn g" data-b="div">Phân kì</button><button class="btn g" data-b="hole">Bìa có lỗ nhỏ</button></div>
+<h3>3. Vùng tối (Hình 15.8, 15.9)</h3><p>Chọn nguồn sáng hẹp (bóng đèn pin nhỏ) hoặc nguồn sáng rộng (đèn LED 20 W). Quan sát bóng của quả bóng trên màn chắn. Kéo quả bóng để thay đổi vị trí.</p>
+<div class="row"><button class="btn on" data-s="0">Nguồn sáng hẹp</button><button class="btn g" data-s="1">Nguồn sáng rộng</button></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện các thí nghiệm.</div><ul>
+<li>Ánh sáng là một dạng năng lượng: pin quang điện chuyển hoá năng lượng ánh sáng thành điện năng.</li>
+<li>Có 3 loại chùm sáng: song song, hội tụ, phân kì. Chùm sáng song song rất hẹp được coi là mô hình tia sáng. Tia sáng được biểu diễn bằng đường thẳng có mũi tên chỉ chiều truyền.</li>
+<li><b>Vùng tối</b> là vùng phía sau vật cản sáng không nhận được ánh sáng từ nguồn sáng truyền tới. Vùng tối do nguồn sáng hẹp có ranh giới rõ rệt; do nguồn sáng rộng có <b>vùng tối không hoàn toàn</b> (nửa tối) bao quanh, ranh giới không rõ rệt.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const V = { a: [[-.42, .3, .5], [-.45, .07, 0]], b: [[0, .32, .5], [0, .08, 0]], c: [[.42, .32, .55], [.45, .1, 0]] };
+const lab = createLab(stage, { cam: V.c[0], target: V.c[1], table: 'wood', tableSize: [1.7, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+function bulbLamp(parent, x, y, z, { r = .02 } = {}) {   // đèn bàn có chao
+  const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(.035, .04, .012, 32), MAT.plastic(0x2a2e33, .5)); base.position.y = -y + .006; g.add(base);
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, y, 12), MAT.metal(0xc8cdd2, .3)); rod.position.y = -y / 2; g.add(rod);
+  const shade = new THREE.Mesh(lathe([[.012, -.02], [.04, .035], [.042, .035], [.014, -.022]], 32), new THREE.MeshStandardMaterial({ color: 0x2b6cb0, roughness: .4, side: THREE.DoubleSide })); shade.rotation.z = Math.PI / 2; g.add(shade);
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), new THREE.MeshStandardMaterial({ color: 0xfff6e0, emissive: 0xffe0a0, emissiveIntensity: 0, roughness: .2 })); bulb.position.x = .01; g.add(bulb);
+  const pl = new THREE.PointLight(0xffe8c0, 0, 1.2, 2); pl.position.x = .02; g.add(pl);
+  return { g, set(on, k = 1) { bulb.material.emissiveIntensity = on ? 2.5 * k : 0; pl.intensity = on ? .6 * k : 0; } };
+}
+
+/* ===== 1. Pin quang điện ===== */
+const A = new THREE.Group(); A.position.set(-.45, 0, 0); scene.add(A);
+const cell = roundBox(.1, .006, .07, .002, new THREE.MeshStandardMaterial({ color: 0x14254a, roughness: .25, metalness: .4, map: canvasTex(256, 180, (c, w, h) => { c.fillStyle = '#14254a'; c.fillRect(0, 0, w, h); c.strokeStyle = '#8fa8c8'; c.lineWidth = 2; for (let x = 0; x <= w; x += 32) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); } for (let y = 0; y <= h; y += 45) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); } }) }));
+const cellG = new THREE.Group(); cellG.position.set(.06, .04, 0); cellG.rotation.z = Math.PI / 2 - .2; A.add(cellG); cellG.add(cell);
+const cs = new THREE.Mesh(new THREE.BoxGeometry(.02, .04, .03), MAT.plastic(0x333333, .5)); cs.position.set(.075, .02, 0); A.add(cs);
+lab.label(cellG, 'Pin quang điện', [0, .07, 0]);
+const G = meter(lab, [-.42, 0, -.1], { kind: 'G', max: 5, step: .5, center: false, label: 'Điện kế' }); void G;
+const lampA = bulbLamp(A, -.1, .06, 0); lab.label(lampA.g, 'Đèn (bấm để bật)', [0, .06, 0]);
+const LA = { on: false, x: -.1 };
+lab.clickable(lampA.g, () => { LA.on = !LA.on; updA(); });
+lab.draggable({ obj: lampA.g, axis: new THREE.Vector3(1, 0, 0), min: -.18, max: .0, get: () => LA.x, set(v) { LA.x = v; lampA.g.position.x = v; updA(); } });
+{ const a = A.localToWorld(new THREE.Vector3(.075, .03, .015)), b = G.term(0), c2 = G.term(1); scene.add(cable([a.x, a.y, a.z], [b.x, b.y, b.z], { color: 0xc92a2a, sag: .03, r: .0016 })); scene.add(cable([a.x, a.y, a.z - .03], [c2.x, c2.y, c2.z], { color: 0x222222, sag: .03, r: .0016 })); }
+function updA() { lampA.set(LA.on); const d = .06 - LA.x, I = LA.on ? clamp(.0144 / (d * d) * .9, 0, 5.2) : 0; G.set(I); if (S.view == 'a') say(LA.on ? `Bật đèn: kim điện kế <b>lệch</b> (≈ ${fmt(I, 1)} vạch) – pin quang điện nhận năng lượng ánh sáng, chuyển hoá thành điện năng. Đèn càng gần, kim lệch càng nhiều.` : 'Chưa bật đèn: kim điện kế chỉ số 0, pin quang điện không phát điện.'); }
+
+/* ===== 2. Chùm sáng ===== */
+const B = new THREE.Group(); scene.add(B);
+const proj = new THREE.Group(); proj.position.set(-.18, .07, 0); B.add(proj);
+const pb = roundBox(.09, .05, .05, .006, MAT.plastic(0x2a5d9c, .45)); proj.add(pb);
+const lensB = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .012, 24), MAT.glassLite({ opacity: .4 })); lensB.rotation.z = Math.PI / 2; lensB.position.x = .05; proj.add(lensB);
+lab.label(proj, 'Đèn chiếu', [0, .05, 0]);
+const card = new THREE.Mesh(new THREE.BoxGeometry(.003, .07, .07), new THREE.MeshStandardMaterial({ color: 0x5b4022 })); card.position.set(-.1, .07, 0); B.add(card); card.visible = false;
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(.22, .16), new THREE.MeshStandardMaterial({ color: 0xbfc3c2, roughness: .9, emissive: 0xffffff, emissiveMap: canvasTex(256, 192, () => { }), emissiveIntensity: 1.3 })); wall.rotation.y = -Math.PI / 2; wall.position.set(.2, .08, 0); B.add(wall);
+lab.label(wall, 'Màn hứng', [0, .1, 0]);
+const coneM = new THREE.MeshBasicMaterial({ color: 0xfff0c8, transparent: true, opacity: .12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+let cone = null, beamMode = 'par';
+function drawB() {
+  if (cone) B.remove(cone);
+  const x0 = -.13, x1 = .2, L = x1 - x0, r0 = beamMode == 'hole' ? .002 : .018, r1 = { par: .018, conv: .004, div: .055, hole: .002 }[beamMode];
+  const geo = new THREE.CylinderGeometry(r1, r0, L, 32, 1, true); geo.rotateZ(-Math.PI / 2); cone = new THREE.Mesh(geo, coneM); cone.position.set(x0 + L / 2 + (beamMode == 'hole' ? .015 : 0), .07, 0); B.add(cone);
+  card.visible = beamMode == 'hole';
+  const c = wall.material.emissiveMap.image.getContext('2d'); c.fillStyle = '#000'; c.fillRect(0, 0, 256, 192); const rp = r1 / .22 * 256, gr = c.createRadialGradient(128, 96 + 12, 0, 128, 108, rp * 1.3); gr.addColorStop(0, `rgba(255,240,200,${Math.min(1, .5 * (.018 / Math.max(r1, .004)) ** 2 + .3)})`); gr.addColorStop(.75, 'rgba(255,230,180,.6)'); gr.addColorStop(1, 'rgba(255,230,180,0)'); c.fillStyle = gr; c.beginPath(); c.arc(128, 108, rp * 1.3, 0, 7); c.fill(); wall.material.emissiveMap.needsUpdate = true;
+  say({ par: 'Chùm sáng <b>song song</b>: các tia sáng không giao nhau, vệt sáng trên màn có kích thước bằng miệng đèn.', conv: 'Chùm sáng <b>hội tụ</b>: các tia sáng giao nhau trên đường truyền, vệt sáng trên màn nhỏ lại.', div: 'Chùm sáng <b>phân kì</b>: các tia sáng loe rộng ra trên đường truyền, vệt sáng trên màn rộng.', hole: 'Chắn bìa có lỗ nhỏ: thu được <b>vệt sáng hẹp, thẳng</b> – chùm sáng song song rất hẹp, coi là <b>mô hình tia sáng</b>.' }[beamMode]);
+}
+
+/* ===== 3. Vùng tối ===== */
+const C = new THREE.Group(); C.position.set(.45, 0, 0); scene.add(C);
+const lampC = bulbLamp(C, -.2, .1, 0, { r: .006 });
+const led = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .006, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfffbf0, emissiveIntensity: 0 })); led.rotation.z = Math.PI / 2; led.position.set(-.2, .1, 0); C.add(led);
+const ledRim = new THREE.Mesh(new THREE.TorusGeometry(.031, .004, 10, 32), MAT.plastic(0x333333, .4)); ledRim.rotation.y = Math.PI / 2; ledRim.position.copy(led.position); C.add(ledRim);
+const ballC = new THREE.Group(); ballC.position.set(-.05, .1, 0); C.add(ballC);
+const bc = new THREE.Mesh(new THREE.SphereGeometry(.02, 32, 24), new THREE.MeshStandardMaterial({ color: 0xe8e8e2, roughness: .5 })); ballC.add(bc);
+const bst = new THREE.Mesh(new THREE.CylinderGeometry(.002, .002, .08, 8), MAT.metal(0x777777, .4)); bst.position.y = -.05; ballC.add(bst);
+const bbase = new THREE.Mesh(new THREE.BoxGeometry(.03, .008, .03), new THREE.MeshStandardMaterial({ color: 0xc9a06a })); bbase.position.y = -.096; ballC.add(bbase);
+lab.label(ballC, 'Vật cản sáng (kéo)', [0, .04, 0]);
+const SX = .12, SW = .2;
+const scrTex = canvasTex(160, 160, () => { });
+const scr = new THREE.Mesh(new THREE.PlaneGeometry(SW, SW), new THREE.MeshStandardMaterial({ color: 0x9aa09e, roughness: .95, emissive: 0xffffff, emissiveMap: scrTex, emissiveIntensity: 1.4 })); scr.rotation.y = -Math.PI / 2; scr.position.set(SX, .1, 0); C.add(scr);
+const sf = new THREE.Mesh(new THREE.BoxGeometry(.03, .01, .1), new THREE.MeshStandardMaterial({ color: 0xc9a06a })); sf.position.set(SX + .01, .005, 0); C.add(sf);
+lab.label(scr, 'Màn chắn', [0, .12, 0]);
+const S = { src: 0, view: 'c', bx: -.05 };
+lab.draggable({ obj: ballC, axis: new THREE.Vector3(1, 0, 0), min: -.15, max: .09, get: () => S.bx, set(v) { S.bx = v; ballC.position.x = v; drawShadow(); } });
+function drawShadow() {
+  const wide = S.src == 1, rs = wide ? .03 : .006, N = wide ? 40 : 1, xl = -.2, xb = S.bx, rb = .02, c = scrTex.image.getContext('2d'), img = c.createImageData(160, 160), d = img.data;
+  lampC.set(!wide); lampC.g.visible = !wide; led.material.emissiveIntensity = wide ? 2.2 : 0;
+  const samp = []; for (let j = 0; j < N; j++) { const r = N == 1 ? 0 : rs * Math.sqrt((j + .5) / N), a = j * 2.39996; samp.push([r * Math.cos(a), r * Math.sin(a)]); }
+  for (let py = 0; py < 160; py++) for (let px = 0; px < 160; px++) {
+    const y = (.5 - py / 160) * SW, z = (px / 160 - .5) * SW; let vis = 0;
+    for (const [qy, qz] of samp) { // đoạn từ Q(xl, qy, qz) tới P(SX, y, z); kiểm tra cắt cầu tâm (xb,0,0)
+      const dx = SX - xl, dy = y - qy, dz = z - qz, t = (xb - xl) / dx, cy = qy + dy * t, cz = qz + dz * t; const L2 = dx * dx + dy * dy + dz * dz, dist2 = (cy * cy + cz * cz) * (dx * dx) / L2; if (dist2 > rb * rb) vis++; }
+    const I = vis / N * .9 * Math.min(1, .05 / ((SX - xl) ** 2 + y * y + z * z) * 1.1), k = (py * 160 + px) * 4;
+    d[k] = 255 * I; d[k + 1] = 245 * I; d[k + 2] = 225 * I; d[k + 3] = 255;
+  }
+  c.putImageData(img, 0, 0); scrTex.needsUpdate = true;
+  if (S.view == 'c') say(wide ? 'Nguồn sáng <b>rộng</b>: trên màn có <b>vùng tối</b> ở giữa và <b>vùng tối không hoàn toàn</b> (nửa tối) bao quanh; ranh giới giữa vùng tối và vùng sáng không rõ rệt.' : 'Nguồn sáng <b>hẹp</b>: trên màn có <b>vùng tối</b> với ranh giới rõ rệt với vùng sáng.');
+}
+lab.shadow(C); scr.castShadow = false; scr.receiveShadow = false;
+
+/* ===== Giao diện ===== */
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" data-v="a">Pin quang điện</button><button class="btn" data-v="b">Chùm sáng</button><button class="btn on" data-v="c">Vùng tối</button><button class="btn" id="bDark">Tắt đèn phòng</button><button class="btn" id="bLbl">Tên</button>`;
+function setV(v) { S.view = v; tb.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v == v)); lab.view(...V[v]); v == 'a' ? updA() : v == 'b' ? drawB() : drawShadow(); }
+tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => setV(b.dataset.v));
+let dark = true; lab.roomLight(.35);
+$('#bDark').classList.add('on'); $('#bDark').onclick = () => { dark = !dark; lab.roomLight(dark ? .35 : 1); $('#bDark').classList.toggle('on', dark); };
+document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { beamMode = b.dataset.b; document.querySelectorAll('[data-b]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); setV('b'); });
+document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { S.src = +b.dataset.s; document.querySelectorAll('[data-s]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); setV('c'); });
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Nếu thay điện kế bằng một quạt máy nhỏ rồi bật đèn chiếu vào pin quang điện thì', o: ['quạt không quay', 'quạt quay – năng lượng ánh sáng chuyển hoá thành điện năng rồi thành cơ năng', 'quạt nóng lên', 'đèn tắt'], a: 1 },
+  { q: 'Chùm sáng phát ra từ bút laser có thể coi là mô hình tia sáng vì', o: ['nó có màu đỏ', 'nó là chùm sáng song song rất hẹp', 'nó rất sáng', 'nó phân kì'], a: 1 },
+  { q: 'Vùng tối là', o: ['vùng được chiếu sáng đầy đủ', 'vùng phía sau vật cản sáng không nhận được ánh sáng từ nguồn sáng', 'vùng có màu đen', 'vùng trước vật cản'], a: 1 },
+  { q: 'Khi dùng nguồn sáng rộng, bóng của vật trên màn có', o: ['ranh giới rõ rệt', 'vùng tối ở giữa và vùng tối không hoàn toàn bao quanh', 'không có vùng tối', 'chỉ có vùng sáng'], a: 1 },
+  { q: 'Hiện tượng nhật thực xảy ra khi', o: ['Trái Đất nằm giữa Mặt Trời và Mặt Trăng', 'Mặt Trăng nằm giữa Mặt Trời và Trái Đất', 'Mặt Trời nằm giữa', 'trời có mây'], a: 1 },
+]);
+setV('c'); ready(); window.dbg = { lab, S };
+</script></body></html>

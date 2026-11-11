@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 17. Ảnh của vật qua gương phẳng</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, TEX, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
+import { candle } from '../core/candle.js';
+import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 17. Ảnh của vật qua gương phẳng', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm kiểm tra dự đoán (Hình 17.2)</h3><p><b>Dụng cụ:</b> một tấm kính mỏng, phẳng thay cho gương phẳng; hai cây nến giống nhau; thước đo có ĐCNN 1 mm; tờ giấy trắng; giá đỡ tấm kính, hai giá đỡ nến.</p>
+<ol><li>Đặt cây nến 1 trước tấm kính (không đặt sát kính) và thắp sáng. <b>Kéo nến 1</b> để thay đổi khoảng cách.</li><li><b>Kéo cây nến 2</b> ở phía sau tấm kính đến đúng vị trí ảnh của nến 1 – khi đó ảnh ngọn lửa nến 1 như đang cháy trên ngọn nến 2.</li><li>So sánh độ lớn của nến 1 với nến 2, đo khoảng cách từ hai nến đến tấm kính. Bấm “Kiểm tra”.</li></ol>
+<p>Bấm <b>“Chữ AMBULANCE”</b> để xem dòng chữ viết ngược qua gương phẳng thật.</p>` },
+    { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện thí nghiệm.</div><ul>
+<li>Ảnh của vật qua gương phẳng là <b>ảnh ảo</b>, không hứng được trên màn chắn.</li><li>Ảnh <b>có độ lớn bằng vật</b>.</li><li>Khoảng cách từ ảnh đến gương <b>bằng</b> khoảng cách từ vật đến gương (ảnh và vật đối xứng qua gương).</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[-.05, .32, .5], [0, .05, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.4, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+// tờ giấy trắng + thước
+const paper = new THREE.Mesh(new THREE.PlaneGeometry(.3, .4), new THREE.MeshStandardMaterial({ color: 0xf6f6f2, roughness: .95 })); paper.rotation.x = -Math.PI / 2; paper.position.y = .0006; scene.add(paper);
+const rul = new THREE.Mesh(new THREE.PlaneGeometry(.3, .025), new THREE.MeshStandardMaterial({ map: TEX.ruler(300, { px: 8, h: 64, start: -150 }), roughness: .6 })); rul.rotation.set(-Math.PI / 2, 0, Math.PI / 2); rul.position.set(.06, .0012, 0); scene.add(rul);
+// tấm kính đứng (mặt phẳng z = 0)
+const glass = new THREE.Mesh(new THREE.BoxGeometry(.2, .14, .003), MAT.glassLite({ color: 0xdff3ff, opacity: .18 })); glass.position.set(0, .07, 0); scene.add(glass);
+for (const x of [-.09, .09]) { const f = new THREE.Mesh(new THREE.BoxGeometry(.02, .02, .03), MAT.metal(0x3a3f45, .4)); f.position.set(x, .01, 0); scene.add(f); }
+lab.label(glass, 'Tấm kính', [.08, .08, 0]);
+// nến 1 (thắp) trước kính (z > 0), nến 2 sau kính (z < 0)
+const c1 = candle(lab, { h: .07 }); c1.g.position.set(0, 0, .1); scene.add(c1.g);
+const c2 = candle(lab, { h: .07, light: false }); c2.g.position.set(0, 0, -.06); scene.add(c2.g); c2.setLit(false);
+lab.label(c1.g, 'Nến 1 (kéo)', [0, .11, 0]); lab.label(c2.g, 'Nến 2 (kéo)', [0, .11, 0]);
+// ảnh ảo của nến 1: đối xứng qua kính, mờ (do kính phản xạ một phần)
+const ghost = candle(lab, { h: .07, light: false }); scene.add(ghost.g);
+ghost.parts.forEach(p => { p.material = p.material.clone(); p.material.transparent = true; p.material.opacity = p.material.opacity * .4; p.material.depthWrite = false; p.renderOrder = 6; });
+const S = { z1: .1, z2: -.06, x2: 0 };
+lab.draggable({ obj: c1.g, axis: new THREE.Vector3(0, 0, 1), min: .03, max: .18, get: () => S.z1, set(v) { S.z1 = Math.round(v * 200) / 200; upd(); } });
+lab.draggable({ obj: c2.g, plane: new THREE.Vector3(0, 1, 0), get: () => 0, set(p) { S.z2 = clamp(Math.round(p.z * 200) / 200, -.18, -.02); S.x2 = clamp(Math.round(p.x * 200) / 200, -.1, .1); upd(); } });
+function upd() {
+  c1.g.position.z = S.z1; c2.g.position.set(S.x2, 0, S.z2); ghost.g.position.set(0, 0, -S.z1);
+  const ok = Math.abs(S.z2 + S.z1) < .006 && Math.abs(S.x2) < .006;
+  say(ok ? `Ảnh ngọn lửa nến 1 trùng đúng ngọn nến 2: nến 2 <b>như đang cháy</b>!<br>Khoảng cách nến 1 – kính: <b>${fmt(S.z1 * 100, 1)} cm</b>; nến 2 – kính: <b>${fmt(-S.z2 * 100, 1)} cm</b> → bằng nhau. Hai nến giống nhau → ảnh lớn bằng vật.` : `Nến 1 cách kính ${fmt(S.z1 * 100, 1)} cm. Kéo nến 2 ở phía sau kính đến vị trí ảnh của nến 1.`);
+}
+// gương thật + chữ AMBULANCE
+const M = new THREE.Group(); M.position.set(.45, 0, -.05); scene.add(M);
+const refl = new Reflector(new THREE.PlaneGeometry(.18, .12), { textureWidth: 1024, textureHeight: 1024, color: 0xcfd4d8 }); refl.position.set(0, .075, -.06); M.add(refl);
+const mfr = roundBox(.19, .13, .01, .003, MAT.plastic(0x5b4022, .5)); mfr.position.set(0, .075, -.066); M.add(mfr);
+const mleg = new THREE.Mesh(new THREE.BoxGeometry(.06, .015, .05), MAT.plastic(0x5b4022, .5)); mleg.position.set(0, .0075, -.06); M.add(mleg);
+const cardC = new THREE.Mesh(new THREE.PlaneGeometry(.16, .045), new THREE.MeshStandardMaterial({ map: canvasTex(640, 180, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.strokeStyle = '#c92a2a'; c.lineWidth = 8; c.strokeRect(4, 4, w - 8, h - 8); c.fillStyle = '#c92a2a'; c.font = 'bold 96px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.save(); c.translate(w, 0); c.scale(-1, 1); c.fillText('AMBULANCE', w / 2, h / 2 + 4); c.restore(); }) }));
+cardC.position.set(0, .05, .06); cardC.rotation.y = Math.PI; M.add(cardC);
+const cardB = new THREE.Mesh(new THREE.PlaneGeometry(.16, .045), new THREE.MeshStandardMaterial({ color: 0xf4f1e8, roughness: .8 })); cardB.position.set(0, .05, .0605); M.add(cardB);
+const cstand = new THREE.Mesh(new THREE.BoxGeometry(.05, .03, .02), MAT.plastic(0x333333, .5)); cstand.position.set(0, .015, .06); M.add(cstand);
+lab.label(refl, 'Gương phẳng', [0, .08, 0]); lab.label(cardC, 'Miếng bìa: chữ AMBULANCE viết ngược', [0, -.04, 0]);
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bChk">Kiểm tra</button><button class="btn" id="bAmb">Chữ AMBULANCE</button><button class="btn" id="bH">Tấm kính và nến</button><button class="btn" id="bLbl">Tên</button>`;
+$('#bChk').onclick = () => { upd(); if (!(Math.abs(S.z2 + S.z1) < .006 && Math.abs(S.x2) < .006)) toast('Nến 2 chưa trùng với ảnh của nến 1.'); };
+$('#bAmb').onclick = () => { lab.view([.45, .1, .22], [.45, .07, -.06]); say('Nhìn vào gương: dòng chữ viết ngược trên miếng bìa hiện ra thành chữ <b>AMBULANCE</b> đọc được bình thường – ảnh qua gương phẳng ngược chiều trái – phải so với vật. Vì thế chữ trên đầu xe cứu thương được viết ngược, để người lái xe phía trước nhìn qua gương chiếu hậu đọc được.'); };
+$('#bH').onclick = () => { lab.view(...HOME); upd(); };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Ảnh của vật qua gương phẳng là', o: ['ảnh thật, hứng được trên màn', 'ảnh ảo, không hứng được trên màn, lớn bằng vật', 'ảnh ảo, nhỏ hơn vật', 'ảnh thật, lớn hơn vật'], a: 1 },
+  { q: 'Một vật cách gương phẳng 30 cm. Ảnh của vật cách vật bao nhiêu cm?', n: 60, u: 'cm' },
+  { q: 'Bạn A đứng cách bức tường có gương phẳng 4 m. Muốn cách ảnh của mình 2 m, A phải tiến lại gần gương bao nhiêu mét?', n: 3, u: 'm', e: 'Ảnh cách người 2 m → người cách gương 1 m → tiến lại 3 m.' },
+  { q: 'Vì sao dùng tấm kính thay gương phẳng trong thí nghiệm?', o: ['Vì kính rẻ hơn', 'Vì vừa thấy ảnh của nến 1, vừa nhìn xuyên qua để đặt nến 2 trùng vị trí ảnh', 'Vì kính phản xạ tốt hơn gương', 'Vì kính không vỡ'], a: 1 },
+]);
+upd(); ready(); window.dbg = { lab, S };
+</script></body></html>

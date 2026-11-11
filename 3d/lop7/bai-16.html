@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 16. Sự phản xạ ánh sáng</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { Beams, rad, deg } from '../core/optics.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 16. Sự phản xạ ánh sáng', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm (Hình 16.2)</h3><p><b>Dụng cụ:</b> một gương phẳng (1); một bảng chia độ được chia làm hai nửa – nửa bên trái và nửa bên phải quay được quanh trục A (2); một đèn tạo chùm sáng hẹp di chuyển được từ 0° đến 90° trên bảng chia độ (3).</p>
+<ol><li>Chiếu tia sáng tới mặt gương phẳng sao cho tia sáng đi là là trên mặt bảng chia độ. Quan sát tia phản xạ.</li><li><b>Quay nửa bên phải</b> của bảng quanh trục A (thanh trượt dưới đây). Có còn nhìn thấy tia phản xạ không?</li><li>Quay nửa bên phải về vị trí ban đầu. <b>Kéo đèn</b> để thay đổi góc tới, đo góc phản xạ, bấm “Ghi kết quả”.</li></ol>
+<div class="sl">Góc tới i <input type="range" id="ri" min="0" max="85" value="30"><span id="vi">30°</span></div>
+<div class="sl">Quay nửa phải <input type="range" id="rf" min="0" max="90" value="0"><span id="vf">0°</span></div>
+<div class="row"><b>Bề mặt:</b><button class="btn on" data-m="0">Gương phẳng</button><button class="btn g" data-m="1">Tờ giấy nhám (không nhẵn)</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Góc tới i</th><th>Góc phản xạ i'</th></tr></thead><tbody id="tb"></tbody></table><div class="row"><button class="btn g" id="clr">Xoá</button></div>
+<div id="obs" class="note">Thực hiện thí nghiệm.</div>
+<h3>Định luật phản xạ ánh sáng</h3><ul><li>Tia sáng phản xạ nằm trong mặt phẳng tới (mặt phẳng chứa tia tới và pháp tuyến tại điểm tới).</li><li><b>Góc phản xạ bằng góc tới: i' = i</b>.</li></ul>
+<p><b>Phản xạ khuếch tán:</b> chùm tia song song tới bề mặt không nhẵn bị phản xạ theo mọi hướng.</p>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[.12, .42, .7], [0, .2, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.2, .7], minDist: .08 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const S = { i: 30, fold: 0, m: 0, rows: [] };
+const R = .2, Y = .06;
+// gương nằm ngang
+const mir = new THREE.Mesh(new THREE.BoxGeometry(.16, .006, .06), new THREE.MeshStandardMaterial({ color: 0xeef3f6, metalness: 1, roughness: .04 })); mir.position.set(0, Y - .003, .02); scene.add(mir);
+const mframe = roundBox(.17, .01, .07, .002, MAT.plastic(0x222222, .5)); mframe.position.set(0, Y - .009, .02); scene.add(mframe);
+const rough = new THREE.Mesh(new THREE.BoxGeometry(.16, .0065, .06), new THREE.MeshStandardMaterial({ color: 0xd8d2c0, roughness: 1, map: canvasTex(128, 64, (c, w, h) => { c.fillStyle = '#d8d2c0'; c.fillRect(0, 0, w, h); for (let i = 0; i < 2500; i++) { c.fillStyle = `rgba(0,0,0,${Math.random() * .2})`; c.fillRect(Math.random() * w, Math.random() * h, 1, 1); } }) })); rough.position.copy(mir.position); rough.position.y += .0005; scene.add(rough); rough.visible = false;
+lab.label(mir, 'Gương phẳng (1)', [.06, .0, .05]);
+const stand = new THREE.Mesh(new THREE.BoxGeometry(.04, Y - .012, .04), MAT.metal(0x3a3f45, .4)); stand.position.set(0, (Y - .012) / 2, .02); scene.add(stand);
+// bảng chia độ: hai nửa, nửa phải quay quanh trục A (trục đứng x = 0)
+function halfTex(right) {
+  return canvasTex(512, 512, (c, w, h) => {
+    c.clearRect(0, 0, w, h); const cx = right ? 0 : w, cy = h, Rr = w - 6;
+    c.fillStyle = 'rgba(250,250,245,.97)'; c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, Rr, right ? -Math.PI / 2 : Math.PI, right ? 0 : -Math.PI / 2); c.closePath(); c.fill();
+    c.strokeStyle = '#222'; c.fillStyle = '#222'; c.textAlign = 'center';
+    for (let a = 0; a <= 90; a++) { const t = rad(a) * (right ? 1 : -1), L = a % 10 == 0 ? 28 : a % 5 == 0 ? 18 : 10; c.lineWidth = a % 10 == 0 ? 2.5 : 1.2; c.beginPath(); c.moveTo(cx + Math.sin(t) * Rr, cy - Math.cos(t) * Rr); c.lineTo(cx + Math.sin(t) * (Rr - L), cy - Math.cos(t) * (Rr - L)); c.stroke();
+      if (a % 10 == 0) { c.font = 'bold 26px Arial'; c.fillText(a + '°', cx + Math.sin(t) * (Rr - 50), cy - Math.cos(t) * (Rr - 50) + 9); } }
+    c.setLineDash([10, 8]); c.lineWidth = 2; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx, cy - Rr); c.stroke();
+  }, { srgb: true });
+}
+const mkHalf = right => { const m = new THREE.Mesh(new THREE.PlaneGeometry(R, R), new THREE.MeshStandardMaterial({ map: halfTex(right), transparent: true, side: THREE.DoubleSide, roughness: .7 })); m.position.set(right ? R / 2 : -R / 2, Y + R / 2, 0); return m; };
+const left = new THREE.Group(); scene.add(left); left.add(mkHalf(false));
+const right = new THREE.Group(); scene.add(right); right.add(mkHalf(true));
+const axis = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, R + .02, 10), MAT.metal(0xc8cdd2, .25)); axis.position.set(0, Y + R / 2, -.001); scene.add(axis);
+lab.label(axis, 'Trục A', [0, R / 2 + .02, 0]); lab.label(right, 'Nửa phải (quay được)', [R * .6, Y + R + .02, 0]);
+const beamsL = new Beams(left, .0015), beamsR = new Beams(right, .0015);
+// đèn
+const lamp = new THREE.Group(); left.add(lamp);
+const lb = roundBox(.05, .025, .025, .004, MAT.plastic(0x1e2226, .45)); lb.position.x = -.03; lamp.add(lb);
+lab.label(lamp, 'Đèn (3) – kéo', [-.03, .03, 0]);
+const pl = new THREE.PointLight(0xffd090, .15, .3, 2); lamp.add(pl);
+lab.draggable({ obj: lamp, plane: new THREE.Vector3(0, 0, 1), get: () => 0, set(p) { S.i = clamp(Math.round(deg(Math.atan2(-p.x, p.y - Y))), 0, 85); $('#ri').value = S.i; draw(); } });
+function draw() {
+  $('#vi').textContent = S.i + '°'; $('#vf').textContent = S.fold + '°';
+  const i = rad(S.i), RL = R + .02; lamp.position.set(-Math.sin(i) * RL, Y + Math.cos(i) * RL, .012); lamp.rotation.z = Math.atan2(-(lamp.position.y - Y), -lamp.position.x);
+  right.rotation.y = -rad(S.fold);
+  mir.visible = S.m == 0; rough.visible = S.m == 1;
+  const C = 0xffb84d, w = .003;
+  beamsL.set([{ a: [-Math.sin(i) * (RL - .005), Y + Math.cos(i) * (RL - .005)], b: [0, Y], c: C, o: 1.1, w }]);
+  const list = [];
+  if (S.m == 0) { if (S.fold < 3) list.push({ a: [0, Y], b: [Math.sin(i) * R * .97, Y + Math.cos(i) * R * .97], c: C, o: 1.1 * (1 - S.fold / 3), w }); }
+  else for (let k = 0; k < 9; k++) { const a = rad(-80 + k * 20 + (S.i % 7)); if (a > 0 && S.fold < 3) list.push({ a: [0, Y], b: [Math.sin(a) * R * .6, Y + Math.cos(a) * R * .6], c: C, o: .25, w: .0025 }); }
+  beamsR.set(list);
+  const txt = S.m == 1 ? 'Bề mặt không nhẵn: ánh sáng bị phản xạ theo <b>mọi hướng</b> (phản xạ khuếch tán) – không có tia phản xạ xác định.' : S.fold >= 3 ? `Quay nửa phải đi ${S.fold}°: <b>không nhìn thấy tia phản xạ</b> trên nửa phải → tia phản xạ nằm trong mặt phẳng tới.` : `Góc tới i = <b>${S.i}°</b> → tia phản xạ đi qua vạch <b>${S.i}°</b> trên nửa phải: i' = ${S.i}°.`;
+  hud.innerHTML = txt; $('#obs').innerHTML = txt;
+}
+$('#ri').oninput = e => { S.i = +e.target.value; draw(); };
+$('#rf').oninput = e => { S.fold = +e.target.value; draw(); };
+document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { S.m = +b.dataset.m; document.querySelectorAll('[data-m]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); draw(); });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bRec">Ghi kết quả</button><button class="btn" id="bFold">Quay nửa phải 60°</button><button class="btn" id="bLbl">Tên</button>`;
+$('#bRec').onclick = () => { if (S.fold >= 3 || S.m) return toast('Đưa nửa phải về vị trí ban đầu và dùng gương phẳng.'); if (S.rows.includes(S.i)) return toast('Đã ghi góc này.'); S.rows.push(S.i); S.rows.sort((a, b) => a - b); $('#tb').innerHTML = S.rows.map(a => `<tr><td>${a}°</td><td>${a}°</td></tr>`).join(''); showPane(1); };
+$('#bFold').onclick = () => { S.fold = S.fold ? 0 : 60; $('#rf').value = S.fold; $('#bFold').textContent = S.fold ? 'Đưa nửa phải về' : 'Quay nửa phải 60°'; draw(); };
+$('#clr').onclick = () => { S.rows = []; $('#tb').innerHTML = ''; };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Chiếu một tia sáng tới gương phẳng với góc tới 30°. Góc phản xạ bằng bao nhiêu độ?', n: 30, u: '°' },
+  { q: 'Chiếu tia sáng vào gương phẳng đặt nằm ngang để tia phản xạ vuông góc với tia tới. Góc tới bằng bao nhiêu độ?', n: 45, u: '°' },
+  { q: 'Định luật phản xạ ánh sáng: tia phản xạ nằm trong mặt phẳng tới và', o: ['góc phản xạ lớn hơn góc tới', 'góc phản xạ bằng góc tới', 'góc phản xạ nhỏ hơn góc tới', 'góc phản xạ bằng 90°'], a: 1 },
+  { q: 'Phản xạ khuếch tán xảy ra khi chùm tia song song chiếu tới', o: ['mặt gương phẳng', 'bề mặt không nhẵn', 'mặt nước phẳng lặng', 'tấm kim loại nhẵn bóng'], a: 1 },
+  { q: 'Có thể viết định luật phản xạ ánh sáng là i = i\' được không?', o: ['Được, nếu kèm điều kiện tia phản xạ nằm trong mặt phẳng tới', 'Không bao giờ', 'Chỉ khi i = 0', 'Chỉ với gương cầu'], a: 0 },
+]);
+draw(); ready(); window.dbg = { lab, S };
+</script></body></html>

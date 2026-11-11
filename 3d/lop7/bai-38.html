@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 38. Thực hành: Quan sát, mô tả sự sinh trưởng và phát triển ở một số sinh vật</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, TEX, roundBox, clamp } from '../core/lab3d.js';
+import { pot, seedling, seed, timeHud } from '../core/bio.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 38. Thực hành: Quan sát, mô tả sự sinh trưởng và phát triển ở một số sinh vật', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm chứng minh cây có sự sinh trưởng</h3><ol><li>Cắt chai nhựa làm chậu, cho đất vào.</li><li>Ngâm hạt đậu trong nước ấm 35 – 40 °C (5 – 10 giờ).</li><li>Gieo hạt đã nảy mầm vào chậu, phun sương tưới ẩm.</li><li>Đặt chậu nơi đủ ánh sáng, tưới nước hằng ngày.</li><li>Quan sát sự nảy mầm, sinh trưởng; <b>đếm số lá, đo chiều cao cây</b> hằng ngày (5 – 7 ngày). Bấm <b>“Sang ngày tiếp”</b> rồi <b>“Đo và ghi”</b>.</li></ol>
+<div class="note sm">Thước có chia đơn vị đến mm đặt cạnh chậu để đo chiều cao cây.</div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Ngày</th><th>Chiều cao (cm)</th><th>Số lá</th><th>Giai đoạn</th></tr></thead><tbody id="tb"></tbody></table>
+<svg id="gr" viewBox="0 0 320 200" style="width:100%;max-width:380px"></svg>
+<div class="note">Cây tăng dần về chiều cao và số lá (<b>sinh trưởng</b>), đồng thời trải qua các giai đoạn: hạt → nảy mầm → cây con → cây trưởng thành (<b>phát triển</b>).</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .25, .48], [0, .12, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.2, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const clock = timeHud(stage);
+// chậu chai nhựa
+const P = new THREE.Group(); scene.add(P);
+const bot = new THREE.Mesh(new THREE.CylinderGeometry(.045, .042, .08, 40, 1, true), new THREE.MeshPhysicalMaterial({ color: 0xeaf6fb, transparent: true, opacity: .35, roughness: .1, side: THREE.DoubleSide, depthWrite: false })); bot.position.y = .04; bot.renderOrder = 4; P.add(bot);
+const soil = new THREE.Mesh(new THREE.CylinderGeometry(.043, .041, .065, 32), new THREE.MeshStandardMaterial({ color: 0x3b2716, roughness: 1 })); soil.position.y = .033; P.add(soil);
+const plant = seedling({ h: .16, leaves: 8, kind: 'oval', size: .03 }); plant.g.position.y = .066; P.add(plant.g);
+const bean = seed(0); bean.position.set(0, .06, 0); P.add(bean);
+const rul = new THREE.Mesh(new THREE.PlaneGeometry(.025, .25), new THREE.MeshStandardMaterial({ map: (() => { const t = TEX.ruler(250, { px: 6, h: 60 }); t.center.set(.5, .5); t.rotation = Math.PI / 2; return t; })(), roughness: .6 })); rul.position.set(.07, .066 + .125, 0); P.add(rul);
+const rb = new THREE.Mesh(new THREE.BoxGeometry(.03, .066, .01), new THREE.MeshStandardMaterial({ color: 0xc9a06a })); rb.position.set(.07, .033, -.006); P.add(rb);
+lab.label(P, 'Chậu đậu', [-.06, .03, .05]); lab.label(rul, 'Thước (mm)', [0, .14, 0]);
+// mô hình tăng trưởng: chiều cao (cm) theo ngày
+const H = d => d < 2 ? 0 : 16 / (1 + Math.exp(-(d - 7) * .55)), NL = d => d < 3 ? 0 : d < 4 ? 2 : Math.min(8, Math.floor(2 + (d - 4) * .7));
+const stageOf = d => d < 2 ? 'Hạt trương nước' : d < 3 ? 'Nảy mầm' : d < 8 ? 'Cây con' : 'Cây con lớn dần';
+const S = { d: 0, rows: [] };
+function draw() {
+  const h = H(S.d); plant.g.visible = h > .2; bean.visible = h < 3; bean.scale.setScalar(1 + Math.min(S.d, 2) * .2);
+  if (h > .2) { plant.set({ h: .16, grow: h / 16 }); plant.lv.forEach((l, i) => l.visible = i < NL(S.d)); }
+  clock.set(`Ngày ${S.d}`);
+  hud.innerHTML = `Ngày ${S.d}: ${stageOf(S.d)} · chiều cao ≈ <b>${fmt(Math.round(h * 10) / 10, 1)} cm</b> · số lá: <b>${NL(S.d)}</b>`;
+}
+function drawGraph() { const g = $('#gr'), X = d => 30 + d * 20, Y = h => 180 - h * 9; g.innerHTML = `<g stroke="currentColor" stroke-opacity=".3"><line x1="30" y1="180" x2="315" y2="180"/><line x1="30" y1="180" x2="30" y2="10"/></g><g fill="currentColor" font-size="10">${[0, 2, 4, 6, 8, 10, 12, 14].map(d => `<text x="${X(d)}" y="194" text-anchor="middle">${d}</text>`).join('')}${[0, 5, 10, 15].map(h => `<text x="26" y="${Y(h) + 3}" text-anchor="end">${h}</text>`).join('')}<text x="315" y="175" text-anchor="end">ngày</text><text x="34" y="12">cm</text></g><polyline fill="none" stroke="#2f9e44" stroke-width="2" points="${S.rows.map(r => X(r.d) + ',' + Y(r.h)).join(' ')}"/>${S.rows.map(r => `<circle cx="${X(r.d)}" cy="${Y(r.h)}" r="3" fill="#2f9e44"/>`).join('')}`; g.style.color = getComputedStyle(document.body).color; }
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="nd">Sang ngày tiếp</button><button class="btn o" id="rec">Đo và ghi</button><button class="btn" id="rs">Làm lại</button><button class="btn" id="near">Nhìn gần thước</button>`;
+$('#nd').onclick = () => { if (S.d >= 14) return toast('Đã theo dõi 14 ngày.'); S.d++; draw(); };
+$('#rec').onclick = () => { if (S.rows.some(r => r.d == S.d)) return toast('Đã ghi ngày này.'); const h = Math.round(H(S.d) * 10) / 10; S.rows.push({ d: S.d, h, n: NL(S.d) }); $('#tb').innerHTML = S.rows.map(r => `<tr><td>${r.d}</td><td>${fmt(r.h, 1)}</td><td>${r.n}</td><td>${stageOf(r.d)}</td></tr>`).join(''); drawGraph(); showPane(1); };
+$('#rs').onclick = () => { S.d = 0; S.rows = []; $('#tb').innerHTML = ''; drawGraph(); draw(); };
+let near = false; $('#near').onclick = () => { near = !near; near ? lab.view([.06, .15, .2], [.05, .12, 0]) : lab.view(...HOME); };
+quiz($('#qz'), [
+  { q: 'Sinh trưởng ở sinh vật là', o: ['sự tăng về kích thước và khối lượng của cơ thể', 'sự thay đổi màu sắc', 'sự sinh sản', 'sự chết đi'], a: 0 },
+  { q: 'Cây đậu tăng chiều cao và số lá theo thời gian thể hiện', o: ['sự sinh trưởng', 'sự hô hấp', 'sự thoát hơi nước', 'sự cảm ứng'], a: 0 },
+  { q: 'Phát triển ở sinh vật gồm', o: ['chỉ tăng kích thước', 'sinh trưởng, phân hoá tế bào và phát sinh hình thái cơ quan', 'chỉ ra hoa', 'chỉ ra lá'], a: 1 },
+  { q: 'Vì sao phải ngâm hạt trong nước ấm trước khi gieo?', o: ['Để hạt hút nước, nhanh nảy mầm', 'Để diệt hạt', 'Để hạt nổi lên', 'Để làm sạch đất'], a: 0 },
+]);
+draw(); drawGraph(); ready(); window.dbg = { lab, S };
+</script></body></html>

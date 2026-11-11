@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 19. Từ trường</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, tubeAlong, clamp } from '../core/lab3d.js';
+import { barMagnet, compass, field } from '../core/magnet.js';
+import { knife, wire } from '../core/elec.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 19. Từ trường', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>1. Thí nghiệm phát hiện từ trường (Hình 19.1)</h3><p>Dây dẫn AB đặt song song với kim nam châm đang đứng yên. Bấm vào <b>khoá K</b> để đóng/mở mạch; bấm “Đổi chiều dòng điện”.</p>
+<h3>2. Từ phổ (Hình 19.2)</h3><p>Đặt tấm nhựa trong lên thanh nam châm, rắc đều mạt sắt. Bấm <b>“Gõ nhẹ tấm nhựa”</b>, quan sát hình ảnh mạt sắt.</p>
+<h3>3. Đường sức từ (Hình 19.3, 19.4)</h3><p>Bấm <b>“Đặt các kim nam châm”</b> xung quanh thanh nam châm; bấm <b>“Vẽ đường sức từ”</b>.</p>` },
+    { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện thí nghiệm.</div><ul>
+<li>Không gian xung quanh nam châm, xung quanh dòng điện tồn tại <b>từ trường</b>. Từ trường tác dụng lực từ lên kim nam châm đặt trong nó.</li><li>Dùng kim nam châm (la bàn) để phát hiện từ trường.</li><li>Hình ảnh các đường mạt sắt xung quanh nam châm gọi là <b>từ phổ</b>. Mạt sắt dày ở hai cực (từ trường mạnh), thưa ở xa (từ trường yếu).</li><li><b>Đường sức từ</b> có chiều đi ra từ cực Bắc, đi vào cực Nam của nam châm. Trái Đất có từ trường.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const V = { o: [[-.3, .28, .42], [-.3, .04, 0]], f: [[.25, .38, .2], [.25, .01, 0]] };
+const lab = createLab(stage, { cam: V.o[0], target: V.o[1], table: 'wood', tableSize: [1.4, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+/* ===== Oersted ===== */
+const O = new THREE.Group(); O.position.set(-.3, 0, 0); scene.add(O);
+const cp = compass(lab, O, [0, 0, 0], { r: .05 }); cp.ang = Math.PI / 2;
+const WY = .055;
+const AB = new THREE.Mesh(tubeAlong([[0, WY, .12], [0, WY, -.12]], .0015), MAT.metal(0xc06a3a, .3)); O.add(AB);
+for (const z of [.12, -.12]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.005, .007, WY, 12), MAT.plastic(0x222222, .5)); p.position.set(0, WY / 2, z); O.add(p); }
+lab.label(AB, 'Dây dẫn AB', [0, .02, .1]); lab.label(cp.g, 'Kim nam châm', [.05, .02, 0]);
+const bat = new THREE.Group(); bat.position.set(-.15, 0, .1); O.add(bat);
+const bh = roundBox(.07, .02, .04, .003, MAT.plastic(0x222222, .5)); bh.position.y = .01; bat.add(bh);
+for (const z of [-.009, .009]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(.007, .007, .05, 20), MAT.plastic(0xd9480f, .4)); c.rotation.z = Math.PI / 2; c.position.set(0, .02, z); bat.add(c); }
+lab.label(bat, 'Pin', [0, .04, 0]);
+const K = knife(lab, [-.42, 0, -.12], { label: 'Khoá K', onToggle: () => upd() });
+O.updateMatrixWorld(true);
+wire(lab, O.localToWorld(new THREE.Vector3(-.15 - .035, .02, .1)), K.term(0)); wire(lab, K.term(1), O.localToWorld(new THREE.Vector3(0, WY, -.12)), { color: 0xc92a2a });
+wire(lab, O.localToWorld(new THREE.Vector3(0, WY, .12)), O.localToWorld(new THREE.Vector3(-.15 + .035, .02, .1)), { color: 0x1b1b1b });
+let dir = 1;
+function upd() { say(K.closed ? `Đóng khoá K: kim nam châm <b>lệch khỏi hướng ban đầu</b> ${dir > 0 ? '(sang một bên)' : '(sang phía ngược lại – vì dòng điện đổi chiều)'} → xung quanh dây dẫn có dòng điện tồn tại từ trường.` : 'Khoá K mở: dây dẫn AB song song với kim nam châm, kim đứng yên theo hướng Bắc – Nam.'); }
+/* ===== Từ phổ ===== */
+const F = new THREE.Group(); F.position.set(.25, 0, 0); scene.add(F);
+const mag = barMagnet(.1, .016); mag.position.y = .009; F.add(mag);
+const sheet = new THREE.Mesh(new THREE.BoxGeometry(.3, .002, .2), MAT.glassLite({ opacity: .22 })); sheet.position.y = .019; F.add(sheet);
+for (const x of [-.13, .13]) for (const z of [-.08, .08]) { const s = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .018, 8), MAT.plastic(0xdddddd, .5)); s.position.set(x, .009, z); F.add(s); }
+lab.label(sheet, 'Tấm nhựa + mạt sắt', [.0, .02, .1]);
+const poles = [{ p: new THREE.Vector3(.045, 0, 0), q: 1 }, { p: new THREE.Vector3(-.045, 0, 0), q: -1 }];
+const NF = 3200, fil = new THREE.InstancedMesh(new THREE.BoxGeometry(.0042, .0005, .0007), new THREE.MeshStandardMaterial({ color: 0x3d3d3d, metalness: .6, roughness: .5 }), NF); F.add(fil);
+const fp = [], ft = [], dmy = new THREE.Object3D(), B = new THREE.Vector3();
+for (let i = 0; i < NF; i++) { fp.push({ x: (Math.random() - .5) * .29, z: (Math.random() - .5) * .19, a: Math.random() * 6.28 }); }
+// điểm đích: dọc theo các đường sức từ (tích phân từ cực N)
+const lines = [];
+for (let k = 0; k < 28; k++) { const a = k / 28 * Math.PI * 2, p = new THREE.Vector3(.045 + Math.cos(a) * .006, 0, Math.sin(a) * .006), L = [];
+  for (let s = 0; s < 260; s++) { field(poles, p, B); B.y = 0; const n = B.length(); if (n < 1e-6) break; B.multiplyScalar(.0025 / n); L.push(p.clone()); p.add(B); if (Math.abs(p.x) > .148 || Math.abs(p.z) > .098) break; if (p.distanceTo(poles[1].p) < .005) break; }
+  lines.push(L); }
+// thêm các đường xuất phát từ cực S (đi ngược chiều trường) để từ phổ đối xứng
+const linesS = [];
+for (let k = 0; k < 28; k++) { const a = k / 28 * Math.PI * 2, p = new THREE.Vector3(-.045 + Math.cos(a) * .006, 0, Math.sin(a) * .006), L = [];
+  for (let s = 0; s < 260; s++) { field(poles, p, B); B.y = 0; const n = B.length(); if (n < 1e-6) break; B.multiplyScalar(-.0025 / n); L.push(p.clone()); p.add(B); if (Math.abs(p.x) > .148 || Math.abs(p.z) > .098) break; if (p.distanceTo(poles[0].p) < .005) break; }
+  linesS.push(L); }
+const pts = lines.flat().concat(linesS.flat());
+for (let i = 0; i < NF; i++) { const P = pts[(Math.random() * pts.length) | 0], fld = field(poles, P, new THREE.Vector3()); const near = Math.random() < .25; const x = near ? P.x + (Math.random() - .5) * .006 : P.x + (Math.random() - .5) * .012, z = near ? P.z + (Math.random() - .5) * .006 : P.z + (Math.random() - .5) * .012; ft.push({ x, z, a: Math.atan2(-fld.z, fld.x) }); }
+const FS = { k: 0, tgt: 0 };
+function drawF() { for (let i = 0; i < NF; i++) { const a = fp[i], b = ft[i], k = FS.k; let da = Math.atan2(Math.sin(b.a - a.a), Math.cos(b.a - a.a)); if (Math.abs(da) > Math.PI / 2) da = da - Math.sign(da) * Math.PI; dmy.position.set(a.x + (b.x - a.x) * k, .0205, a.z + (b.z - a.z) * k); dmy.rotation.set(0, a.a + da * k, 0); dmy.updateMatrix(); fil.setMatrixAt(i, dmy.matrix); } fil.instanceMatrix.needsUpdate = true; }
+// kim nam châm nhỏ quanh thanh nam châm
+const cps = []; const ring = [[.09, 0], [-.09, 0], [0, .06], [0, -.06], [.07, .05], [-.07, .05], [.07, -.05], [-.07, -.05], [.12, .04], [-.12, -.04]];
+ring.forEach(([x, z]) => { const c = compass(lab, F, [x, .021, z], { r: .014, stand: false }); c.g.visible = false; cps.push(c); });
+// đường sức từ (vẽ)
+const lineG = new THREE.Group(); lineG.visible = false; F.add(lineG);
+lines.forEach((L, i) => { if (i % 2 || L.length < 3) return; const g = new THREE.BufferGeometry().setFromPoints(L.map(p => new THREE.Vector3(p.x, .022, p.z))); lineG.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xe8590c }))); const m = L[(L.length / 2) | 0], n = L[((L.length / 2) | 0) + 1]; if (n) { const ar = new THREE.Mesh(new THREE.ConeGeometry(.0025, .007, 8), new THREE.MeshBasicMaterial({ color: 0xe8590c })); ar.position.set(m.x, .022, m.z); ar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n.clone().sub(m).normalize()); lineG.add(ar); } });
+lab.onTick(dt => {
+  // Oersted: từ trường Trái Đất (−z) + từ trường dòng điện (theo x) tại kim
+  const Bw = K.closed ? 260 * dir : 0; cp.step(dt, Bw, -200);
+  if (FS.k < FS.tgt) { FS.k = Math.min(FS.tgt, FS.k + dt * .8); drawF(); }
+  cps.forEach(c => { if (!c.g.visible) return; const p = c.g.position; field(poles, new THREE.Vector3(p.x, 0, p.z), B); c.step(dt, B.x * 2, B.z * 2); });
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" data-v="o">Dòng điện – kim nam châm</button><button class="btn" data-v="f">Từ phổ</button><button class="btn p" id="rev">Đổi chiều dòng điện</button><button class="btn p" id="tap">Gõ nhẹ tấm nhựa</button><button class="btn" id="cps">Đặt các kim nam châm</button><button class="btn" id="lns">Vẽ đường sức từ</button><button class="btn" id="bLbl">Tên</button>`;
+tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => lab.view(...V[b.dataset.v]));
+$('#rev').onclick = () => { dir = -dir; lab.view(...V.o); upd(); };
+$('#tap').onclick = () => { lab.view(...V.f); FS.tgt = Math.min(1, FS.tgt + .5); fil.visible = true; say(FS.tgt >= 1 ? 'Mạt sắt sắp xếp thành <b>những đường cong nối từ cực này sang cực kia</b> – từ phổ của thanh nam châm. Gần hai cực các đường mạt sắt dày, xa nam châm thưa dần.' : 'Gõ nhẹ: mạt sắt bắt đầu sắp xếp lại… gõ thêm lần nữa.'); };
+$('#cps').onclick = () => { lab.view(...V.f); const on = !cps[0].g.visible; cps.forEach(c => c.g.visible = on); fil.visible = !on; say(on ? 'Các kim nam châm nhỏ nằm <b>dọc theo đường sức từ</b>; cực Bắc của kim chỉ chiều đường sức từ: đi ra từ cực Bắc, đi vào cực Nam của thanh nam châm.' : 'Đã cất các kim nam châm.'); };
+$('#lns').onclick = () => { lab.view(...V.f); lineG.visible = !lineG.visible; };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Có thể phát hiện sự tồn tại của từ trường bằng', o: ['nhiệt kế', 'kim nam châm (la bàn)', 'ampe kế', 'thước kẻ'], a: 1 },
+  { q: 'Ở vùng nào mạt sắt sắp xếp dày nhất?', o: ['Ở giữa thanh nam châm', 'Gần hai cực', 'Ở rất xa nam châm', 'Như nhau'], a: 1 },
+  { q: 'Bên ngoài thanh nam châm, đường sức từ có chiều', o: ['đi ra từ cực Nam, đi vào cực Bắc', 'đi ra từ cực Bắc, đi vào cực Nam', 'không có chiều', 'vòng tròn quanh tâm'], a: 1 },
+  { q: 'Đóng khoá K cho dòng điện qua dây dẫn đặt song song phía trên kim nam châm thì kim', o: ['đứng yên', 'bị lệch khỏi vị trí ban đầu', 'quay tròn mãi', 'rơi xuống'], a: 1 },
+]);
+drawF(); upd(); ready(); window.dbg = { lab, FS, drawF };
+</script></body></html>

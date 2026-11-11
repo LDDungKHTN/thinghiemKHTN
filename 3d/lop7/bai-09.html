@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 9. Đo tốc độ</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, TEX, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { stopwatch, cable } from '../core/kit.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 9. Đo tốc độ', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>I. Đo tốc độ dùng đồng hồ bấm giây (Hình 9.2)</h3>
+<p><b>Dụng cụ:</b> ô tô đồ chơi; tấm gỗ phẳng dài 80 cm; thước dài; bút dạ; đồng hồ bấm giây; vài cuốn sách.</p>
+<ol><li>Kê tấm gỗ lên sách tạo mặt dốc; vạch xuất phát và vạch đích cách nhau <b>50 cm</b>.</li><li>Giữ ô tô ở vạch xuất phát. Bấm <b>“Thả xe”</b> và <b>đồng thời</b> bấm nút xanh của đồng hồ để bắt đầu đo; khi xe tới vạch đích bấm nút xanh lần nữa để dừng.</li><li>Bấm <b>“Ghi kết quả”</b>. Thực hiện 3 lần, tính trung bình.</li></ol>
+<div class="row"><b>Số sách kê:</b><button class="btn g" data-b="1">1</button><button class="btn on" data-b="2">2</button><button class="btn g" data-b="3">3</button></div>
+<p class="sm">Mẹo: bấm vào nút xanh trên đồng hồ trong khung 3D, hoặc nhấn phím <b>Cách (Space)</b>.</p>
+<h3>II. Đo tốc độ dùng đồng hồ hiện số và cổng quang điện (Hình 9.3)</h3>
+<p>Bấm <b>“Cổng quang điện”</b>. Kéo cổng quang (4) để thay đổi quãng đường s. Bấm <b>“Ngắt nam châm”</b> (công tắc 5) để thả viên bi. Đồng hồ đo thời gian ở chế độ A ↔ B: bắt đầu đếm khi bi đi qua cổng (3), dừng khi bi đi qua cổng (4).</p>` },
+    { id: 'p2', title: 'Kết quả', html: `
+<h3>Bảng 9.1 (đồng hồ bấm giây)</h3><table class="dt"><thead><tr><th>Lần đo</th><th>s (cm)</th><th>t (s)</th></tr></thead><tbody id="t1"></tbody></table><div id="r1" class="note sm">Chưa có số liệu.</div>
+<h3>Cổng quang điện</h3><table class="dt"><thead><tr><th>s (cm)</th><th>t (s)</th><th>v = s/t (m/s)</th></tr></thead><tbody id="t2"></tbody></table>
+<div class="note sm">Đo bằng đồng hồ bấm giây có sai số lớn do thời gian phản xạ của người bấm. Dùng cổng quang điện và đồng hồ hiện số cho kết quả chính xác hơn.</div>
+<div class="row"><button class="btn g" id="clr">Xoá bảng</button></div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const H1 = [[-.08, .5, .8], [-.06, .04, .02]], H2 = [[.0, .42, .9], [.05, .12, -.45]];
+const lab = createLab(stage, { cam: H1[0], target: H1[1], table: 'wood', tableSize: [1.8, 1.4], minDist: .08 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const g = 9.8, S = { books: 2, mode: 1, car: null, ball: null };
+
+/* ===== Phần I: tấm gỗ nghiêng + ô tô ===== */
+const LB = .8, bookH = .025;
+const ramp = new THREE.Group(); scene.add(ramp);
+const board = roundBox(LB, .012, .12, .002, new THREE.MeshStandardMaterial({ color: 0xf3e6c8, roughness: .6 })); board.position.set(LB / 2, -.006, 0);
+const tilt = new THREE.Group(); tilt.position.set(-.45, .0, 0); tilt.add(board); ramp.add(tilt);
+const lineM = c => new THREE.MeshBasicMaterial({ color: c });
+const START = .2, FIN = .7;
+const l1 = new THREE.Mesh(new THREE.BoxGeometry(.004, .0005, .12), lineM(0x1971c2)); l1.position.set(START, .0003, 0); tilt.add(l1);
+const l2 = new THREE.Mesh(new THREE.BoxGeometry(.004, .0005, .12), lineM(0xc92a2a)); l2.position.set(FIN, .0003, 0); tilt.add(l2);
+lab.label(l1, 'Vạch xuất phát', [0, .02, -.07]); lab.label(l2, 'Vạch đích', [0, .02, -.07]);
+const books = new THREE.Group(); ramp.add(books);
+const bookCols = [0xc92a2a, 0x1971c2, 0x2f9e44, 0xe8590c];
+function setBooks(n) {
+  S.books = n; while (books.children.length) books.remove(books.children[0]);
+  for (let i = 0; i < n; i++) { const b = roundBox(.16, bookH, .22, .003, new THREE.MeshStandardMaterial({ color: bookCols[i], roughness: .7 })); b.position.set(-.45 + LB - .06, bookH * (i + .5), 0); b.rotation.y = (i % 2 ? .05 : -.04); b.castShadow = b.receiveShadow = true; books.add(b); }
+  const h = n * bookH + .006; S.ang = Math.asin(h / (LB - .06)); tilt.rotation.z = S.ang;   // đầu cao ở phía phải
+  tilt.rotation.z = S.ang; resetCar();
+}
+// ô tô đồ chơi
+const car = new THREE.Group(); tilt.add(car);
+{ const body = roundBox(.07, .022, .038, .006, MAT.plastic(0x2f9e44, .35)); body.position.y = .02; car.add(body);
+  const cab = roundBox(.032, .018, .032, .005, MAT.plastic(0x2f9e44, .35)); cab.position.set(.004, .036, 0); car.add(cab);
+  const win = new THREE.Mesh(new THREE.BoxGeometry(.033, .012, .028), new THREE.MeshPhysicalMaterial({ color: 0x9fd0ff, roughness: .1, transparent: true, opacity: .7 })); win.position.set(.004, .037, 0); car.add(win);
+  S.wheels = []; for (const x of [-.022, .022]) for (const z of [-.019, .019]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, .007, 20), MAT.rubber()); w.rotation.x = Math.PI / 2; w.position.set(x, .009, z); car.add(w); S.wheels.push(w); } }
+lab.shadow(ramp); lab.label(car, 'Ô tô đồ chơi', [0, .06, 0]);
+const sw = stopwatch(lab, [.22, 0, .12]);
+function resetCar() { S.car = null; S.cx = FIN + .037; placeCar(); }   // ô tô đặt ở vạch xuất phát (đầu cao)
+function placeCar() { car.position.set(S.cx, 0, 0); car.rotation.y = Math.PI; }
+// Lưu ý: đầu cao bên phải → xuất phát tại x = FIN (cao), chạy xuống về START. Đổi nhãn cho đúng
+l2.material.color.set(0x1971c2); l1.material.color.set(0xc92a2a);
+lab.remove(l1.children[0]); lab.remove(l2.children[0]);
+lab.label(l2, 'Vạch xuất phát', [0, .02, -.07]); lab.label(l1, 'Vạch đích', [0, .02, -.07]);
+let R1 = [];
+
+/* ===== Phần II: cổng quang điện ===== */
+const P = new THREE.Group(); P.position.set(0, 0, -.45); scene.add(P);
+const RL = .9, RANG = 8 * Math.PI / 180;
+const railG = new THREE.Group(); railG.position.set(-.4, .08, 0); railG.rotation.z = -RANG; P.add(railG);   // đầu cao bên trái
+const rail = roundBox(RL, .02, .04, .002, MAT.metal(0xc8cdd2, .35)); rail.position.set(RL / 2, -.01, 0); railG.add(rail);
+const groove = new THREE.Mesh(new THREE.BoxGeometry(RL, .004, .008), MAT.metal(0x8a8f95, .5)); groove.position.set(RL / 2, .0005, 0); railG.add(groove);
+const scl = new THREE.Mesh(new THREE.PlaneGeometry(RL - .02, .014), new THREE.MeshStandardMaterial({ map: TEX.ruler(880, { px: 6, h: 64 }), roughness: .6 })); scl.position.set(RL / 2, -.01, .0202); railG.add(scl);
+const legL = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .08, 12), MAT.metal(0x3a3f45, .4)); legL.position.set(-.39, .04, 0); P.add(legL);
+const legR = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .08 - Math.sin(RANG) * RL, 12), MAT.metal(0x3a3f45, .4)); legR.position.set(-.4 + Math.cos(RANG) * RL - .01, (.08 - Math.sin(RANG) * RL) / 2, 0); P.add(legR);
+const em = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .03, 20), MAT.plastic(0xc92a2a, .4)); em.rotation.z = Math.PI / 2; em.position.set(.0, .016, 0); railG.add(em);
+lab.label(em, 'Nam châm điện (1)', [0, .03, 0]);
+const ball = new THREE.Mesh(new THREE.SphereGeometry(.009, 30, 20), MAT.metal(0xd7dbe0, .1)); ball.castShadow = true; railG.add(ball); lab.label(ball, 'Viên bi sắt (2)', [0, .025, .02]);
+function gate(name) { const gG = new THREE.Group(); railG.add(gG); const m = MAT.plastic(0x1e2226, .45);
+  const a = new THREE.Mesh(new THREE.BoxGeometry(.015, .06, .012), m); a.position.set(0, .03, -.03); gG.add(a); const b = a.clone(); b.position.z = .03; gG.add(b);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(.015, .012, .072), m); top.position.y = .065; gG.add(top);
+  const ledL = new THREE.Mesh(new THREE.SphereGeometry(.003, 12, 8), new THREE.MeshStandardMaterial({ color: 0x330000, emissive: 0xff2200, emissiveIntensity: 0 })); ledL.position.set(0, .07, .0); gG.add(ledL); gG.userData.led = ledL;
+  lab.label(gG, name, [0, .1, 0]); lab.shadow(gG); return gG; }
+const G3 = gate('Cổng quang (3)'), G4 = gate('Cổng quang (4) – kéo');
+const X3 = .12; G3.position.x = X3; S.s = .5; G4.position.x = X3 + S.s;
+// đồng hồ hiện số
+const tm = new THREE.Group(); tm.position.set(.12, 0, .14); P.add(tm);
+const tb_ = roundBox(.16, .07, .1, .006, MAT.plastic(0xe9ecef, .45)); tb_.position.y = .035; tm.add(tb_);
+const dispC = canvasTex(320, 96, () => { }); const disp = new THREE.Mesh(new THREE.PlaneGeometry(.12, .036), new THREE.MeshStandardMaterial({ map: dispC, emissive: 0xffffff, emissiveMap: dispC, emissiveIntensity: .8 })); disp.position.set(0, .045, .0505); tm.add(disp);
+const modeL = new THREE.Mesh(new THREE.PlaneGeometry(.12, .012), new THREE.MeshStandardMaterial({ map: canvasTex(400, 40, (c, w, h) => { c.fillStyle = '#e9ecef'; c.fillRect(0, 0, w, h); c.fillStyle = '#222'; c.font = 'bold 26px Arial'; c.fillText('MODE: A ↔ B    0,001 s', 10, 30); }) })); modeL.position.set(0, .016, .0505); tm.add(modeL);
+lab.label(tm, 'Đồng hồ đo thời gian hiện số (6)', [0, .1, 0]); lab.shadow(tm);
+const swBox = roundBox(.05, .025, .04, .004, MAT.plastic(0x2a2a2a, .4)); swBox.position.set(-.18, .0125, .14); P.add(swBox);
+const swBtn = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .008, 16), MAT.plastic(0xc92a2a, .35)); swBtn.position.set(-.18, .028, .14); P.add(swBtn);
+lab.label(swBox, 'Công tắc (5)', [0, .05, 0]);
+P.updateMatrixWorld(true);
+const wpt = (o, v) => o.localToWorld(new THREE.Vector3(...v));
+[[G3, [0, .07, .036]], [G4, [0, .07, .036]]].forEach(([o, v], i) => { const a = wpt(o, v), b = wpt(tm, [-.05 + i * .03, .05, -.05]); const w = cable([a.x, a.y, a.z], [b.x, b.y, b.z], { color: 0x222222, sag: .05, r: .0018 }); scene.add(w); o.userData.wire = w; });
+{ const a = wpt(em, [0, 0, .012]), b = wpt(swBox, [0, .01, -.02]); scene.add(cable([a.x, a.y, a.z], [b.x, b.y, b.z], { color: 0xc92a2a, sag: .04, r: .0018 })); }
+function drawDisp(t) { const c = dispC.image.getContext('2d'); c.fillStyle = '#081208'; c.fillRect(0, 0, 320, 96); c.fillStyle = '#ff4a3a'; c.font = 'bold 70px "Courier New",monospace'; c.textAlign = 'right'; c.fillText(t.toFixed(3).replace('.', ','), 300, 76); dispC.needsUpdate = true; }
+function resetBall() { S.ball = null; S.bx = .022; ball.position.set(S.bx, .009, 0); drawDisp(0); [G3, G4].forEach(o => o.userData.led.material.emissiveIntensity = 0); }
+lab.draggable({ obj: G4, axis: new THREE.Vector3(Math.cos(RANG), -Math.sin(RANG), 0), min: X3 + .1, max: .85, get: () => G4.position.x, set(v) { G4.position.x = clamp(Math.round(v * 100) / 100, X3 + .1, .85); S.s = +(G4.position.x - X3).toFixed(2); const a = wpt(G4, [0, .07, .036]), b = wpt(tm, [-.02, .05, -.05]); lab.remove(G4.userData.wire); G4.userData.wire = cable([a.x, a.y, a.z], [b.x, b.y, b.z], { color: 0x222222, sag: .05, r: .0018 }); scene.add(G4.userData.wire); resetBall(); } });
+let R2 = [];
+
+/* ===== Vòng lặp ===== */
+lab.onTick(dt => {
+  if (S.car) {  // ô tô chạy xuống dốc: a = g(sinα − μcosα)
+    const a = g * (Math.sin(S.ang) - .04 * Math.cos(S.ang)); S.car.v += a * dt; S.cx -= S.car.v * dt;
+    S.wheels.forEach(w => w.rotation.y += S.car.v * dt / .009);
+    if (S.cx < -.02) { S.cx = -.02; S.car.v = 0; }
+    if (!S.car.passed && S.cx - .035 <= START) { S.car.passed = true; S.car.tTrue = S.car.t; }
+    S.car.t += dt; placeCar();
+  }
+  if (S.ball) { const b = S.ball, a = 5 / 7 * g * Math.sin(RANG); b.v += a * dt; S.bx += b.v * dt; b.t += dt; ball.position.x = S.bx; ball.rotation.z -= b.v * dt / .009;
+    if (b.t3 == null && S.bx >= X3) { b.t3 = b.t - (S.bx - X3) / b.v; G3.userData.led.material.emissiveIntensity = 3; }
+    if (b.t3 != null && b.t4 == null) drawDisp(b.t - b.t3);
+    if (b.t4 == null && S.bx >= X3 + S.s) { b.t4 = b.t - (S.bx - X3 - S.s) / b.v; G4.userData.led.material.emissiveIntensity = 3; drawDisp(b.t4 - b.t3); S.last2 = { s: S.s, t: b.t4 - b.t3 }; hud.innerHTML = `s = <b>${fmt(S.s * 100, 0)} cm</b> · t = <b>${fmt(S.last2.t, 3)} s</b><br>v = s/t ≈ <b>${fmt(S.s / S.last2.t, 2)} m/s</b>`; }
+    if (S.bx > RL - .02) { S.bx = RL - .02; b.v = 0; }
+  }
+  if (S.mode == 1 && S.car) hud.innerHTML = `Đồng hồ: <b>${fmt(sw.t, 2)} s</b>${sw.run ? ' (đang chạy)' : ''}${S.car.passed ? `<br><span style="opacity:.8">Xe đã qua vạch đích.</span>` : ''}`;
+});
+addEventListener('keydown', e => { if (e.code == 'Space' && S.mode == 1) { e.preventDefault(); sw.toggle(); } });
+
+/* ===== Thanh công cụ ===== */
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn on" id="m1">Đồng hồ bấm giây</button><button class="btn" id="m2">Cổng quang điện</button><button class="btn p" id="bGo">Thả xe</button><button class="btn" id="bSW">Bấm đồng hồ</button><button class="btn" id="bRec">Ghi kết quả</button><button class="btn" id="bRe">Đặt lại</button>`;
+function setMode(m) { S.mode = m; $('#m1').classList.toggle('on', m == 1); $('#m2').classList.toggle('on', m == 2); $('#bGo').textContent = m == 1 ? 'Thả xe' : 'Ngắt nam châm'; $('#bSW').style.display = m == 1 ? '' : 'none'; lab.view(...(m == 1 ? H1 : H2)); hud.innerHTML = m == 1 ? 'Bấm “Thả xe” rồi bấm đồng hồ (nút xanh / phím Space).' : 'Kéo cổng quang (4) để chọn s, rồi bấm “Ngắt nam châm”.'; }
+$('#m1').onclick = () => setMode(1); $('#m2').onclick = () => setMode(2);
+$('#bSW').onclick = () => sw.toggle();
+$('#bGo').onclick = () => { if (S.mode == 1) { resetCar(); S.car = { v: 0, t: 0 }; } else { resetBall(); S.ball = { v: 0, t: 0 }; } };
+$('#bRe').onclick = () => { if (S.mode == 1) { resetCar(); sw.reset(); } else resetBall(); };
+$('#bRec').onclick = () => {
+  if (S.mode == 1) { if (!sw.t) return toast('Chưa đo được thời gian.'); if (R1.length >= 3) return toast('Đã đủ 3 lần đo. Xoá bảng để đo lại.'); R1.push(sw.t); sw.reset(); resetCar(); }
+  else { if (!S.last2) return toast('Chưa có kết quả.'); R2.push(S.last2); S.last2 = null; }
+  draw(); showPane(1);
+};
+function draw() {
+  $('#t1').innerHTML = [0, 1, 2].map(i => `<tr><td>${i + 1}</td><td>50</td><td>${R1[i] != null ? fmt(R1[i], 2) : '…'}</td></tr>`).join('');
+  if (R1.length) { const t = R1.reduce((a, b) => a + b, 0) / R1.length; $('#r1').innerHTML = `t̄ = ${fmt(t, 2)} s → tốc độ v = s/t̄ = 0,5/${fmt(t, 2)} ≈ <b>${fmt(.5 / t, 2)} m/s</b> (${fmt(50 / t, 1)} cm/s).`; } else $('#r1').innerHTML = 'Chưa có số liệu.';
+  $('#t2').innerHTML = R2.map(r => `<tr><td>${fmt(r.s * 100, 0)}</td><td>${fmt(r.t, 3)}</td><td>${fmt(r.s / r.t, 2)}</td></tr>`).join('');
+}
+$('#clr').onclick = () => { R1 = []; R2 = []; draw(); };
+document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { document.querySelectorAll('[data-b]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); setBooks(+b.dataset.b); if (S.mode != 1) setMode(1); });
+quiz($('#qz'), [
+  { q: 'Để đo tốc độ trong phòng thí nghiệm bằng đồng hồ bấm giây, người ta thường', o: ['chọn thời gian t trước, đo quãng đường s', 'chọn quãng đường s trước, đo thời gian t', 'chỉ đo quãng đường', 'chỉ đo thời gian'], a: 1 },
+  { q: 'Xe đi được 50 cm trong 1,25 s. Tốc độ của xe là bao nhiêu m/s?', n: .4, u: 'm/s' },
+  { q: 'Vì sao đo thời gian bằng cổng quang điện chính xác hơn đồng hồ bấm giây?', o: ['Vì cổng quang điện to hơn', 'Vì không phụ thuộc vào thời gian phản xạ của người bấm', 'Vì cổng quang có màu', 'Vì viên bi nặng'], a: 1 },
+  { q: 'Ở chế độ A ↔ B, đồng hồ hiện số đo khoảng thời gian', o: ['từ lúc ngắt nam châm', 'vật đi từ cổng quang thứ nhất đến cổng quang thứ hai', 'vật dừng lại', 'cả quá trình chuyển động'], a: 1 },
+  { q: 'Thiết bị "bắn tốc độ" dùng camera ghi thời gian ô tô qua 2 vạch mốc cách nhau 10 m là 0,5 s. Tốc độ ô tô là bao nhiêu km/h?', n: 72, u: 'km/h', e: 'v = 10/0,5 = 20 m/s = 72 km/h.' },
+]);
+setBooks(2); resetBall(); draw(); setMode(1); ready();
+window.dbg = { S, lab, sw };
+</script></body></html>

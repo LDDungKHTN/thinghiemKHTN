@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 18. Nam châm</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { barMagnet, uMagnet, compass } from '../core/magnet.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 18. Nam châm', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm 1 (Hình 18.2)</h3><p>Đưa thanh nam châm thẳng và nam châm hình chữ U lại gần các vật bằng sắt, thép, đồng, nhôm, gỗ.</p>
+<div class="row"><button class="btn p" data-n="bar">Đưa nam châm thẳng lại gần</button><button class="btn p" data-n="u">Đưa nam châm chữ U lại gần</button><button class="btn g" id="back">Đưa ra xa</button></div>
+<p class="sm">a) Hai đầu nam châm hút vật liệu nào, không hút vật liệu nào? b) Vật đặt ở hai đầu hay ở giữa nam châm bị hút mạnh nhất?</p>
+<h3>Thí nghiệm 2 (Hình 18.3)</h3><p>Kim nam châm đặt cân bằng trên mũi nhọn. Bấm <b>“Đẩy nhẹ kim”</b> cho kim quay một góc nhỏ rồi buông tay. Quan sát hướng chỉ của kim khi đã nằm cân bằng.</p>
+<h3>Tương tác giữa hai nam châm</h3><p>Đặt nam châm B trên xe lăn gần nam châm A. Bấm <b>“Đổi cực nam châm B”</b> để đưa hai cực cùng tên hoặc khác tên lại gần nhau.</p>` },
+    { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện thí nghiệm.</div><ul>
+<li>Nam châm hút được các vật làm bằng <b>sắt, thép</b> (cobalt, nickel); không hút đồng, nhôm, gỗ…</li><li>Mỗi nam châm có hai cực: cực Bắc (N) và cực Nam (S). Hai đầu (cực) của nam châm hút vật mạnh nhất.</li><li>Khi để tự do, kim nam châm luôn chỉ hướng <b>Bắc – Nam</b> địa lí: cực Bắc của kim chỉ hướng Bắc.</li><li>Hai cực <b>cùng tên đẩy nhau</b>, hai cực <b>khác tên hút nhau</b>.</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const V = { a: [[-.2, .32, .45], [-.2, .03, 0]], b: [[.22, .22, .32], [.22, .05, 0]], c: [[.0, .3, .5], [0, .03, .2]] };
+const lab = createLab(stage, { cam: V.a[0], target: V.a[1], table: 'wood', tableSize: [1.4, .9], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+/* ===== TN1: vật liệu ===== */
+const tray = roundBox(.34, .006, .12, .002, new THREE.MeshStandardMaterial({ color: 0xf2f0ea, roughness: .9 })); tray.position.set(-.2, .003, .0); scene.add(tray);
+const ITEMS = [];
+function item(name, mesh, x, z, mag) { mesh.position.set(x, .006 + (mesh.userData.h || .003), z); mesh.castShadow = true; scene.add(mesh); ITEMS.push({ name, m: mesh, home: mesh.position.clone(), homeR: mesh.rotation.clone(), mag, k: 0 }); lab.label(mesh, name, [0, .02, .02]); }
+const iron = MAT.metal(0x8f969c, .4), steel = MAT.metal(0xd0d4d8, .25);
+{ const n = new THREE.Mesh(new THREE.CylinderGeometry(.0015, .0008, .05, 10), iron); n.rotation.z = Math.PI / 2; n.userData.h = .0015; item('Đinh sắt', n, -.33, -.02, true); }
+for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(new THREE.TorusGeometry(.008, .0007, 6, 24), steel); c.rotation.x = -Math.PI / 2; c.scale.set(1, 1.8, 1); c.userData.h = .001; item(k ? '' : 'Ghim thép', c, -.27 + k * .012, .03, true); }
+{ const c = new THREE.Mesh(new THREE.TorusGeometry(.009, .0011, 6, 30, Math.PI * 4), MAT.metal(0xc06a3a, .3)); c.rotation.x = -Math.PI / 2; c.userData.h = .001; item('Dây đồng', c, -.21, -.02, false); }
+{ const a = new THREE.Mesh(new THREE.BoxGeometry(.03, .002, .02), MAT.metal(0xdfe3e6, .4)); a.userData.h = .001; item('Mảnh nhôm', a, -.14, .02, false); }
+{ const w = new THREE.Mesh(new THREE.BoxGeometry(.05, .006, .008), new THREE.MeshStandardMaterial({ color: 0xc9a06a })); w.userData.h = .003; item('Que gỗ', w, -.08, -.02, false); }
+const bar = barMagnet(.1, .016); bar.position.set(-.2, .12, -.15); scene.add(bar); lab.label(bar, 'Nam châm thẳng', [0, .025, 0]);
+const um = uMagnet(); um.rotation.set(0, Math.PI / 2, -Math.PI / 2); um.position.set(-.05, .12, -.18); scene.add(um); lab.label(um, 'Nam châm chữ U', [0, .02, 0]);
+const T1 = { who: null, k: 0, tgt: 0 };
+function bring(w) { T1.who = w; T1.tgt = 1; }
+const barHome = bar.position.clone(), umHome = um.position.clone(), umRot = um.rotation.clone();
+
+/* ===== TN2: kim nam châm ===== */
+const cp = compass(lab, scene, [.22, 0, 0], { r: .07 });
+const base2 = new THREE.Mesh(new THREE.CylinderGeometry(.03, .035, .01, 32), MAT.plastic(0x333333, .5)); base2.position.set(.22, .005, 0); scene.add(base2);
+const rose = new THREE.Mesh(new THREE.CircleGeometry(.09, 48), new THREE.MeshStandardMaterial({ transparent: true, map: canvasTex(256, 256, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(128, 128, 126, 0, 7); c.fill(); c.fillStyle = '#c92a2a'; c.font = 'bold 30px Arial'; c.textAlign = 'center'; c.fillText('B', 128, 34); c.fillStyle = '#222'; c.fillText('N', 128, 244); c.fillText('Đ', 236, 138); c.fillText('T', 20, 138); }) })); rose.rotation.x = -Math.PI / 2; rose.position.set(.22, .0012, 0); scene.add(rose);
+lab.label(cp.g, 'Kim nam châm', [0, .06, 0]); cp.ang = 1.2;
+/* ===== Hai nam châm ===== */
+const A2 = barMagnet(.1, .016); A2.position.set(-.06, .015, .22); scene.add(A2); lab.label(A2, 'Nam châm A', [0, .03, 0]);
+const cart = new THREE.Group(); scene.add(cart);
+const cb = roundBox(.11, .01, .04, .003, new THREE.MeshStandardMaterial({ color: 0xc9a06a })); cb.position.y = .012; cart.add(cb);
+for (const x of [-.04, .04]) for (const z of [-.022, .022]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(.007, .007, .005, 16), MAT.rubber()); w.rotation.x = Math.PI / 2; w.position.set(x, .007, z); cart.add(w); }
+const B2 = barMagnet(.1, .016); B2.position.y = .025; cart.add(B2); lab.label(cart, 'Nam châm B trên xe lăn', [0, .05, 0]);
+const T3 = { x: .1, v: 0, flip: false };
+cart.position.set(T3.x, 0, .22);
+
+lab.onTick((dt, t) => {
+  // TN1
+  T1.k += (T1.tgt - T1.k) * Math.min(1, dt * 3);
+  if (T1.who) {
+    const M = T1.who == 'bar' ? bar : um;
+    if (T1.who == 'bar') bar.position.lerpVectors(barHome, new THREE.Vector3(-.2, .03, .0), T1.k); else um.position.lerpVectors(umHome, new THREE.Vector3(-.2, .04, -.0), T1.k);
+    const near = T1.k > .9;
+    ITEMS.forEach((it, i) => {
+      if (!it.mag) return;
+      const poles = T1.who == 'bar' ? [bar.localToWorld(new THREE.Vector3(.05, 0, 0)), bar.localToWorld(new THREE.Vector3(-.05, 0, 0))] : um.userData.poles();
+      const P = poles[i % 2].clone().add(new THREE.Vector3((i - 2) * .004, -.012, 0));
+      it.k += ((near ? 1 : 0) - it.k) * Math.min(1, dt * 8);
+      it.m.position.lerpVectors(it.home, P, it.k * it.k);
+    });
+    void M;
+  }
+  // TN2: từ trường Trái Đất hướng Bắc (−z)
+  cp.step(dt, 0, -200);
+  // hai nam châm: cực N của A ở +x (x = -.01), cực của B gần A ở -x của B
+  const gap = (T3.x - .05) - (-.01), F = (T3.flip ? -1 : 1) * .0008 / Math.max(gap * gap, .0001);   // +: hút (khác tên), -: đẩy
+  T3.v += (-F - T3.v * .8) * dt; T3.x = clamp(T3.x + T3.v * dt, .07, .3); if (T3.x <= .07 || T3.x >= .3) T3.v = 0;
+  cart.position.x = T3.x; B2.rotation.y = T3.flip ? Math.PI : 0;
+});
+document.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { if (T1.who && T1.who != b.dataset.n) { T1.tgt = 0; } setTimeout(() => { T1.k = 0; bring(b.dataset.n); }, T1.who && T1.who != b.dataset.n ? 600 : 0); lab.view(...V.a); say('Nam châm hút <b>đinh sắt và ghim thép</b>; không hút dây đồng, mảnh nhôm, que gỗ. Các vật bị hút tập trung ở <b>hai đầu (hai cực)</b> của nam châm.'); });
+$('#back').onclick = () => { T1.tgt = 0; ITEMS.forEach(it => it.k = 0); };
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" data-v="a">TN1: Vật liệu</button><button class="btn" data-v="b">TN2: Kim nam châm</button><button class="btn" data-v="c">Hai nam châm</button><button class="btn p" id="push">Đẩy nhẹ kim</button><button class="btn p" id="flip">Đổi cực nam châm B</button><button class="btn" id="bLbl">Tên</button>`;
+tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { lab.view(...V[b.dataset.v]); tb.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x == b)); });
+$('#push').onclick = () => { lab.view(...V.b); cp.w += (Math.random() > .5 ? 1 : -1) * (4 + Math.random() * 4); say('Kim nam châm dao động một lúc rồi <b>nằm cân bằng theo hướng Bắc – Nam</b>: đầu đỏ (cực Bắc N) chỉ hướng Bắc địa lí.'); };
+$('#flip').onclick = () => { lab.view(...V.c); T3.flip = !T3.flip; T3.x = .1; T3.v = 0; say(T3.flip ? 'Cực <b>Bắc</b> của A gần cực <b>Bắc</b> của B: hai cực cùng tên <b>đẩy nhau</b>, xe lăn chạy ra xa.' : 'Cực <b>Bắc</b> của A gần cực <b>Nam</b> của B: hai cực khác tên <b>hút nhau</b>, xe lăn chạy lại gần.'); };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Nam châm hút được vật nào sau đây?', o: ['Đồng xu bằng đồng', 'Chiếc đinh sắt', 'Mẩu gỗ', 'Thìa nhôm'], a: 1 },
+  { q: 'Vị trí nào trên thanh nam châm hút sắt mạnh nhất?', o: ['Ở giữa', 'Ở hai đầu (hai cực)', 'Mọi chỗ như nhau', 'Không chỗ nào'], a: 1 },
+  { q: 'Khi để tự do, cực Bắc của kim nam châm luôn chỉ hướng', o: ['Đông', 'Tây', 'Bắc địa lí', 'Nam địa lí'], a: 2 },
+  { q: 'Đưa cực Nam của nam châm này lại gần cực Nam của nam châm kia thì chúng', o: ['hút nhau', 'đẩy nhau', 'không tương tác', 'dính chặt'], a: 1 },
+  { q: 'Làm thế nào xác định cực Bắc của một nam châm không đánh dấu?', o: ['Treo nam châm tự do, đầu chỉ hướng Bắc địa lí là cực Bắc', 'Cân nam châm', 'Nhìn màu sắc', 'Đun nóng'], a: 0 },
+]);
+lab.view(...V.a); ready(); window.dbg = { lab };
+</script></body></html>

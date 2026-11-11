@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 35. Thực hành: Cảm ứng ở sinh vật</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
+import { pot, seedling, roots, leafGeo, leafMat, timeHud } from '../core/bio.js';
+import { shell, ready, toast, quiz, $, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 35. Thực hành: Cảm ứng ở sinh vật', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>1. Tính hướng nước của cây (Hình 35.1)</h3><ol><li>Gieo hạt đỗ vào 2 chậu, tưới nước đủ ẩm; theo dõi đến khi cây có 3 – 5 lá.</li><li>Đặt chậu nước có lỗ thủng nhỏ vào một chậu (chậu thí nghiệm) sao cho nước ngấm vào đất. Bấm <b>“Tua 5 ngày”</b>.</li><li>Nhẹ nhàng nhổ cây ra khỏi chậu, quan sát hướng mọc của rễ.</li></ol>
+<h3>2. Tính hướng sáng của cây (Hình 35.2)</h3><ol><li>Gieo hạt đỗ vào 2 chậu, chờ hạt nảy mầm.</li><li>Úp lên mỗi chậu 1 hộp carton: 1 hộp khoét lỗ phía trên, 1 hộp khoét lỗ phía bên cạnh; đặt ở nơi có ánh sáng tự nhiên. Bấm <b>“Tua 4 ngày”</b>.</li><li>Nhấc hộp carton ra, quan sát hướng của thân cây.</li></ol>
+<h3>3. Tính hướng tiếp xúc, ứng động</h3><p>Bấm vào lá <b>cây trinh nữ (xấu hổ)</b> để chạm vào lá.</p>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Thí nghiệm</th><th>Kết quả</th></tr></thead><tbody><tr><td>Tính hướng nước</td><td id="k1">?</td></tr><tr><td>Tính hướng sáng</td><td id="k2">?</td></tr><tr><td>Cây trinh nữ</td><td id="k3">?</td></tr></tbody></table>
+<div id="obs" class="note">Thực hiện thí nghiệm.</div>
+<p><b>Cảm ứng</b> là khả năng tiếp nhận và phản ứng của sinh vật đối với các kích thích từ môi trường. Rễ cây hướng về nguồn nước (hướng nước), thân cây hướng về nguồn sáng (hướng sáng), tua cuốn quấn vào giá thể (hướng tiếp xúc).</p>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const V = { w: [[-.38, .3, .5], [-.38, .08, 0]], l: [[.05, .32, .55], [.05, .1, 0]], m: [[.45, .25, .35], [.45, .1, 0]] };
+const lab = createLab(stage, { cam: V.w[0], target: V.w[1], table: 'wood', tableSize: [1.7, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const clock = timeHud(stage);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+/* ===== Hướng nước ===== */
+function potPlant(x, z) { const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g); const p = pot(.05, .07); g.add(p); const s = seedling({ h: .1, leaves: 5, kind: 'oval', size: .025 }); s.g.position.y = .066; g.add(s.g); return { g, p, s }; }
+const W1 = potPlant(-.45, 0), W2 = potPlant(-.31, 0);
+lab.label(W1.g, 'Chậu đối chứng', [0, .22, 0]); lab.label(W2.g, 'Chậu thí nghiệm', [0, .22, 0]);
+const bottle = new THREE.Group(); bottle.position.set(-.275, .04, -.01); W2.g.parent.add(bottle);
+const bt = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .07, 20), new THREE.MeshPhysicalMaterial({ color: 0xe6f3fa, transparent: true, opacity: .45, roughness: .1 })); bt.position.y = .03; bottle.add(bt);
+const bw = new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, .05, 20), new THREE.MeshPhysicalMaterial({ color: 0x8ecbf0, transparent: true, opacity: .6 })); bw.position.y = .02; bottle.add(bw);
+lab.label(bottle, 'Chai nước có lỗ thủng', [0, .09, 0]);
+const rootsG = []; let uproot = 0;
+function showRoots() { rootsG.forEach(r => r.parent && r.parent.remove(r)); rootsG.length = 0; [[W1, 0], [W2, 1]].forEach(([P, k]) => { const r = roots(k * .8, 0, .06); r.position.y = .066; P.s.g.add(r); rootsG.push(r); r.visible = false; }); }
+/* ===== Hướng sáng ===== */
+const L1 = potPlant(-.03, 0), L2 = potPlant(.13, 0);
+L1.s.set({ grow: .3 }); L2.s.set({ grow: .3 });
+function carton(x, side) { const g = new THREE.Group(); g.position.set(x, 0, 0); scene.add(g); const m = new THREE.MeshStandardMaterial({ color: 0xc49a6c, roughness: .9, side: THREE.DoubleSide });
+  const W = .13, H = .26;
+  for (const [w, h, d, px, py, pz, hole] of [[W, H, .004, 0, H / 2, -W / 2], [W, H, .004, 0, H / 2, W / 2], [.004, H, W, -W / 2, H / 2, 0], [.004, H, W, W / 2, H / 2, 0, side], [W, .004, W, 0, H, 0, !side]]) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(px, py, pz); g.add(b);
+    if (hole) { const ho = new THREE.Mesh(new THREE.CircleGeometry(.025, 24), new THREE.MeshBasicMaterial({ color: 0x111111 })); if (side) { ho.position.set(px + .003, H * .75, 0); ho.rotation.y = Math.PI / 2; } else { ho.position.set(0, H + .003, 0); ho.rotation.x = -Math.PI / 2; } g.add(ho); } }
+  g.visible = false; return g; }
+const box1 = carton(-.03, false), box2 = carton(.13, true);
+lab.label(box1, 'Hộp khoét lỗ phía trên', [0, .3, 0]); lab.label(box2, 'Hộp khoét lỗ bên cạnh', [0, .3, 0]);
+/* ===== Cây trinh nữ ===== */
+const M = new THREE.Group(); M.position.set(.45, 0, 0); scene.add(M);
+const mp = pot(.05, .07); M.add(mp);
+const lm = leafMat(0x4a8f35), petM = new THREE.MeshStandardMaterial({ color: 0x7a5a3a });
+const fronds = [];
+for (let i = 0; i < 5; i++) { const pet = new THREE.Group(); pet.position.set(0, .07 + i * .025, 0); pet.rotation.y = i * 1.3; M.add(pet);
+  const piv = new THREE.Group(); pet.add(piv); piv.rotation.z = -.5;
+  const st = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0012, .08, 6), petM); st.rotation.z = Math.PI / 2; st.position.x = .04; piv.add(st);
+  const lfs = []; for (let k = 0; k < 9; k++) for (const s of [-1, 1]) { const lp = new THREE.Group(); lp.position.set(.03 + k * .0055, 0, 0); piv.add(lp); const l = new THREE.Mesh(leafGeo('oval', .014), lm); l.rotation.set(Math.PI / 2 * s, 0, 0); l.rotation.z = -Math.PI / 2 * .0; lp.add(l); lp.userData.s = s; lfs.push(lp); }
+  fronds.push({ pet, piv, lfs, k: 0, tgt: 0 }); }
+const mstem = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .13, 8), petM); mstem.position.y = .13; M.add(mstem);
+lab.label(M, 'Cây trinh nữ (bấm vào lá)', [0, .24, 0]);
+lab.clickable(M, () => { fronds.forEach(f => f.tgt = 1); S.mT = 0; say('Chạm vào lá: các lá chét <b>khép lại</b>, cuống lá <b>cụp xuống</b> – phản ứng nhanh với kích thích va chạm. Sau một thời gian lá xoè trở lại.'); $('#k3').textContent = 'Chạm vào lá, lá chét khép lại và cuống lá cụp xuống; sau một lúc xoè ra trở lại.'; });
+const S = { tw: -1, tl: -1, mT: -1 };
+lab.onTick(dt => {
+  if (S.tw >= 0) { S.tw += dt; const k = clamp(S.tw / 6, 0, 1); clock.set(`Ngày ${Math.round(k * 5)}`); W1.s.set({ grow: 1 + .3 * k }); W2.s.set({ grow: 1 + .3 * k }); bw.scale.y = 1 - .6 * k; if (k >= 1 && !S.dw) { S.dw = 1; S.tw = -1; say('Đã sau 5 ngày. Bấm “Nhổ cây xem rễ”.'); } }
+  if (uproot > 0 && uproot < 1) { uproot = Math.min(1, uproot + dt * .8); [W1, W2].forEach(P => P.s.g.position.y = .066 + .1 * uproot); }
+  if (S.tl >= 0) { S.tl += dt; const k = clamp(S.tl / 6, 0, 1); clock.set(`Ngày ${Math.round(k * 4)}`); L1.s.set({ grow: .3 + .7 * k }); L2.s.set({ grow: .3 + .7 * k, bend: 1.0 * k, dir: 0 }); if (k >= 1 && !S.dl) { S.dl = 1; S.tl = -1; say('Đã sau 4 ngày. Bấm “Nhấc hộp carton”.'); } }
+  if (S.mT >= 0) { S.mT += dt; if (S.mT > 4) fronds.forEach(f => f.tgt = 0); if (S.mT > 9) S.mT = -1; }
+  fronds.forEach(f => { f.k += (f.tgt - f.k) * Math.min(1, dt * (f.tgt ? 8 : 1.2)); f.piv.rotation.z = -.5 - f.k * .7; f.lfs.forEach(l => l.rotation.x = -l.userData.s * f.k * 1.3); });
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="w5">Tua 5 ngày (hướng nước)</button><button class="btn" id="up">Nhổ cây xem rễ</button><button class="btn p" id="box">Úp hộp carton</button><button class="btn p" id="l4">Tua 4 ngày (hướng sáng)</button><button class="btn" id="lift">Nhấc hộp carton</button><button class="btn" id="vm">Cây trinh nữ</button><button class="btn" id="bLbl">Tên</button>`;
+$('#w5').onclick = () => { lab.view(...V.w); showRoots(); uproot = 0; W1.s.g.position.y = W2.s.g.position.y = .066; S.dw = 0; S.tw = 0; };
+$('#up').onclick = () => { if (!S.dw) return toast('Hãy tua 5 ngày trước.'); lab.view([-.38, .22, .32], [-.38, .15, 0]); rootsG.forEach(r => r.visible = true); uproot = .01; say('Rễ cây ở <b>chậu đối chứng mọc thẳng</b> xuống; rễ cây ở <b>chậu thí nghiệm mọc lệch về phía chai nước</b> (nguồn nước).<br><b>Kết luận:</b> rễ cây có tính hướng nước.'); $('#k1').textContent = 'Rễ cây ở chậu thí nghiệm mọc hướng về phía nguồn nước; rễ ở chậu đối chứng mọc thẳng.'; showPane(1); };
+$('#box').onclick = () => { lab.view(...V.l); box1.visible = box2.visible = true; L1.s.set({ grow: .3, bend: 0 }); L2.s.set({ grow: .3, bend: 0 }); say('Đã úp hộp carton lên 2 chậu (1 hộp khoét lỗ phía trên, 1 hộp khoét lỗ bên cạnh), đặt nơi có ánh sáng tự nhiên.'); };
+$('#l4').onclick = () => { if (!box1.visible) return toast('Hãy úp hộp carton trước.'); lab.view(...V.l); S.dl = 0; S.tl = 0; };
+$('#lift').onclick = () => { if (!S.dl) return toast('Hãy tua 4 ngày trước.'); box1.visible = box2.visible = false; say('Cây trong hộp khoét lỗ phía trên <b>mọc thẳng</b> lên; cây trong hộp khoét lỗ bên cạnh <b>mọc cong về phía lỗ</b> (nguồn sáng).<br><b>Kết luận:</b> thân cây có tính hướng sáng.'); $('#k2').textContent = 'Cây ở hộp khoét lỗ bên cạnh mọc cong về phía nguồn sáng; cây ở hộp khoét lỗ phía trên mọc thẳng.'; showPane(1); };
+$('#vm').onclick = () => lab.view(...V.m);
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Rễ cây mọc hướng về phía nguồn nước là biểu hiện của', o: ['tính hướng sáng', 'tính hướng nước', 'tính hướng tiếp xúc', 'tập tính'], a: 1 },
+  { q: 'Cây trồng trong hộp có lỗ bên cạnh sẽ mọc cong về phía lỗ vì', o: ['thân cây có tính hướng sáng', 'cây thiếu nước', 'gió thổi', 'đất ẩm hơn'], a: 0 },
+  { q: 'Vì sao trong thí nghiệm hướng nước cần có chậu đối chứng?', o: ['Để so sánh, khẳng định rễ mọc lệch là do nguồn nước', 'Để trang trí', 'Để có thêm cây', 'Không cần thiết'], a: 0 },
+  { q: 'Hiện tượng lá cây trinh nữ cụp lại khi bị chạm vào là', o: ['phản ứng với kích thích va chạm (cảm ứng)', 'quang hợp', 'hô hấp', 'thoát hơi nước'], a: 0 },
+  { q: 'Ứng dụng tính hướng sáng trong trồng trọt là', o: ['trồng cây với mật độ hợp lí để cây nhận đủ ánh sáng', 'tưới nhiều nước', 'bón nhiều phân', 'trồng trong tối'], a: 0 },
+]);
+clock.set('Ngày 0'); say('Chọn thí nghiệm trên thanh công cụ.'); ready(); window.dbg = { lab, S };
+</script></body></html>

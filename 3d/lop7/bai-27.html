@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 27. Thực hành: Hô hấp ở thực vật</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, lathe, canvasTex, clamp } from '../core/lab3d.js';
+import { vessel, thermometer } from '../core/chem.js';
+import { seed, timeHud } from '../core/bio.js';
+import { shell, ready, toast, quiz, $, showPane } from '../core/ui.js';
+
+const STEPS = ['Chọn hạt chắc, không bị vỡ, không bị mọt', 'Ngâm hạt ngập trong cốc nước ấm khoảng 40 °C trong 2 giờ', 'Lót bông/giấy thấm đã thấm nước vào đĩa Petri, rải đều hạt; để 30 – 35 °C cho hạt nảy mầm', 'Đặt đĩa hạt nảy mầm cùng cốc nước vôi trong vào chuông A; đặt cốc nước vôi trong vào chuông B', 'Sau 1 giờ, mở 2 chuông, quan sát bề mặt 2 cốc nước vôi trong'];
+const stage = shell({
+  title: 'Bài 27. Thực hành: Hô hấp ở thực vật', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p><b>Thiết bị:</b> tủ ấm, đĩa Petri, cốc thuỷ tinh, nhiệt kế, nhãn dán, nước ấm (~40 °C), bông y tế, 2 chuông thuỷ tinh. <b>Mẫu vật:</b> hạt đậu xanh. <b>Hoá chất:</b> nước vôi trong (tác dụng với CO₂ tạo kết tủa).</p>
+<ol id="st">${STEPS.map((s, i) => `<li id="st${i}">${s}</li>`).join('')}</ol>
+<div class="row"><button class="btn p" id="nx">Thực hiện bước 1</button><button class="btn g" id="rs">Làm lại</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<h3>Bảng 27.1</h3><table class="dt"><thead><tr><th>Thí nghiệm</th><th>Hiện tượng / Kết quả</th></tr></thead><tbody><tr><td>Chuông A</td><td id="ka">?</td></tr><tr><td>Chuông B</td><td id="kb">?</td></tr></tbody></table>
+<div id="obs" class="note">Thực hiện các bước thí nghiệm.</div>
+<p><b>Giải thích:</b> hạt nảy mầm hô hấp mạnh, lấy O₂ và thải ra khí CO₂. Khí CO₂ tác dụng với nước vôi trong (Ca(OH)₂) tạo thành CaCO₃ không tan → váng trắng đục trên bề mặt cốc nước vôi ở chuông A. Hô hấp còn giải phóng nhiệt: nhiệt độ trong chuông A tăng.</p>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .3, .55], [0, .08, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.4, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const clock = timeHud(stage);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+// hạt trong cốc ngâm
+const soak = vessel(lab, { kind: 'beaker', R: .035, H: .08 }); soak.g.position.set(-.3, 0, .1); scene.add(soak.g); soak.set({ level: 0, color: 0xdcf0fa, op: .3 });
+lab.label(soak.g, 'Cốc nước ấm', [0, .1, 0]);
+const pile = new THREE.Group(); pile.position.set(-.3, .004, .1); scene.add(pile);
+const seeds = []; for (let i = 0; i < 40; i++) { const s = seed(0); const a = Math.random() * 6.28, r = Math.random() * .028; s.position.set(Math.cos(a) * r, .004 + Math.random() * .006, Math.sin(a) * r); s.rotation.set(Math.random() * 3, Math.random() * 3, 0); pile.add(s); seeds.push(s); }
+// đĩa Petri + bông
+function petri(x, z) { const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g); const d = new THREE.Mesh(lathe([[0, 0], [.045, 0], [.045, .01], [.0465, .01], [.0465, 0], [0, 0]], 40), MAT.glassLite({ opacity: .3 })); d.renderOrder = 4; g.add(d); const cot = new THREE.Mesh(new THREE.CylinderGeometry(.043, .043, .004, 32), new THREE.MeshStandardMaterial({ color: 0xf8f8f4, roughness: 1 })); cot.position.y = .003; g.add(cot); return g; }
+const dish = petri(-.12, .1); dish.visible = false; lab.label(dish, 'Đĩa Petri + bông ẩm', [0, .04, 0]);
+const dishSeeds = new THREE.Group(); dish.add(dishSeeds);
+// chuông thuỷ tinh A, B
+function bell(x, label) {
+  const g = new THREE.Group(); g.position.set(x, 0, -.05); scene.add(g);
+  const b = new THREE.Mesh(lathe([[.075, 0], [.076, .0], [.076, .15], [.06, .19], [.02, .205], [.012, .21], [.012, .23], [.02, .235], [0, .236], [0, .232], [.008, .226], [.008, .214], [.018, .2], [.057, .186], [.072, .148], [.072, 0]], 48), MAT.glassLite({ opacity: .2 })); b.renderOrder = 4; g.add(b);
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(.085, .085, .006, 40), MAT.glassLite({ opacity: .35 })); plate.position.y = .003; g.add(plate);
+  const lime = vessel(lab, { kind: 'beaker', R: .025, H: .05 }); lime.g.position.set(.035, .006, 0); g.add(lime.g); lime.set({ level: .7, color: 0xf2f8fa, op: .3 });
+  const th = thermometer(lab, g, [-.05, .006, .03], { L: .12 }); th.set(30);
+  lab.label(g, label, [0, .26, 0]); lab.label(lime.g, 'Nước vôi trong', [0, .07, .03]);
+  return { g, b, lime, th };
+}
+const A = bell(-.0, 'Chuông A'), B = bell(.2, 'Chuông B');
+const dishA = petri(0, 0); A.g.add(dishA); dishA.position.set(-.025, .006, -.01); dishA.scale.setScalar(.7); dishA.visible = false;
+const S = { s: 0, t: -1 };
+function mark(n) { document.querySelectorAll('#st li').forEach((li, i) => { li.style.color = i < n ? 'var(--ok)' : ''; li.style.fontWeight = i == n ? '600' : ''; }); }
+function sprout(k) { [dishSeeds, dishA].forEach(G => { G.children.filter(o => o.userData.seed).forEach(o => G.remove(o)); for (let i = 0; i < 22; i++) { const s = seed(k); const a = i * 2.39, r = Math.sqrt(i / 22) * .036; s.position.set(Math.cos(a) * r, .008, Math.sin(a) * r); s.rotation.y = a; s.userData.seed = 1; G.add(s); } }); }
+function reset() { S.s = 0; S.t = -1; soak.set({ level: 0 }); pile.visible = true; seeds.forEach((s, i) => s.visible = true); dish.visible = false; dishA.visible = false; [A, B].forEach(X => { X.lime.set({ cloud: 0, layer: null }); X.th.set(30); }); clock.set('0 giờ'); $('#nx').textContent = 'Thực hiện bước 1'; mark(0); say('Bấm “Thực hiện bước 1”.'); $('#ka').textContent = '?'; $('#kb').textContent = '?'; }
+function step() {
+  const s = S.s;
+  if (s == 0) { seeds.forEach((x, i) => { if (i % 9 == 0) x.visible = false; }); say('Đã loại bỏ những hạt lép, vỡ, mọt; chỉ giữ lại hạt chắc.'); }
+  if (s == 1) { soak.set({ level: .55 }); pile.position.y = .006; clock.set('+2 giờ (ngâm hạt)'); say('Ngâm hạt ngập trong nước ấm khoảng 40 °C trong 2 giờ để hạt hút nước, kích thích nảy mầm.'); }
+  if (s == 2) { pile.visible = false; soak.set({ level: 0 }); dish.visible = true; sprout(1); clock.set('+2 ngày (ủ 30 – 35 °C)'); say('Rải hạt lên bông ẩm trong đĩa Petri, để ở 30 – 35 °C: sau khoảng 2 ngày <b>hạt nảy mầm</b> (có rễ mầm màu trắng).'); }
+  if (s == 3) { dish.visible = false; dishA.visible = true; lab.view([.1, .3, .45], [.1, .08, -.05]); say('Chuông A: đĩa hạt nảy mầm + cốc nước vôi trong. Chuông B: chỉ có cốc nước vôi trong. Để trong điều kiện ánh sáng phòng thí nghiệm.'); }
+  if (s == 4) { S.t = 0; say('Đang theo dõi… (tua nhanh 1 giờ)'); }
+  S.s = Math.min(5, s + 1); mark(S.s); $('#nx').textContent = S.s < 5 ? `Thực hiện bước ${S.s + 1}` : 'Đã xong';
+}
+lab.onTick(dt => {
+  if (S.t < 0) return; S.t += dt; const k = clamp(S.t / 8, 0, 1);
+  clock.set(`${Math.round(k * 60)} phút`);
+  A.lime.set({ layer: { h: .006 * k, c: 0xffffff, op: .85 * k }, cloud: .35 * k, cloudC: 0xffffff }); A.th.set(30 + 2.5 * k); B.th.set(30);
+  if (k >= 1 && !S.done) { S.done = 1; S.t = -1; say('Sau 1 giờ: bề mặt cốc nước vôi trong ở <b>chuông A có lớp váng trắng đục</b>; cốc ở <b>chuông B vẫn trong</b>. Nhiệt kế trong chuông A cao hơn chuông B.<br><b>Kết luận:</b> hạt nảy mầm hô hấp thải ra khí carbon dioxide và toả nhiệt.'); $('#ka').textContent = 'Có lớp váng trắng đục trên mặt nước vôi; nhiệt độ tăng'; $('#kb').textContent = 'Nước vôi vẫn trong'; showPane(1); }
+});
+$('#nx').onclick = () => { if (S.s < 5) { S.done = 0; step(); } }; $('#rs').onclick = reset;
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="bN">Bước tiếp</button><button class="btn" id="bLbl">Tên</button>`;
+$('#bN').onclick = () => $('#nx').click();
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Mục đích của việc ngâm hạt trong nước ấm là', o: ['làm sạch hạt', 'giúp hạt hút đủ nước, kích thích hạt nảy mầm', 'diệt mọt', 'làm hạt mềm để ăn'], a: 1 },
+  { q: 'Nước vôi trong ở chuông A bị vẩn đục là do', o: ['hạt thải khí oxygen', 'hạt nảy mầm hô hấp thải khí carbon dioxide', 'nước bay hơi', 'nhiệt độ tăng'], a: 1 },
+  { q: 'Chuông B (không có hạt) dùng để', o: ['đối chứng, so sánh với chuông A', 'trang trí', 'chứa thêm hạt', 'đo nhiệt độ phòng'], a: 0 },
+  { q: 'Tại sao để lâu hạt giống thì tỉ lệ nảy mầm giảm?', o: ['Vì hạt vẫn hô hấp, tiêu hao chất dinh dưỡng dự trữ', 'Vì hạt to ra', 'Vì hạt quang hợp', 'Vì hạt hút oxygen thừa'], a: 0 },
+]);
+reset(); ready(); window.dbg = { lab, S };
+</script></body></html>

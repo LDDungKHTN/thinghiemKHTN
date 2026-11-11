@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 20. Chế tạo nam châm điện đơn giản</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, clamp } from '../core/lab3d.js';
+import { compass } from '../core/magnet.js';
+import { knife, wire, coil } from '../core/elec.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 20. Chế tạo nam châm điện đơn giản', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Cách làm (Hình 20.2)</h3><p>Quấn một đoạn dây đồng xung quanh một ống nhựa, luồn vào trong ống một chiếc đinh sắt dài; nối hai đầu dây với nguồn điện (pin) qua một công tắc.</p>
+<ol><li><b>Đóng công tắc</b> (bấm vào công tắc): kiểm tra xem xung quanh nam châm có từ trường không (ghim giấy bằng sắt bị hút?).</li><li><b>Ngắt công tắc</b>: nam châm còn từ trường không?</li><li><b>Thay đổi nguồn điện</b> (số pin): đếm số ghim giấy bị hút.</li><li><b>Đổi cực của nguồn</b>: dùng kim nam châm thử chiều của từ trường.</li></ol>
+<div class="row"><b>Số pin:</b><button class="btn g" data-n="1">1 pin</button><button class="btn on" data-n="2">2 pin</button><button class="btn g" data-n="3">3 pin</button></div>` },
+    { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện thí nghiệm.</div>
+<table class="dt"><thead><tr><th>Số pin</th><th>Số ghim bị hút</th></tr></thead><tbody id="tb"></tbody></table>
+<ul><li>Cho dòng điện chạy vào ống dây có lõi sắt non, ống dây trở thành <b>nam châm điện</b>. Ngắt dòng điện, nam châm điện mất từ tính.</li><li>Có thể làm tăng từ trường của nam châm điện bằng cách tăng cường độ dòng điện (tăng số pin) hoặc tăng số vòng dây.</li><li>Đổi chiều dòng điện thì chiều từ trường của nam châm điện đổi chiều.</li><li>Ứng dụng: cần cẩu dọn rác, chuông điện, động cơ điện, máy phát điện…</li></ul>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[.0, .3, .45], [0, .04, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.2, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const say = t => { hud.innerHTML = t; $('#obs').innerHTML = t; };
+const S = { n: 2, rev: false, k: 0, rows: {} };
+// nam châm điện treo trên giá, đầu đinh hướng xuống
+const st = new THREE.Group(); scene.add(st);
+const base = roundBox(.12, .01, .1, .003, MAT.metal(0x2d3136, .45)); base.position.set(-.06, .005, -.02); st.add(base);
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .24, 12), MAT.metal(0xc8cdd2, .25)); rod.position.set(-.1, .12, -.04); st.add(rod);
+const arm = new THREE.Mesh(new THREE.BoxGeometry(.11, .008, .01), MAT.metal(0x2d3136, .45)); arm.position.set(-.05, .22, -.04); st.add(arm);
+const em = new THREE.Group(); em.position.set(0, .17, -.0); st.add(em);
+const tube = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .07, 20), new THREE.MeshStandardMaterial({ color: 0xf0f0f0, transparent: true, opacity: .7 })); em.add(tube);
+const cl = coil(.0095, .06, 30, { color: 0xc06a3a, wire: .0011, core: false }); cl.rotation.z = Math.PI / 2; em.add(cl);
+const nail = new THREE.Mesh(new THREE.CylinderGeometry(.0026, .0012, .1, 12), MAT.metal(0x8f969c, .4)); nail.position.y = -.01; em.add(nail);
+const head = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .002, 16), MAT.metal(0x8f969c, .4)); head.position.y = .04; em.add(head);
+const hang = new THREE.Mesh(new THREE.CylinderGeometry(.001, .001, .045, 6), MAT.metal(0x666666, .4)); hang.position.set(0, .2, -.02); st.add(hang);
+lab.label(em, 'Nam châm điện (đinh sắt + ống dây)', [.05, .05, 0]);
+// ghim giấy
+const clips = [];
+for (let i = 0; i < 14; i++) { const c = new THREE.Mesh(new THREE.TorusGeometry(.007, .0007, 6, 20), MAT.metal(0xd0d4d8, .25)); c.scale.set(1, 1.7, 1); const a = Math.random() * 6.28, r = Math.random() * .03; c.userData.home = new THREE.Vector3(Math.cos(a) * r, .002 + (i % 3) * .0013, Math.sin(a) * r); c.rotation.set(-Math.PI / 2, 0, Math.random() * 3); c.userData.r0 = c.rotation.clone(); c.position.copy(c.userData.home); c.castShadow = true; scene.add(c); clips.push(c); }
+lab.label(clips[0], 'Ghim giấy bằng sắt', [.02, .01, .03]);
+// pin, công tắc, kim nam châm
+const bat = new THREE.Group(); bat.position.set(-.2, 0, .12); scene.add(bat);
+const bh = roundBox(.09, .02, .07, .003, MAT.plastic(0x222222, .5)); bh.position.y = .01; bat.add(bh);
+const cells = [0, 1, 2].map(i => { const c = new THREE.Mesh(new THREE.CylinderGeometry(.0072, .0072, .05, 20), MAT.plastic(0x1f3fa8, .4)); c.rotation.z = Math.PI / 2; c.position.set(0, .02, -.02 + i * .02); bat.add(c); return c; });
+lab.label(bat, 'Nguồn điện (pin)', [0, .04, 0]);
+const K = knife(lab, [.0, 0, .14], { label: 'Công tắc', onToggle: () => upd() });
+const cp = compass(lab, scene, [.075, 0, -.0], { r: .03 }); lab.label(cp.g, 'Kim nam châm', [0, .06, 0]);
+st.updateMatrixWorld(true);
+wire(lab, bat.localToWorld(new THREE.Vector3(-.045, .02, 0)), K.term(0)); wire(lab, K.term(1), em.localToWorld(new THREE.Vector3(.01, .03, 0)), { color: 0xc92a2a, sag: -.05 });
+wire(lab, em.localToWorld(new THREE.Vector3(.01, -.03, 0)), bat.localToWorld(new THREE.Vector3(.045, .02, 0)), { color: 0x1b1b1b, sag: -.03 });
+const NCLIP = { 1: 3, 2: 6, 3: 10 };
+function upd() {
+  cells.forEach((c, i) => c.visible = i < S.n);
+  const on = K.closed, m = NCLIP[S.n];
+  if (on) S.rows[S.n] = m; $('#tb').innerHTML = Object.entries(S.rows).map(([n, v]) => `<tr><td>${n}</td><td>${v}</td></tr>`).join('');
+  say(on ? `Đóng công tắc: đinh sắt trở thành <b>nam châm điện</b>, hút được <b>${m}</b> ghim giấy (${S.n} pin). Kim nam châm bị lệch, cực ${S.rev ? 'Nam' : 'Bắc'} của kim hướng về phía đầu đinh${S.rev ? ' – đã đổi chiều so với trước' : ''}.` : 'Ngắt công tắc: nam châm điện <b>mất từ tính</b>, các ghim giấy rơi xuống.');
+}
+lab.onTick(dt => {
+  const on = K.closed, m = on ? NCLIP[S.n] : 0;
+  clips.forEach((c, i) => { const tgt = i < m ? 1 : 0; c.userData.k = (c.userData.k || 0) + ((tgt - (c.userData.k || 0)) * Math.min(1, dt * (tgt ? 8 : 12))); const k = c.userData.k;
+    const hang = new THREE.Vector3(Math.sin(i * 2.4) * .004, .17 - .06 - .008 - Math.floor(i / 3) * .012, Math.cos(i * 2.4) * .004);
+    c.position.lerpVectors(c.userData.home, hang, k * k); c.rotation.set(c.userData.r0.x * (1 - k), i, c.userData.r0.z * (1 - k)); });
+  // kim nam châm: Trái Đất (−z) + nam châm điện (theo x, hướng về/ra đầu đinh)
+  const Bx = on ? (S.rev ? 1 : -1) * 120 * S.n : 0; cp.step(dt, Bx, -150);
+});
+document.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { S.n = +b.dataset.n; document.querySelectorAll('[data-n]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); upd(); });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="sw">Đóng / ngắt công tắc</button><button class="btn" id="rev">Đổi cực nguồn điện</button><button class="btn" id="bLbl">Tên</button>`;
+$('#sw').onclick = () => { K.set(!K.closed); upd(); };
+$('#rev').onclick = () => { S.rev = !S.rev; toast('Đã đổi cực của nguồn điện'); upd(); };
+let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+quiz($('#qz'), [
+  { q: 'Nam châm điện gồm', o: ['một thanh nam châm vĩnh cửu', 'ống dây dẫn có lõi sắt non, có dòng điện chạy qua', 'một bóng đèn và pin', 'một cuộn dây không có dòng điện'], a: 1 },
+  { q: 'Khi ngắt dòng điện thì nam châm điện', o: ['vẫn hút sắt mạnh', 'mất từ tính', 'nóng chảy', 'đổi màu'], a: 1 },
+  { q: 'Muốn nam châm điện hút được nhiều ghim hơn, ta có thể', o: ['giảm số pin', 'tăng số pin (tăng dòng điện) hoặc tăng số vòng dây', 'rút lõi sắt ra', 'đổi cực nguồn'], a: 1 },
+  { q: 'Vì sao cần cẩu dọn rác kim loại dùng nam châm điện mà không dùng nam châm vĩnh cửu?', o: ['Vì nam châm điện rẻ hơn', 'Vì có thể ngắt dòng điện để thả rác xuống và thay đổi được lực từ', 'Vì nam châm điện nhẹ hơn', 'Vì nam châm vĩnh cửu không hút sắt'], a: 1 },
+]);
+upd(); ready(); window.dbg = { lab, K };
+</script></body></html>
