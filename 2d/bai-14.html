@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 14 – Cảm ứng điện từ. Dòng điện xoay chiều</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f1f4f7;--cd:#fff;--ink:#1b2631;--mut:#5b6b7b;--ln:#d2dbe4;--bn:#e8eff5;--ac:#e8590c;--ok:#2b8a3e;--er:#e03131;--st:#34424f;--bl:#1c7ed6;--sky:#eef3f8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--sky:#121c26}}
+:root[data-theme="dark"]{--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--sky:#121c26}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+header{padding:12px 14px 0}h1{font-size:20px;margin:0 0 8px}h1 a{font-size:13px;font-weight:400;margin-left:8px;color:var(--mut)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--ln);background:var(--cd);color:var(--ink);padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit}
+.tab.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.pn{padding:14px;max-width:900px}.pn[hidden]{display:none}
+.cd{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:12px;margin-bottom:10px}
+svg.sc{display:block;width:100%;height:auto;background:var(--sky);border:1px solid var(--ln);border-radius:10px;margin-bottom:8px;touch-action:none;user-select:none}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:8px 0}
+.ctl label{display:block;font-weight:600;font-size:14px}.ctl input[type=range]{width:100%;accent-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.btn{border:0;background:var(--ac);color:#fff;padding:8px 12px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}.btn.g{background:var(--bn);color:var(--ink);border:1px solid var(--ln)}
+.sm{font-size:13px;color:var(--mut)}.ok{color:var(--ok);font-weight:600}.er{color:var(--er);font-weight:600}
+.bar{height:12px;background:var(--bn);border-radius:6px;overflow:hidden;margin:3px 0 6px}.bar i{display:block;height:100%;background:var(--bl);transition:width .1s}
+.q{border:1px solid var(--ln);background:var(--cd);border-radius:10px;padding:10px 12px;margin-bottom:10px}.q label{display:block;margin:3px 0;cursor:pointer}
+.q input[type=text]{width:100px;font:inherit;padding:4px 6px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink)}.q.good{border-color:var(--ok)}.q.bad{border-color:var(--er)}
+.sk{stroke:var(--st);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.sk:not([fill]){fill:none}
+.tx{fill:var(--ink);font:600 12px "Segoe UI",system-ui,sans-serif}.tm{fill:var(--mut);font:11px "Segoe UI",system-ui,sans-serif}
+</style></head><body>
+<header><h1>Bài 14. Cảm ứng điện từ. Nguyên tắc tạo ra dòng điện xoay chiều<a href="index.html">← Danh sách bài</a></h1>
+<nav><button class="tab on">TN1: Nam châm vĩnh cửu</button><button class="tab">TN2: Nam châm điện</button><button class="tab">TN3: Nam châm quay · Xoay chiều</button><button class="tab">TN4: Đổi tiết diện</button><button class="tab">Kết luận &amp; câu hỏi</button></nav></header>
+
+<div class="pn" id="v0"><div class="cd"><b>Thí nghiệm 1.</b> Nối hai đầu cuộn dây với điện kế. <b>Kéo thanh nam châm</b> bằng chuột lại gần hoặc ra xa cuộn dây và quan sát kim điện kế. Thử kéo nhanh, kéo chậm, giữ yên, đổi cực, ngắt điện kế.</div>
+<svg class="sc" id="s1" viewBox="0 0 520 250"><g id="fl1"></g><g id="cg1"></g><g id="mg" style="cursor:grab"><rect id="mr1" x="0" y="95" width="55" height="36" fill="#e03131" class="sk"/><rect id="mr2" x="55" y="95" width="55" height="36" fill="#1c7ed6" class="sk"/><text id="ml1" class="tx" x="27" y="118" text-anchor="middle" style="fill:#fff"></text><text id="ml2" class="tx" x="82" y="118" text-anchor="middle" style="fill:#fff"></text></g><g id="gv1"></g></svg>
+<div class="row"><button class="btn g" id="fp">Đổi cực nam châm</button><button class="btn g" id="cc">Ngắt điện kế</button></div>
+<div class="cd"><div class="sm">Số đường sức từ xuyên qua tiết diện cuộn dây Φ</div><div class="bar"><i id="pb1"></i></div><div id="i1"></div></div></div>
+
+<div class="pn" id="v1" hidden><div class="cd"><b>Thí nghiệm 2.</b> Nam châm điện (có lõi sắt) đặt trong cuộn dây nối với điện kế. Bấm công tắc K để đóng/mở mạch nam châm điện, hoặc kéo biến trở khi mạch đóng.</div>
+<svg class="sc" id="s2" viewBox="0 0 520 250"><path d="M40 70H100M260 70H300M300 70V90M40 70V110" class="sk" id="w2"/><rect x="20" y="108" width="40" height="60" rx="6" fill="var(--cd)" class="sk"/><text class="tx" x="40" y="142" text-anchor="middle">Nguồn</text>
+<g id="kg" style="cursor:pointer"><rect x="105" y="50" width="150" height="44" fill="transparent"/><circle cx="110" cy="70" r="4" fill="var(--cd)" class="sk"/><circle cx="250" cy="70" r="4" fill="var(--cd)" class="sk"/><line id="bl2" x1="110" y1="70" x2="248" y2="70" class="sk" style="stroke-width:5"/><text id="kt" class="tx" x="180" y="44" text-anchor="middle"></text></g>
+<path d="M40 168V210H300V190" class="sk"/><g id="em"><rect x="270" y="100" width="150" height="90" rx="8" fill="none" class="sk" style="stroke:#c2410c;stroke-width:5;stroke-dasharray:6 4"/><rect x="290" y="128" width="110" height="34" fill="#868e96" class="sk"/><rect id="en" x="290" y="128" width="55" height="34" fill="#e03131" class="sk" opacity=".2"/><rect id="es" x="345" y="128" width="55" height="34" fill="#1c7ed6" class="sk" opacity=".2"/><text class="tx" x="317" y="150" text-anchor="middle" style="fill:#fff">N</text><text class="tx" x="372" y="150" text-anchor="middle" style="fill:#fff">S</text></g>
+<text class="tm" x="345" y="94" text-anchor="middle">cuộn dây (1) quanh nam châm điện (2)</text><g id="gv2"></g></svg>
+<div class="ctl"><div><label>Cường độ dòng điện qua nam châm điện (khi K đóng): <span id="ev"></span>%</label><input type="range" id="er2" min="20" max="100" value="100"></div></div>
+<div class="cd"><div class="sm">Số đường sức từ xuyên qua cuộn dây (Φ tỉ lệ với dòng điện của nam châm điện)</div><div class="bar"><i id="pb2"></i></div><div id="i2"></div></div></div>
+
+<div class="pn" id="v2" hidden><div class="cd"><b>Thí nghiệm 3 và thí nghiệm tạo dòng điện xoay chiều.</b> Chọn mô hình rồi chỉnh tốc độ quay: quay chậm thì thấy hai đèn LED (mắc song song, ngược cực) sáng luân phiên; quay nhanh thì khó phân biệt.</div>
+<div class="row"><button class="btn on md" data-m="0">Nam châm quay, cuộn dây đứng yên</button><button class="btn g md" data-m="1">Cuộn dây quay trong từ trường đều</button></div>
+<svg class="sc" id="s3" viewBox="0 0 520 250"><g id="rt"></g><circle id="gr" cx="440" cy="60" r="34" fill="#ff6b6b" opacity="0"/><circle cx="440" cy="60" r="14" fill="var(--cd)" class="sk" style="stroke:#e03131"/><circle id="ld1" cx="440" cy="60" r="13" fill="#ff6b6b" opacity="0"/><circle id="gy" cx="440" cy="130" r="34" fill="#ffd43b" opacity="0"/><circle cx="440" cy="130" r="14" fill="var(--cd)" class="sk" style="stroke:#f59f00"/><circle id="ld2" cx="440" cy="130" r="13" fill="#ffd43b" opacity="0"/>
+<text class="tx" x="470" y="64">LED đỏ</text><text class="tx" x="470" y="134">LED vàng</text><text class="tm" x="440" y="195" text-anchor="middle">hai LED song song, ngược cực</text><path d="M400 60H380V130H400" class="sk" fill="none"/></svg>
+<div class="ctl"><div><label>Tốc độ quay: <span id="nv"></span> vòng/s</label><input type="range" id="ns" min="0.2" max="6" step="0.1" value="0.4"></div></div>
+<svg class="sc" id="g3" viewBox="0 0 520 130" style="background:var(--cd)"></svg>
+<div class="cd"><div id="i3"></div></div>
+<div class="cd"><b>Hình 14.7. Dòng điện xoay chiều tần số 50 Hz</b><svg id="g7" viewBox="0 0 520 190" style="width:100%;height:auto;display:block"></svg><div class="sm">Chu kì T = 1/f = 1/50 = 0,02 s = 20·10⁻³ s. Dòng điện đổi chiều 2 lần mỗi chu kì, tức 100 lần trong 1 giây.</div></div></div>
+
+<div class="pn" id="v3" hidden><div class="cd"><b>Thí nghiệm 4.</b> Cuộn dây mềm đặt quanh thanh nam châm. Kéo thanh trượt (hoặc bấm “Bóp mạnh”) để thay đổi tiết diện cuộn dây và quan sát điện kế.</div>
+<svg class="sc" id="s4" viewBox="0 0 520 250"><g id="cg4"></g><rect x="100" y="112" width="200" height="30" fill="#1c7ed6" class="sk"/><rect x="100" y="112" width="100" height="30" fill="#e03131" class="sk"/><text class="tx" x="150" y="132" text-anchor="middle" style="fill:#fff">N</text><text class="tx" x="250" y="132" text-anchor="middle" style="fill:#fff">S</text><g id="gv4"></g></svg>
+<div class="ctl"><div><label>Tiết diện cuộn dây: <span id="av"></span>% so với ban đầu</label><input type="range" id="as" min="20" max="100" value="100"></div></div>
+<div class="row"><button class="btn" id="sq">Bóp mạnh</button><button class="btn g" id="sl">Thả ra</button></div>
+<div class="cd"><div class="sm">Số đường sức từ xuyên qua tiết diện cuộn dây Φ</div><div class="bar"><i id="pb4"></i></div><div id="i4"></div></div></div>
+
+<div class="pn" id="v4" hidden><div class="cd"><b>Kết luận.</b> Khi số đường sức từ xuyên qua tiết diện của cuộn dây dẫn <b>kín</b> biến thiên thì trong cuộn dây xuất hiện dòng điện cảm ứng (hiện tượng cảm ứng điện từ). Nếu số đường sức từ tăng, giảm luân phiên theo thời gian thì dòng điện cảm ứng là dòng điện xoay chiều.<br><span class="sm">Các cách làm Φ biến thiên đã thử: đưa nam châm lại gần/ra xa; đóng, ngắt hay đổi dòng điện nam châm điện; quay nam châm hoặc cuộn dây; thay đổi tiết diện cuộn dây.</span></div><div id="qs"></div></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],NS='http://www.w3.org/2000/svg';
+const f=(n,d=2)=>n.toLocaleString('vi-VN',{maximumFractionDigits:d}),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+let cur=0;$$('.tab').forEach((b,i)=>b.onclick=()=>{cur=i;$$('.tab').forEach((x,j)=>x.classList.toggle('on',i==j));$$('.pn').forEach((p,j)=>p.hidden=i!=j)});
+/* điện kế */
+function gv(id,x,y){let t='';for(let a=-50;a<=50;a+=25){const r=a*Math.PI/180,s=Math.sin(r),c=Math.cos(r);t+=`<path d="M${52*s} ${58-52*c}L${58*s} ${58-58*c}" class="sk" style="stroke-width:2"/>`}
+ $('#'+id).innerHTML=`<g transform="translate(${x} ${y})"><rect x="-66" y="-10" width="132" height="90" rx="8" fill="var(--cd)" class="sk"/><path d="M-39 25.5A50 50 0 0 1 39 25.5" class="sk" style="stroke-width:2"/>${t}<text class="tx" x="0" y="20" text-anchor="middle">0</text><text class="tm" x="0" y="74" text-anchor="middle">điện kế G</text><line class="nd" x1="0" y1="58" x2="0" y2="12" stroke="#e03131" stroke-width="3" stroke-linecap="round"/><circle cx="0" cy="58" r="4" fill="var(--st)"/></g>`}
+const nd=(id,v)=>$('#'+id+' .nd').setAttribute('transform',`rotate(${v*50} 0 58)`);
+const NL={v:0};function needle(o,dphi,k,dt){o.v+=(cl(dphi*k,-1,1)-o.v)*Math.min(1,dt*14);return o.v}
+['gv1','gv2','gv4'].forEach((id,i)=>gv(id,[430,430,430][i],[150,150,150][i]));
+function coil(id,cx,cy,w,h,turns=6){let s='';for(let i=0;i<turns;i++){const x=cx-w/2+i*w/(turns-1);s+=`<ellipse cx="${x}" cy="${cy}" rx="${Math.max(3,w/turns/1.8)}" ry="${h/2}" fill="none" stroke="#c2410c" stroke-width="3.5" opacity=".9"/>`}$('#'+id).innerHTML=s}
+/* ---- TN1 ---- */
+const M1={x:60,dir:1,closed:1,drag:0,ox:0,phi:0,ph0:0,o:{v:0}},CX=330;
+function lbl1(){const n=M1.dir>0;$('#mr1').setAttribute('fill',n?'#1c7ed6':'#e03131');$('#mr2').setAttribute('fill',n?'#e03131':'#1c7ed6');$('#ml1').textContent=n?'N...':'';$('#ml2').textContent=n?'':'';
+ $('#ml1').textContent=n?'S':'N';$('#ml2').textContent=n?'N':'S'}
+function phi1(){const d=Math.max(0,CX-30-(M1.x+110));return M1.dir*1/Math.pow(1+(d/80)**2,1.5)}
+function draw1(dp){const p=phi1();M1.phi=p;$('#mg').setAttribute('transform',`translate(${M1.x} 0)`);
+ coil('cg1',CX,118,70,100);let L='';for(let i=0;i<5;i++){const y=118+(i-2)*18,op=Math.abs(p)*(1-Math.abs(i-2)*.18);L+=`<path d="M${M1.x+110} ${118+(i-2)*6}Q${(M1.x+110+CX)/2} ${y}  ${CX+10} ${y}" fill="none" stroke="#2b8a3e" stroke-width="2" stroke-dasharray="5 4" opacity="${op}"/>`}$('#fl1').innerHTML=L;
+ $('#pb1').style.width=Math.abs(p)*100+'%';nd('gv1',M1.closed?M1.o.v:0);
+ const mv=Math.abs(dp)>.05;$('#i1').innerHTML=!M1.closed?'<span class="er">Cuộn dây chưa nối kín với điện kế: không có dòng điện chạy trong mạch.</span>':mv?`<span class="ok">Số đường sức từ xuyên qua cuộn dây đang ${(p*M1.dir>0?dp*M1.dir>0:dp*M1.dir>0)?'tăng':'giảm'} → xuất hiện dòng điện cảm ứng (kim điện kế lệch ${M1.o.v>0?'sang phải':'sang trái'}).</span>`:'Nam châm đứng yên (hoặc Φ không đổi) → kim điện kế chỉ vạch 0: không có dòng điện cảm ứng.'}
+$('#fp').onclick=()=>{M1.dir*=-1;lbl1()};$('#cc').onclick=()=>{M1.closed^=1;$('#cc').textContent=M1.closed?'Ngắt điện kế':'Nối điện kế'};
+$('#mg').addEventListener('pointerdown',e=>{const s=$('#s1'),q=s.createSVGPoint();q.x=e.clientX;q.y=e.clientY;M1.drag=1;M1.ox=q.matrixTransform(s.getScreenCTM().inverse()).x-M1.x;e.preventDefault()});
+addEventListener('pointermove',e=>{if(!M1.drag)return;const s=$('#s1'),q=s.createSVGPoint();q.x=e.clientX;q.y=e.clientY;M1.x=cl(q.matrixTransform(s.getScreenCTM().inverse()).x-M1.ox,10,CX-30-110+80)});addEventListener('pointerup',()=>M1.drag=0);lbl1();
+/* ---- TN2 ---- */
+const E2={k:0,ie:0,ph0:0,o:{v:0}};
+$('#kg').onclick=()=>E2.k^=1;$('#er2').oninput=()=>{};
+function draw2(dp){$('#kt').textContent='K: '+(E2.k?'đóng':'mở');$('#bl2').setAttribute('y2',E2.k?70:35);$('#bl2').setAttribute('x2',E2.k?248:236);
+ $('#en').setAttribute('opacity',.2+.8*E2.ie);$('#es').setAttribute('opacity',.2+.8*E2.ie);$('#pb2').style.width=E2.ie*100+'%';$('#ev').textContent=$('#er2').value;nd('gv2',E2.o.v);coil('cg2x',0,0,0,0);
+ const mv=Math.abs(dp)>.05;$('#i2').innerHTML=mv?`<span class="ok">Dòng điện qua nam châm điện đang ${dp>0?'tăng':'giảm'} nên số đường sức từ qua cuộn dây ${dp>0?'tăng':'giảm'} → có dòng điện cảm ứng (kim lệch ${E2.o.v>0?'phải':'trái'}).</span>`:(E2.ie>.05?'Dòng điện nam châm điện ổn định, Φ không đổi → kim về vạch 0.':'Mạch nam châm điện hở: không có từ trường, kim ở vạch 0.')}
+$('#s2').insertAdjacentHTML('beforeend','<g id="cg2x"></g>');
+(function(){let s='';for(let i=0;i<8;i++){const x=280+i*18;s+=`<ellipse cx="${x}" cy="145" rx="6" ry="50" fill="none" stroke="#c2410c" stroke-width="3.5" opacity=".9"/>`}$('#em').insertAdjacentHTML('beforeend',s)})();
+/* ---- TN3: quay ---- */
+const R3={th:0,mode:0,ph:[],bl:{r:0,y:0},t:0,o:0};
+$$('.md').forEach(b=>b.onclick=()=>{R3.mode=+b.dataset.m;$$('.md').forEach(x=>{x.classList.toggle('g',x!=b);x.classList.toggle('on',x==b)});R3.ph=[]});
+function rot(){const th=R3.th,c=Math.cos(th),s=Math.sin(th);let h='';
+ if(R3.mode==0){h+=`<rect x="250" y="70" width="14" height="110" rx="4" fill="none" class="sk" style="stroke:#c2410c;stroke-width:6"/><text class="tm" x="257" y="195" text-anchor="middle">cuộn dây</text>`;
+  h+=`<g transform="translate(120 125) rotate(${th*180/Math.PI})"><rect x="-70" y="-16" width="70" height="32" fill="#1c7ed6" class="sk"/><rect x="0" y="-16" width="70" height="32" fill="#e03131" class="sk"/><text class="tx" x="-35" y="4" text-anchor="middle" style="fill:#fff">S</text><text class="tx" x="35" y="4" text-anchor="middle" style="fill:#fff">N</text></g><circle cx="120" cy="125" r="4" fill="var(--st)"/>`}
+ else{for(let i=0;i<5;i++)h+=`<path d="M40 ${55+i*32}H300" stroke="#2b8a3e" stroke-width="1.6" stroke-dasharray="6 5" opacity=".6"/><path d="M296 ${51+i*32}l8 4l-8 4" fill="none" stroke="#2b8a3e" stroke-width="1.6"/>`;
+  h+=`<rect x="20" y="40" width="22" height="170" fill="#e03131" class="sk"/><text class="tx" x="31" y="130" style="fill:#fff" text-anchor="middle">N</text><rect x="296" y="40" width="22" height="170" fill="#1c7ed6" class="sk"/><text class="tx" x="307" y="130" style="fill:#fff" text-anchor="middle">S</text>`;
+  h+=`<g transform="translate(170 125) rotate(${th*180/Math.PI})"><line x1="0" y1="-60" x2="0" y2="60" stroke="#c2410c" stroke-width="7" stroke-linecap="round"/><path d="M0 0H34" stroke="var(--st)" stroke-width="2"/><path d="M34 0l-7-4M34 0l-7 4" stroke="var(--st)" stroke-width="2"/></g><circle cx="170" cy="125" r="4" fill="var(--st)"/><text class="tm" x="170" y="205" text-anchor="middle">khung dây (nhìn từ cạnh), vòng khuyên – chổi quét nối với hai LED</text>`}
+ $('#rt').innerHTML=h}
+function gr3(){const W=520,N=R3.ph.length,tm=3;let a='',b='';R3.ph.forEach((p,i)=>{const x=(p.t-R3.t+tm)/tm*500+10;a+=(i?'L':'M')+x+' '+(65-p.p*45);b+=(i?'L':'M')+x+' '+(65-p.e*45)});
+ $('#g3').innerHTML=`<path d="M10 65H510" stroke="var(--mut)" stroke-dasharray="3 4"/><path d="${a}" fill="none" stroke="#1c7ed6" stroke-width="2.5"/><path d="${b}" fill="none" stroke="#e8590c" stroke-width="2.5"/><text class="tx" x="14" y="14" style="fill:#1c7ed6">Φ (số đường sức từ qua cuộn dây)</text><text class="tx" x="270" y="14" style="fill:#e8590c">i (dòng điện cảm ứng)</text><text class="tm" x="480" y="124">t →</text>`}
+(function(){let p='M40 95',w=0;const X=t=>40+t*10,Y=v=>95-v*65;for(let t=0;t<=32;t+=.5)p+=(t?'L':'M')+X(t)+' '+Y(Math.sin(2*Math.PI*t/20));
+ let g=`<path d="M40 20V170M40 95H480" stroke="var(--st)" stroke-width="1.5" fill="none"/><path d="${p}" fill="none" stroke="#e8590c" stroke-width="2.5"/>`;[5,10,15,20,25,30].forEach(t=>g+=`<text class="tm" x="${X(t)}" y="112" text-anchor="middle">${t}</text>`);[1,.5,-.5,-1].forEach(v=>g+=`<text class="tm" x="34" y="${Y(v)+4}" text-anchor="end">${v}</text>`);
+ g+=`<path d="M${X(5)} ${Y(1)}V95M${X(15)} ${Y(-1)}V95M${X(25)} ${Y(1)}V95" stroke="var(--bl)" stroke-dasharray="4 3"/><text class="tm" x="46" y="26">i (A)</text><text class="tm" x="430" y="128">t (×10⁻³ s)</text>`;$('#g7').innerHTML=g})();
+/* ---- TN4 ---- */
+const A4={s:1,ps:1,o:{v:0},anim:0};
+function draw4(dp){const s=A4.s;coil('cg4',200,127,150,40+170*s,7);$('#av').textContent=Math.round(s*100);$('#pb4').style.width=s*100+'%';nd('gv4',A4.o.v);
+ const mv=Math.abs(dp)>.03;$('#i4').innerHTML=mv?`<span class="ok">Tiết diện ${dp>0?'tăng':'giảm'} nên Φ ${dp>0?'tăng':'giảm'} → có dòng điện cảm ứng (kim lệch ${A4.o.v>0?'phải':'trái'}).</span>`:'Tiết diện không đổi → Φ không đổi, kim ở vạch 0.'}
+$('#as').oninput=()=>{A4.anim=0;A4.s=$('#as').value/100};$('#sq').onclick=()=>A4.anim=-1;$('#sl').onclick=()=>A4.anim=1;
+/* ---- vòng lặp ---- */
+let lt=0;(function tick(t){const dt=Math.min(.05,(t-lt)/1000||0.016);lt=t;if(dt<=0){requestAnimationFrame(tick);return}
+ if(cur==0){const dp=(M1.phi-M1.ph0)/dt;M1.ph0=M1.phi;needle(M1.o,M1.dir*0+dp,.35,dt);draw1(dp)}
+ if(cur==1){E2.ie+=((E2.k?+$('#er2').value/100:0)-E2.ie)*(1-Math.exp(-dt/.12));const dp=(E2.ie-E2.ph0)/dt;E2.ph0=E2.ie;needle(E2.o,dp,.22,dt);draw2(dp)}
+ if(cur==2){const n=+$('#ns').value;$('#nv').textContent=f(n,1);R3.th+=2*Math.PI*n*dt;R3.t+=dt;const p=Math.cos(R3.th),e=Math.sin(R3.th);R3.ph.push({t:R3.t,p,e});while(R3.ph.length&&R3.ph[0].t<R3.t-3)R3.ph.shift();
+  const rk=Math.min(1,dt*10);R3.bl.r+=(Math.max(0,e)-R3.bl.r)*rk;R3.bl.y+=(Math.max(0,-e)-R3.bl.y)*rk;
+  $('#ld1').setAttribute('opacity',R3.bl.r);$('#gr').setAttribute('opacity',R3.bl.r*.6);$('#ld2').setAttribute('opacity',R3.bl.y);$('#gy').setAttribute('opacity',R3.bl.y*.6);rot();gr3();
+  $('#i3').innerHTML=`Tần số dòng điện = số vòng quay mỗi giây = ${f(n,1)} Hz, dòng điện đổi chiều ${f(2*n,1)} lần/s. `+(n<1.5?'Quay chậm: hai đèn LED sáng, tối luân phiên rõ rệt (dòng điện đổi chiều).':'Quay nhanh: hai đèn LED nháy luân phiên quá nhanh nên mắt gần như thấy cả hai cùng sáng.')+`<br><span class="sm">Φ = Φ₀·cosθ tăng giảm luân phiên theo thời gian nên trong cuộn dây xuất hiện dòng điện xoay chiều. Khi dòng điện i &gt; 0 đèn đỏ sáng, i &lt; 0 đèn vàng sáng.</span>`}
+ if(cur==3){if(A4.anim){A4.s=cl(A4.s+(A4.anim<0?-1:.35)*dt*(A4.anim<0?2.4:1.4)*(A4.anim<0?1:1),.25,1);if(A4.s<=.25&&A4.anim<0||A4.s>=1&&A4.anim>0)A4.anim=0;$('#as').value=A4.s*100}
+  const dp=(A4.s-A4.ps)/dt;A4.ps=A4.s;needle(A4.o,dp,.18,dt);draw4(dp)}
+ requestAnimationFrame(tick)})(0);
+/* ---- Câu hỏi ---- */
+const Q=[{q:'Sự thay đổi (lệch) của kim điện kế khi đưa nam châm lại gần hoặc ra xa cuộn dây chứng tỏ điều gì?',o:['Có dòng điện cảm ứng chạy trong cuộn dây','Nam châm bị mất từ tính','Cuộn dây bị nhiễm điện'],a:0,e:'Kim điện kế lệch nghĩa là có dòng điện chạy trong cuộn dây – gọi là dòng điện cảm ứng.'},
+{q:'Đưa cực Bắc của nam châm lại gần cuộn dây (Hình 14.2), số đường sức từ xuyên qua tiết diện cuộn dây:',o:['Tăng','Giảm','Không đổi'],a:0,e:'Nam châm càng gần, các đường sức từ càng dày nên số đường sức xuyên qua cuộn dây tăng; đưa ra xa thì giảm (Hình 14.1b).'},
+{q:'Thí nghiệm 2: khi đóng hoặc mở công tắc, số đường sức từ xuyên qua cuộn dây biến thiên thế nào?',o:['Đóng thì tăng, mở thì giảm','Đóng thì giảm, mở thì tăng','Luôn không đổi'],a:0,e:'Đóng K, dòng điện nam châm điện tăng từ 0 nên từ trường và Φ tăng; mở K thì Φ giảm về 0. Cả hai lần kim đều lệch (ngược chiều nhau).'},
+{q:'Cách nào KHÔNG làm xuất hiện dòng điện cảm ứng trong cuộn dây kín?',o:['Đưa nam châm lại gần cuộn dây','Quay nam châm gần cuộn dây','Bóp méo cuộn dây đặt trong từ trường','Để nam châm đứng yên cạnh cuộn dây'],a:3,e:'Φ không biến thiên thì không có dòng điện cảm ứng, dù nam châm ở rất gần.'},
+{q:'Điều kiện xuất hiện dòng điện cảm ứng trong cuộn dây dẫn kín là:',o:['Số đường sức từ xuyên qua tiết diện cuộn dây biến thiên','Có nam châm đặt cạnh cuộn dây','Cuộn dây phải làm bằng sắt'],a:0,e:'Cuộn dây phải kín và số đường sức từ qua tiết diện của nó biến thiên.'},
+{q:'Khi nam châm quay chậm gần cuộn dây có hai đèn LED mắc song song ngược cực, hai đèn:',o:['Sáng luân phiên','Cùng sáng liên tục','Cùng tắt'],a:0,e:'Dòng điện đổi chiều liên tục nên khi đèn này sáng (dòng theo chiều thuận), đèn kia tắt.'},
+{q:'Dòng điện xoay chiều tần số 50 Hz đổi chiều bao nhiêu lần trong 1 giây?',n:100,e:'Mỗi chu kì (0,02 s) đổi chiều 2 lần, 50 chu kì mỗi giây nên đổi chiều 100 lần.'},
+{q:'Nguyên tắc tạo ra dòng điện xoay chiều dựa trên:',o:['Hiện tượng cảm ứng điện từ: số đường sức từ qua cuộn dây kín tăng, giảm luân phiên','Tác dụng nhiệt của dòng điện','Tác dụng hoá học của dòng điện'],a:0,e:'Quay nam châm hoặc cuộn dây làm Φ tăng, giảm luân phiên nên trong cuộn dây xuất hiện dòng điện xoay chiều.'}];
+$('#qs').innerHTML=Q.map((q,i)=>`<div class="q" id="q${i}"><b>Câu ${i+1}.</b> ${q.q}<div style="margin-top:6px">${q.o?q.o.map((o,j)=>`<label><input type="radio" name="r${i}" value="${j}"> ${o}</label>`).join(''):`<input type="text" id="n${i}" inputmode="decimal" placeholder="đáp số">`}</div><div class="row"><button class="btn g" data-i="${i}">Kiểm tra</button><span id="r${i}"></span></div></div>`).join('');
+$$('#qs button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,q=Q[i];let ok=0,has=1;
+ if(q.o){const c=document.querySelector(`input[name=r${i}]:checked`);has=!!c;ok=c&&+c.value==q.a}else{const s=$('#n'+i).value.replace(/\s/g,'').replace(',','.');has=s!=='';ok=has&&Math.abs(parseFloat(s)-q.n)<=Math.max(q.n*.01,.011)}
+ if(!has){$('#r'+i).innerHTML='<span class="sm">Hãy chọn hoặc nhập đáp án.</span>';return}
+ $('#q'+i).className='q '+(ok?'good':'bad');$('#r'+i).innerHTML=`<span class="${ok?'ok':'er'}">${ok?'Chính xác!':'Chưa đúng.'}</span> <span class="sm">${q.e}</span>`});
+</script></body></html>

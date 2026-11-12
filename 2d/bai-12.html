@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 12 – Đoạn mạch nối tiếp, song song</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f1f4f7;--cd:#fff;--ink:#1b2631;--mut:#5b6b7b;--ln:#d2dbe4;--bn:#e8eff5;--gr:#d3dde7;--ac:#e8590c;--ok:#2b8a3e;--er:#e03131;--st:#34424f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--gr:#21303d;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6}}
+:root[data-theme="dark"]{--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--gr:#21303d;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+header{padding:12px 14px 0}h1{font-size:20px;margin:0 0 8px}h1 a{font-size:13px;font-weight:400;margin-left:8px;color:var(--mut)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--ln);background:var(--cd);color:var(--ink);padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit}
+.tab.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+main{display:grid;grid-template-columns:170px 1fr;gap:12px;padding:12px 14px}
+aside,.cd{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:10px}
+#tray.drop{outline:3px dashed var(--ac)}
+h3{margin:0 0 8px;font-size:15px}
+#items{display:grid;gap:6px}
+#items button{text-align:left;border:1px solid var(--ln);background:var(--bn);color:var(--ink);padding:8px;border-radius:7px;cursor:pointer;font:inherit;font-size:13.5px}
+#items button:disabled{opacity:.4;cursor:default}
+.sm{font-size:13px;color:var(--mut);margin:6px 0 0}
+#bench{display:block;width:100%;height:auto;background:var(--bn);border:1px solid var(--ln);border-radius:10px;touch-action:none;user-select:none}
+.gl{stroke:var(--gr);fill:none}
+.lead{stroke:var(--st);stroke-width:3.5;fill:none;stroke-linecap:round}
+.body{fill:var(--cd);stroke:var(--st);stroke-width:2.2}
+.tx{fill:var(--ink);font:600 13px "Segoe UI",system-ui,sans-serif}
+.rd{fill:var(--ac);font:700 15px "Segoe UI",system-ui,sans-serif;text-anchor:middle}
+.comp{cursor:grab}
+.term{fill:var(--cd);stroke:var(--ac);stroke-width:2.5;cursor:crosshair}.term:hover{fill:var(--ac)}.term.on{fill:var(--ok);stroke:var(--ok)}
+.wire{fill:none;stroke:#3b82c4;stroke-width:4.5;stroke-linecap:round;cursor:pointer}.wire:hover{stroke:#e03131}
+#tmp{fill:none;stroke:var(--ac);stroke-width:3;stroke-dasharray:6 5;pointer-events:none}
+#msg{margin:8px 2px 0;font-weight:600}
+#data{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid var(--ln);padding:6px 8px;text-align:center}th{background:var(--bn)}
+.ok{color:var(--ok);font-weight:600;margin:8px 0 0}.er{color:var(--er);font-weight:600}
+.pn3{padding:14px;max-width:880px}.pn3[hidden],main[hidden],#data>[hidden]{display:none}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:8px 0}
+.ctl label{display:block;font-weight:600;font-size:14px}.ctl input{width:100%;box-sizing:border-box;font:inherit;padding:5px 6px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.btn{border:0;background:var(--ac);color:#fff;padding:7px 12px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}.btn.g{background:var(--bn);color:var(--ink);border:1px solid var(--ln)}
+.q{border:1px solid var(--ln);background:var(--cd);border-radius:10px;padding:10px 12px;margin-bottom:10px}.q label{display:block;margin:3px 0;cursor:pointer}
+.q input[type=text]{width:90px;font:inherit;padding:4px 6px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink)}
+.q.good{border-color:var(--ok)}.q.bad{border-color:var(--er)}
+@media(max-width:720px){main{grid-template-columns:1fr}#items{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
+</style></head><body>
+<header><h1>Bài 12. Đoạn mạch nối tiếp, song song<a href="index.html">← Danh sách bài</a></h1>
+<nav><button class="tab on">Mở bài: hai bóng đèn</button><button class="tab">Mạch nối tiếp</button><button class="tab">Mạch song song</button><button class="tab">Tính R<sub>tđ</sub> &amp; câu hỏi</button></nav></header>
+<main id="mn"><aside id="tray"><h3>Khay dụng cụ</h3><div id="items"></div><p class="sm">Bấm để đưa dụng cụ lên bàn. Thả dụng cụ vào khay để cất lại.</p></aside>
+<section><svg id="bench" viewBox="0 0 860 480"><defs><pattern id="gp" width="20" height="20" patternUnits="userSpaceOnUse"><path class="gl" d="M20 0H0V20"/></pattern><radialGradient id="gw2"><stop offset="0" stop-color="#ffe066" stop-opacity=".95"/><stop offset=".55" stop-color="#ffd43b" stop-opacity=".45"/><stop offset="1" stop-color="#ffd43b" stop-opacity="0"/></radialGradient></defs>
+<rect width="860" height="480" fill="url(#gp)"/><g id="gw"></g><g id="gc"></g><path id="tmp" d=""/></svg>
+<div id="msg"></div><p class="sm" id="gd"></p><p class="sm">Kéo dụng cụ lại gần nhau để đầu nối tự dính (chấm xanh = đã nối), hoặc kéo dây từ chấm này sang chấm khác; bấm vào dây để gỡ; bấm vào công tắc để đóng/mở.</p></section>
+<section id="data"><div class="cd" id="p0"><h3>So sánh hai cách mắc</h3><div id="t0"></div><div id="c0"></div></div>
+<div class="cd" id="p1" hidden><h3>Bảng 12.1. Số chỉ của ampe kế</h3><div id="t1"></div><div id="c1"></div></div>
+<div class="cd" id="p2" hidden><h3>Bảng 12.2. Số chỉ của ampe kế</h3><div id="t2"></div><div id="c2"></div></div></section></main>
+
+<div class="pn3" id="v3" hidden><div class="cd"><b>Điện trở tương đương.</b> Nhập các điện trở và hiệu điện thế rồi xem kết quả hai cách mắc.
+<div class="ctl"><div><label>R₁ (Ω)</label><input id="a1" type="number" min="1" value="6"></div><div><label>R₂ (Ω)</label><input id="a2" type="number" min="1" value="10"></div><div><label>R₃ (Ω)</label><input id="a3" type="number" min="1" value="16"></div><div><label>U (V)</label><input id="a4" type="number" min="1" value="12"></div></div><div id="cc"></div></div>
+<h3>Câu hỏi trong sách</h3><div id="qs"></div></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],NS='http://www.w3.org/2000/svg',W=110;
+const fmt=(v,d=2)=>v.toLocaleString('vi-VN',{minimumFractionDigits:0,maximumFractionDigits:d}),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const P={bat:'Nguồn điện',sw:'Công tắc K',l1:'Bóng đèn 1',l2:'Bóng đèn 2',r1:'Điện trở R₁',r2:'Điện trở R₂',r3:'Điện trở R₃',am1:'Ampe kế A₁',am2:'Ampe kế A₂',am3:'Ampe kế A₃'};
+const SN={bat:'Nguồn',l1:'Đèn 1',l2:'Đèn 2',r1:'R₁',r2:'R₂',r3:'R₃',am1:'A₁',am2:'A₂',am3:'A₃'};
+const EXP=[['bat','sw','l1','l2'],['bat','sw','r1','r2','r3','am1','am2'],['bat','sw','r1','r2','am1','am2','am3']];
+const EV=[6,12,6],RV=[{},{r1:6,r2:10,r3:16},{r1:10,r2:6}];
+const GD=['<b>Mở bài:</b> mắc hai bóng đèn (6 V; mỗi đèn 12 Ω) vào nguồn 6 V theo hai cách: nối tiếp (nguồn → K → đèn 1 → đèn 2 → nguồn) và song song (hai đèn chung hai nút). Bấm vào đèn 1 để làm đèn cháy và quan sát đèn còn lại.','<b>Hình 12.2:</b> nguồn 12 V → K → A₁ → R₁ → A₂ → R₂ → về nguồn. Làm với các cặp R₁–R₂, R₁–R₃, R₂–R₃ (thả điện trở cũ vào khay, đưa điện trở khác lên).','<b>Hình 12.4:</b> nguồn 6 V → K → A₁ (mạch chính) → nút M. Nhánh 1: A₂ → R₁. Nhánh 2: A₃ → R₂. Hai nhánh gặp nhau ở nút N rồi về nguồn. Dùng dây để nối các đầu chung nút.'];
+let ex=0,comps=[],wires=[],rec={},uid=1,mode=null,cache={};
+const svg=$('#bench'),gW=$('#gw'),gC=$('#gc'),tmp=$('#tmp'),tray=$('#tray');
+const byId=i=>comps.find(c=>c.id==i),byT=t=>comps.find(c=>c.t==t);
+const L=(a,b)=>`<path class="lead" d="M${a} 0H${b}"/>`,nm=(t,y=-30)=>`<text class="tx nm" x="55" y="${y}" text-anchor="middle">${SN[t]||''}</text>`;
+function tpl(t){
+ if(t=='bat')return L(0,20)+L(90,110)+`<rect class="body" x="20" y="-20" width="70" height="40" rx="7"/><text class="tx bv" x="55" y="6" text-anchor="middle" font-size="16"></text><text class="tx" x="9" y="-11" text-anchor="middle" font-size="16">−</text><text x="101" y="-11" text-anchor="middle" fill="#e03131" font-weight="700" font-size="16">+</text>`+nm(t);
+ if(t=='sw')return L(0,25)+L(85,110)+`<rect x="15" y="-42" width="80" height="50" fill="transparent"/><circle class="body" cx="25" r="4.5"/><circle class="body" cx="85" r="4.5"/><line class="blade lead" x1="25" x2="83" style="stroke-width:5"/><text class="tx st" x="55" y="34" text-anchor="middle"></text>`;
+ if(t=='l1'||t=='l2')return L(0,33)+L(77,110)+`<circle class="glow" cx="55" r="30" fill="url(#gw2)" style="opacity:0;pointer-events:none"/><circle class="body" cx="55" r="22"/><circle class="on" cx="55" r="21" fill="#ffe066" style="opacity:0"/><path class="fil lead" d="M43 9L50 -7L55 7L60 -7L67 9" style="stroke-width:2.5"/><text class="tm rd bs" x="55" y="44" style="font-size:12px"></text>`+nm(t,-40);
+ if(t[0]=='a')return L(0,31)+L(79,110)+`<circle class="body" cx="55" r="24" style="stroke:var(--ac)"/><text class="tx" x="55" y="9" text-anchor="middle" font-size="24">A</text><text class="rd" x="55" y="46"></text>`+nm(t,-34);
+ return L(0,20)+L(90,110)+`<rect class="body" x="20" y="-11" width="70" height="22" rx="5"/><rect x="34" y="-11" width="6" height="22" fill="#c2410c"/><rect x="46" y="-11" width="6" height="22" fill="#7c3aed"/><rect x="58" y="-11" width="6" height="22" fill="#2b8a3e"/><rect x="74" y="-11" width="5" height="22" fill="#d4a017"/>`+nm(t,-24)}
+function add(t){if(byT(t))return;const s=EXP[ex].indexOf(t),c={id:uid++,t,x:30+(s%3)*270,y:100+Math.floor(s/3)*150,closed:false,burn:false,b:0,I:0,U:0},g=document.createElementNS(NS,'g');
+ g.setAttribute('class','comp');g.dataset.id=c.id;g.innerHTML=tpl(t)+`<circle class="term" data-t="${c.id}a" r="7"/><circle class="term" data-t="${c.id}b" cx="${W}" r="7"/>`;
+ c.g=g;c.ta=g.querySelector(`[data-t="${c.id}a"]`);c.tb=g.querySelector(`[data-t="${c.id}b"]`);gC.appendChild(g);comps.push(c);draw()}
+function remove(c){c.g.remove();comps=comps.filter(x=>x!==c);wires=wires.filter(w=>parseInt(w[0])!=c.id&&parseInt(w[1])!=c.id)}
+const tp=k=>{const c=byId(parseInt(k));return{x:c.x+(k.endsWith('b')?W:0),y:c.y}};
+const rOf=c=>c.t=='sw'?(c.closed?.01:null):c.t[0]=='l'?(c.burn?null:12):c.t[0]=='a'?.01:c.t=='bat'?null:RV[ex][c.t];
+function solve(){
+ const par={},f=k=>par[k]==k?k:(par[k]=f(par[k])),ks=[],T={};
+ comps.forEach(c=>['a','b'].forEach(s=>{const k=c.id+s;par[k]=k;ks.push(k);T[k]={x:c.x+(s=='b'?W:0),y:c.y,c}}));
+ for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){const p=T[ks[i]],q=T[ks[j]];if(p.c!==q.c&&Math.hypot(p.x-q.x,p.y-q.y)<14)par[f(ks[i])]=f(ks[j])}
+ wires.forEach(w=>{par[f(w[0])]=f(w[1])});
+ const idx={};let n=0;const nd=k=>{k=f(k);return idx[k]??(idx[k]=n++)};
+ comps.forEach(c=>{c.na=nd(c.id+'a');c.nb=nd(c.id+'b')});
+ const cnt={};ks.forEach(k=>{const r=f(k);cnt[r]=(cnt[r]||0)+1});ks.forEach(k=>T[k].c['o'+k.slice(-1)]=cnt[f(k)]>1);
+ const bat=byT('bat'),N=n+(bat?1:0),A=Array.from({length:N},()=>Array(N+1).fill(0));
+ for(let i=0;i<n;i++)A[i][i]+=1e-9;
+ comps.forEach(c=>{const r=rOf(c);if(r==null)return;const g=1/r,a=c.na,b=c.nb;A[a][a]+=g;A[b][b]+=g;A[a][b]-=g;A[b][a]-=g});
+ if(bat){const p=bat.nb,q=bat.na;A[p][n]+=1;A[q][n]-=1;A[n][p]+=1;A[n][q]-=1;A[n][N]=EV[ex]}
+ for(let i=0;i<N;i++){let p=i;for(let r=i+1;r<N;r++)if(Math.abs(A[r][i])>Math.abs(A[p][i]))p=r;[A[i],A[p]]=[A[p],A[i]];if(Math.abs(A[i][i])<1e-14)continue;for(let r=0;r<N;r++)if(r!=i){const k=A[r][i]/A[i][i];if(k)for(let j=i;j<=N;j++)A[r][j]-=k*A[i][j]}}
+ const X=A.map((r,i)=>Math.abs(r[i])<1e-14?0:r[N]/r[i]);
+ comps.forEach(c=>{const v=X[c.na]-X[c.nb],r=rOf(c);c.U=Math.abs(v);c.I=r==null?0:Math.abs(v/r);if(c.I<1e-6)c.I=0;c.b=c.t[0]=='l'?Math.min(1,(c.I/.5)**2):0});
+ return{T,bat,it:bat?Math.abs(X[n]):0}}
+const lab=b=>b>.8?'sáng mạnh':b>.3?'sáng vừa':b>.1?'sáng yếu':b>.02?'rất mờ':'không sáng';
+function setH(el,h){if(cache[el.id]!==h){cache[el.id]=h;el.innerHTML=h}}
+function draw(){
+ const{bat,it}=solve();
+ comps.forEach(c=>{const q=s=>c.g.querySelector(s),t=c.t;c.g.setAttribute('transform',`translate(${c.x} ${c.y})`);c.ta.classList.toggle('on',!!c.oa);c.tb.classList.toggle('on',!!c.ob);
+  if(t=='bat')q('.bv').textContent=EV[ex]+' V';
+  else if(t=='sw'){q('.blade').setAttribute('transform',c.closed?'':'rotate(-32 25 0)');q('.st').textContent='K: '+(c.closed?'đóng':'mở')}
+  else if(t[0]=='l'){const b=c.b,gl=q('.glow');gl.setAttribute('r',26+40*b);gl.style.opacity=Math.min(1,b**.6*1.1);q('.on').style.opacity=b;q('.fil').style.stroke=b>.03?'#e8590c':'';q('.fil').setAttribute('d',c.burn?'M43 9L50 -7M60 -7L67 9':'M43 9L50 -7L55 7L60 -7L67 9');q('.bs').textContent=c.burn?'(bị cháy)':''}
+  else if(t[0]=='a')q('.rd').textContent=fmt(c.I)+' A';
+  else if(t[0]=='r')q('.nm').textContent=`R${t[1]} = ${RV[ex][t]} Ω`});
+ gW.innerHTML=wires.map((w,i)=>{const a=tp(w[0]),b=tp(w[1]),d=Math.hypot(a.x-b.x,a.y-b.y);return`<path class="wire" data-i="${i}" d="M${a.x} ${a.y}Q${(a.x+b.x)/2} ${(a.y+b.y)/2+Math.min(50,d/3)} ${b.x} ${b.y}"><title>Bấm để gỡ dây</title></path>`}).join('');
+ $$('#items button').forEach(b=>b.disabled=!!byT(b.dataset.t));
+ $('#msg').textContent=!bat?'Hãy đưa nguồn điện lên bàn thí nghiệm.':bat.na==bat.nb?'⚠ Đoản mạch! Hai cực nguồn đang nối trực tiếp.':it<1e-6?'Mạch chưa kín hoặc công tắc đang mở: không có dòng điện.':'Mạch kín: có dòng điện chạy trong mạch.';
+ if(ex==0)ex0();else if(ex==1)ex1();else ex2()}
+function ex0(){const a=byT('l1'),b=byT('l2'),s=byT('sw'),bt=byT('bat');
+ if(a&&b&&s&&bt&&s.closed&&!b.burn&&a.oa&&a.ob&&b.oa&&b.ob){const sh=[a.na,a.nb].filter(n=>n==b.na||n==b.nb).length,k=sh==2?'ss':sh==1?'nt':'';
+  if(k&&((!a.burn&&a.I>1e-3&&b.I>1e-3)||a.burn))rec[k+(a.burn?'-b':'-o')]=`Đèn 1: ${a.burn?'cháy':lab(a.b)}<br>Đèn 2: ${lab(b.b)}`}
+ const cell=k=>rec[k]||'?';
+ setH($('#t0'),`<table><tr><th>Cách mắc</th><th>Cả hai đèn tốt</th><th>Đèn 1 bị cháy</th></tr><tr><td>Nối tiếp</td><td>${cell('nt-o')}</td><td>${cell('nt-b')}</td></tr><tr><td>Song song</td><td>${cell('ss-o')}</td><td>${cell('ss-b')}</td></tr></table>`);
+ setH($('#c0'),Object.keys(rec).length==4?'<p class="ok">Mắc nối tiếp: một đèn cháy thì đèn kia cũng tắt, và mỗi đèn sáng yếu hơn. Mắc song song: đèn kia vẫn sáng bình thường. Vì vậy các thiết bị trong gia đình được mắc song song.</p>':'<p class="sm">Lần lượt mắc hai đèn nối tiếp và song song, đóng K; ở mỗi cách mắc hãy thử cả khi đèn 1 bị cháy (bấm vào đèn 1).</p>')}
+function ex1(){const rs=comps.filter(c=>c.t[0]=='r'&&c.I>1e-3),a1=byT('am1'),a2=byT('am2');
+ if(rs.length==2&&a1&&a2&&a1.I>1e-3&&Math.abs(a1.I-a2.I)<1e-3)rec[rs.map(c=>c.t).sort().join('')]={a:a1.I,b:a2.I,r:rs.reduce((s,c)=>s+RV[1][c.t],0),n:rs.map(c=>c.t).sort()};
+ const rowsH=[['r1','r2'],['r1','r3'],['r2','r3']].map(p=>{const r=rec[p.join('')],nm=p.map(x=>'R'+x[1]).join(' và ');return`<tr><td>${nm}</td><td>${r?fmt(r.a):'?'}</td><td>${r?fmt(r.b):'?'}</td><td>${r?fmt(r.r)+' Ω':'?'}</td></tr>`}).join('');
+ setH($('#t1'),`<table><tr><th>Điện trở mắc vào mạch</th><th>A₁ (A)</th><th>A₂ (A)</th><th>R<sub>tđ</sub> = R + R</th></tr>${rowsH}</table>`);
+ setH($('#c1'),Object.keys(rec).length>=2?'<p class="ok">Số chỉ A₁ = A₂ ở mọi cặp điện trở: cường độ dòng điện tại mọi điểm của đoạn mạch nối tiếp là như nhau, I = I₁ = I₂. Điện trở tương đương R<sub>tđ</sub> = R₁ + R₂ (I = U/R<sub>tđ</sub> = 12 V / R<sub>tđ</sub>).</p>':'<p class="sm">Mắc R₁, R₂ cùng A₁, A₂ nối tiếp, đóng K rồi đọc số chỉ; sau đó đổi sang các cặp điện trở khác.</p>')}
+function ex2(){const am=['am1','am2','am3'].map(byT),nm=['I (A₁)','I₁ (A₂)','I₂ (A₃)'];
+ setH($('#t2'),`<table><tr><th>Ampe kế</th><th>Số chỉ</th></tr>${am.map((a,i)=>`<tr><td>A${'₁₂₃'[i]}</td><td>${a?fmt(a.I)+' A':'?'}</td></tr>`).join('')}</table>`);
+ let h='<p class="sm">Mắc theo Hình 12.4, đóng K: A₁ đo mạch chính, A₂ và A₃ đo hai mạch nhánh.</p>';
+ if(am.every(a=>a)&&am.every(a=>a.I>.01)){const v=am.map(a=>a.I),m=Math.max(...v),o=v.reduce((s,x)=>s+x,0)-m;
+  h=Math.abs(m-o)<.011?`<p class="ok">Cường độ mạch chính bằng tổng cường độ các mạch nhánh: ${fmt(m)} A = ${fmt(o)} A, tức I = I₁ + I₂. Điện trở tương đương: 1/R<sub>tđ</sub> = 1/R₁ + 1/R₂ nên R<sub>tđ</sub> = ${fmt(6/m)} Ω (nhỏ hơn mỗi điện trở thành phần).</p>`:'<p class="er">Số chỉ chưa khớp: kiểm tra lại cách mắc ampe kế (A₁ ở mạch chính, A₂ và A₃ ở hai nhánh).</p>'}
+ setH($('#c2'),h)}
+/* tương tác */
+const pt=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())};
+const nearest=(p,x,r)=>{let best=null,bd=r;comps.forEach(c=>['a','b'].forEach(s=>{const k=c.id+s;if(k==x)return;const q=tp(k),d=Math.hypot(p.x-q.x,p.y-q.y);if(d<bd){bd=d;best=k}}));return best};
+function snap(c){let best=null,bd=28;['a','b'].forEach(s=>{const m=tp(c.id+s);comps.forEach(o=>{if(o===c)return;['a','b'].forEach(t=>{const q=tp(o.id+t),d=Math.hypot(m.x-q.x,m.y-q.y);if(d<bd){bd=d;best={dx:q.x-m.x,dy:q.y-m.y}}})})});if(best){c.x+=best.dx;c.y+=best.dy}}
+const overTray=e=>{const r=tray.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom};
+svg.addEventListener('pointerdown',e=>{const p=pt(e),tm=e.target.closest('.term'),cg=e.target.closest('.comp'),wi=e.target.closest('.wire');
+ if(tm){mode={k:'wire',from:tm.dataset.t};e.preventDefault()}
+ else if(cg){const c=byId(cg.dataset.id);gC.appendChild(cg);mode={k:'drag',c,ox:p.x-c.x,oy:p.y-c.y,sx:e.clientX,sy:e.clientY,moved:0};e.preventDefault()}
+ else if(wi){wires.splice(+wi.dataset.i,1);draw()}});
+addEventListener('pointermove',e=>{if(!mode)return;const p=pt(e);
+ if(mode.k=='drag'){if(Math.hypot(e.clientX-mode.sx,e.clientY-mode.sy)>4)mode.moved=1;if(mode.moved){mode.c.x=cl(p.x-mode.ox,5,745);mode.c.y=cl(p.y-mode.oy,55,450);tray.classList.toggle('drop',overTray(e));draw()}}
+ else if(mode.k=='wire'){const a=tp(mode.from);tmp.setAttribute('d',`M${a.x} ${a.y}L${p.x} ${p.y}`)}});
+addEventListener('pointerup',e=>{if(!mode)return;const m=mode;mode=null;tmp.setAttribute('d','');tray.classList.remove('drop');
+ if(m.k=='drag'){if(!m.moved){if(m.c.t=='sw')m.c.closed=!m.c.closed;else if(m.c.t[0]=='l')m.c.burn=!m.c.burn}else if(overTray(e))remove(m.c);else snap(m.c)}
+ if(m.k=='wire'){const t=nearest(pt(e),m.from,24);if(t&&!wires.some(w=>(w[0]==m.from&&w[1]==t)||(w[0]==t&&w[1]==m.from)))wires.push([m.from,t])}
+ draw()});
+function setExp(i){ex=i;comps.forEach(c=>c.g.remove());comps=[];wires=[];rec={};cache={};
+ $$('.tab').forEach((b,j)=>b.classList.toggle('on',j==i));$('#mn').hidden=i==3;$('#v3').hidden=i!=3;if(i==3){calc();return}
+ [0,1,2].forEach(j=>$('#p'+j).hidden=j!=i);$('#gd').innerHTML=GD[i];
+ $('#items').innerHTML=EXP[i].map(t=>`<button data-t="${t}">${P[t]}</button>`).join('');$$('#items button').forEach(b=>b.onclick=()=>add(b.dataset.t));draw()}
+$$('.tab').forEach((b,i)=>b.onclick=()=>setExp(i));
+/* tab 4 */
+function calc(){const r=[1,2,3].map(i=>Math.max(1,+$('#a'+i).value||1)),U=Math.max(1,+$('#a4').value||1),rn=r.reduce((s,x)=>s+x,0),rs=1/r.reduce((s,x)=>s+1/x,0);
+ $('#cc').innerHTML=`<p><b>Nối tiếp:</b> R<sub>tđ</sub> = R₁ + R₂ + R₃ = ${fmt(rn)} Ω → I = U/R<sub>tđ</sub> = ${fmt(U/rn)} A (lớn hơn mỗi điện trở thành phần).</p><p><b>Song song:</b> 1/R<sub>tđ</sub> = 1/R₁ + 1/R₂ + 1/R₃ → R<sub>tđ</sub> = ${fmt(rs)} Ω → I = ${fmt(U/rs)} A (nhỏ hơn mỗi điện trở thành phần).</p>`}
+['a1','a2','a3','a4'].forEach(i=>$('#'+i).oninput=calc);
+const Q=[{q:'Hai điện trở R₁ = 2 Ω, R₂ = 3 Ω mắc nối tiếp, cường độ dòng điện qua R₁ là 1 A. a) Điện trở tương đương (Ω)?',n:5,e:'R<sub>tđ</sub> = 2 + 3 = 5 Ω.'},
+{q:'b) Hiệu điện thế giữa hai đầu R₁ (V)?',n:2,e:'Nối tiếp nên I₂ = I₁ = 1 A; U₁ = I·R₁ = 1 × 2 = 2 V.'},{q:'Hiệu điện thế giữa hai đầu R₂ (V)?',n:3,e:'U₂ = I·R₂ = 1 × 3 = 3 V.'},{q:'c) Hiệu điện thế giữa hai đầu đoạn mạch (V)?',n:5,e:'U = I·R<sub>tđ</sub> = 1 × 5 = 5 V (= U₁ + U₂).'},
+{q:'Hai điện trở 20 Ω và 40 Ω mắc song song vào hiệu điện thế 24 V. a) Điện trở tương đương (Ω)?',n:40/3,e:'1/R<sub>tđ</sub> = 1/20 + 1/40 = 3/40 nên R<sub>tđ</sub> ≈ 13,33 Ω.'},{q:'b) Cường độ dòng điện chạy trong mạch chính (A)?',n:1.8,e:'I = U/R<sub>tđ</sub> = 24 / 13,33 = 1,8 A (= 1,2 A + 0,6 A).'},
+{q:'Có hai bóng đèn, nguồn điện và dây nối. Mắc thế nào để khi một đèn cháy thì đèn kia vẫn sáng?',o:['Mắc nối tiếp','Mắc song song'],a:1,e:'Mắc song song: mỗi đèn nằm trên một nhánh riêng nên hoạt động độc lập.'},
+{q:'Vì sao các thiết bị điện trong gia đình (bóng đèn, tivi, tủ lạnh…) được mắc song song?',o:['Để chúng cùng chịu hiệu điện thế định mức của nguồn và hoạt động độc lập','Để tiết kiệm dây dẫn','Để dòng điện qua mỗi thiết bị luôn bằng nhau'],a:0,e:'Mắc song song, hiệu điện thế hai đầu mỗi thiết bị bằng nhau và bằng hiệu điện thế nguồn; tắt hoặc hỏng một thiết bị không ảnh hưởng thiết bị khác.'},
+{q:'So với mỗi điện trở thành phần, điện trở tương đương của đoạn mạch song song thì:',o:['Lớn hơn','Nhỏ hơn','Bằng nhau'],a:1,e:'Vì 1/R<sub>tđ</sub> lớn hơn 1/R của từng điện trở nên R<sub>tđ</sub> nhỏ hơn mỗi điện trở thành phần.'}];
+$('#qs').innerHTML=Q.map((q,i)=>`<div class="q" id="q${i}"><b>Câu ${i+1}.</b> ${q.q}<div style="margin-top:6px">${q.o?q.o.map((o,j)=>`<label><input type="radio" name="r${i}" value="${j}"> ${o}</label>`).join(''):`<input type="text" id="n${i}" inputmode="decimal" placeholder="đáp số">`}</div><div class="row"><button class="btn g" data-i="${i}">Kiểm tra</button><span id="r${i}"></span></div></div>`).join('');
+$$('#qs button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,q=Q[i];let ok=0,has=1;
+ if(q.o){const c=document.querySelector(`input[name=r${i}]:checked`);has=!!c;ok=c&&+c.value==q.a}else{const s=$('#n'+i).value.replace(/\s/g,'').replace(',','.');has=s!=='';ok=has&&Math.abs(parseFloat(s)-q.n)<=Math.max(q.n*.01,.011)}
+ if(!has){$('#r'+i).innerHTML='<span class="sm">Hãy chọn hoặc nhập đáp án.</span>';return}
+ $('#q'+i).className='q '+(ok?'good':'bad');$('#r'+i).innerHTML=`<span class="${ok?'ok':'er'}">${ok?'Chính xác!':'Chưa đúng.'}</span> <span class="sm">${q.e}</span>`});
+setExp(0);
+</script></body></html>

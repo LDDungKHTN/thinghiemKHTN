@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 16 – Vòng năng lượng trên Trái Đất. Năng lượng hoá thạch</title>
+<link rel="stylesheet" href="assets/lib.css"><script src="assets/lib.js"></script>
+<style>.stg{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.stg .btn{font-size:13px;padding:6px 10px}.leg{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--mut)}.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}</style></head><body>
+<header><h1>Bài 16. Vòng năng lượng trên Trái Đất. Năng lượng hoá thạch<a href="index.html">← Danh sách bài</a></h1>
+<nav><button class="tab on">Vòng năng lượng giữa sinh vật</button><button class="tab">Vòng tuần hoàn nước</button><button class="tab">Hình thành dầu mỏ</button><button class="tab">Ưu, nhược điểm</button><button class="tab">Giá nhiên liệu</button><button class="tab">Câu hỏi</button></nav></header>
+
+<div class="pn" id="v0"><div class="cd">Hình 16.1: năng lượng Mặt Trời được thực vật hấp thụ rồi truyền qua thức ăn cho động vật. Chỉnh cường độ ánh sáng và mức hoạt động của động vật, rồi bấm các giai đoạn để xem dạng năng lượng.</div>
+<svg class="sc" id="s1" viewBox="0 0 520 300"><circle cx="460" cy="50" r="26" fill="#ffd43b" class="sk"/><text class="tx" x="460" y="95" text-anchor="middle">Mặt Trời</text>
+<g id="tr"><rect x="125" y="120" width="16" height="60" fill="#8d6e63" class="sk"/><circle cx="133" cy="95" r="42" fill="#69db7c" class="sk"/><circle cx="105" cy="115" r="26" fill="#51cf66" class="sk"/><circle cx="163" cy="115" r="26" fill="#51cf66" class="sk"/></g><text class="tx" x="133" y="45" text-anchor="middle">Thực vật</text>
+<g id="an"><ellipse cx="150" cy="255" rx="34" ry="20" fill="#b08968" class="sk"/><circle cx="118" cy="240" r="14" fill="#b08968" class="sk"/><path d="M182 250q30 -30 14 -45" class="sk" style="stroke-width:6;stroke:#b08968"/></g><text class="tx" x="150" y="292" text-anchor="middle">Động vật</text>
+<path d="M0 280H520" class="sk" opacity=".3"/><g id="pt"></g><text class="tx" x="330" y="245" id="atp"></text></svg>
+<div class="leg"><span><i style="background:#ffd43b"></i>Ánh sáng</span><span><i style="background:#868e96"></i>CO₂</span><span><i style="background:#2f9e44"></i>O₂</span><span><i style="background:#4dabf7"></i>H₂O</span><span><i style="background:#e8590c"></i>Đường glucose</span><span><i style="background:#7048e8"></i>ATP</span></div>
+<div class="ctl"><div><label>Ánh sáng Mặt Trời: <span id="a1"></span>%</label><input type="range" id="li" min="0" max="100" value="80"></div><div><label>Mức hoạt động của động vật: <span id="a2"></span>%</label><input type="range" id="ac" min="10" max="100" value="60"></div></div>
+<div class="stg" id="sg1"></div><div class="cd" id="i1"></div></div>
+
+<div class="pn" id="v1" hidden><div class="cd">Hình 16.2: Mặt Trời làm nước bốc hơi, hơi nước ngưng tụ thành mây rồi rơi xuống thành mưa, tuyết, chảy về biển. Sự nóng lên không đều tạo ra gió và dòng chảy.</div>
+<svg class="sc" id="s2" viewBox="0 0 520 300"><circle cx="470" cy="40" r="24" fill="#ffd43b" class="sk"/><path d="M0 210L80 110L150 190L210 150L300 230H0z" fill="#8d6e63" class="sk"/><path d="M80 110L95 128L80 124L66 132z" fill="#fff"/><rect x="300" y="232" width="220" height="68" fill="#4dabf7" opacity=".7"/><path d="M0 230H300" class="sk"/><path d="M240 180Q270 215 300 232" fill="none" stroke="#4dabf7" stroke-width="7" opacity=".8"/>
+<g id="cld"></g><g id="p2"></g><text class="tx" x="400" y="270" text-anchor="middle">Biển</text><text class="tx" x="150" y="260" text-anchor="middle">Đất liền</text></svg>
+<div class="leg"><span><i style="background:#4dabf7"></i>Nước/hơi nước</span><span><i style="background:#ced4da"></i>Gió</span><span><i style="background:#ffd43b"></i>Ánh sáng</span></div>
+<div class="ctl"><div><label>Ánh sáng Mặt Trời: <span id="b1"></span>%</label><input type="range" id="sn" min="0" max="100" value="70"></div></div>
+<div class="stg" id="sg2"></div><div class="cd" id="i2"></div></div>
+
+<div class="pn" id="v2" hidden><div class="cd">Hình 16.3: dầu mỏ hình thành từ xác sinh vật biển chìm sâu và bị biến đổi qua hàng triệu năm. Kéo thanh thời gian để xem từng giai đoạn.</div>
+<svg class="sc" id="s3" viewBox="0 0 520 280"></svg>
+<div class="ctl"><div><label>Thời gian: <span id="c1"></span></label><input type="range" id="tm" min="0" max="4" step="1" value="0"></div></div><div class="cd" id="i3"></div>
+<div class="cd"><b>Vì sao dầu mỏ sẽ cạn kiệt?</b><div class="ctl"><div><label>Tốc độ khai thác: ×<span id="c2"></span></label><input type="range" id="cs" min="1" max="10" value="3"></div></div><div class="sm">Trữ lượng còn lại</div><div class="bar" style="height:18px"><i id="rb" style="background:#343a40"></i></div><div class="row"><button class="btn" id="rg">Khai thác</button><button class="btn g" id="rr">Đặt lại</button></div><div id="i4" class="sm"></div></div></div>
+
+<div class="pn" id="v3" hidden><div class="cd">Chọn nhiên liệu hoá thạch rồi bấm “Đốt” để xem chất thải. Mức phát thải là so sánh tương đối, chỉ minh hoạ.</div>
+<div class="row"><button class="btn on fu" data-f="0">Than mỏ</button><button class="btn g fu" data-f="1">Xăng, dầu</button><button class="btn g fu" data-f="2">Khí thiên nhiên</button><button class="btn" id="bn">Đốt</button></div>
+<svg class="sc" id="s4" viewBox="0 0 520 220"><rect x="0" y="190" width="520" height="30" fill="#8d6e63"/><g id="fire"></g><g id="smk"></g></svg>
+<div class="cd" id="em"></div>
+<div class="cd"><b>Ưu điểm</b><ul style="margin:4px 0"><li>Khai thác với khối lượng lớn, dễ vận chuyển.</li><li>Công nghệ chuyển hoá thành các dạng năng lượng khác phổ biến, chi phí rẻ.</li></ul><b>Nhược điểm</b><ul style="margin:4px 0"><li>Mất hàng triệu năm hình thành nhưng tiêu thụ rất nhanh nên cạn kiệt dần.</li><li>Khai thác, xử lí, phân phối có thể làm thay đổi cấu trúc địa tầng, gây động đất, thay đổi hệ sinh thái.</li><li>Đốt cháy thải CO₂, CO, NO₂, NO, SO₂… gây ô nhiễm, hiệu ứng nhà kính, làm tan băng, nước biển dâng, hạn hán, lũ lụt.</li></ul></div></div>
+
+<div class="pn" id="v4" hidden><div class="cd">Hình 16.4: cơ cấu giá bán xăng ở Mỹ năm 2023. Chỉnh các yếu tố để xem giá thay đổi thế nào (giá gốc coi là 100).</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px"><svg id="pie" viewBox="0 0 260 240" style="width:100%;height:auto"></svg><div><div class="ctl" style="grid-template-columns:1fr"><div><label>Chi phí khai thác tăng: +<span id="d1"></span>%</label><input type="range" id="kt" min="0" max="100" value="0"></div><div><label>Thuế bảo vệ môi trường: +<span id="d2"></span> (đơn vị giá)</label><input type="range" id="tx" min="0" max="30" value="0"></div></div><div class="cd" id="pr"></div></div></div>
+<div class="cd sm">Chi phí khai thác ngày càng tăng (mỏ dễ khai thác cạn dần, phải thăm dò vùng biển sâu, hẻo lánh) làm giá nhiên liệu tăng. Thêm chi phí khắc phục ô nhiễm làm giá tăng nhưng khuyến khích giảm dùng nhiên liệu hoá thạch, chuyển sang năng lượng tái tạo.</div></div>
+
+<div class="pn" id="v5" hidden><div id="qs"></div></div>
+
+<script>
+tabs();
+const ST1=[['1. Quang hợp','Thực vật hấp thụ năng lượng Mặt Trời, chuyển CO₂ và H₂O thành đường glucose và O₂: quang năng → hoá năng dự trữ trong phân tử đường (ở lục lạp).'],['2. Động vật ăn thực vật','Động vật ăn thực vật để lấy năng lượng và chất dinh dưỡng cho sinh trưởng, phát triển, vận động: hoá năng trong thức ăn truyền sang động vật.'],['3. Hô hấp','Glucose bị phân giải với oxygen thành CO₂, nước và giải phóng năng lượng ATP (kèm nhiệt): hoá năng → năng lượng ATP, nhiệt năng.'],['4. Tích tụ lâu dài','Xác sinh vật bị vùi lấp qua hàng triệu năm hình thành than, dầu mỏ, khí: năng lượng hoá thạch cũng có nguồn gốc từ Mặt Trời.']];
+let s1=0;$('#sg1').innerHTML=ST1.map((s,i)=>`<button class="btn ${i?'g':'on'} s1" data-i="${i}">${s[0]}</button>`).join('');
+$$('.s1').forEach(b=>b.onclick=()=>{s1=+b.dataset.i;$$('.s1').forEach(x=>{x.classList.toggle('g',x!=b);x.classList.toggle('on',x==b)})});
+const FL=[{a:[430,70],b:[165,95],c:'#ffd43b',r:'L',n:7},{a:[165,150],b:[190,215],c:'#e8590c',r:'R',n:4},{a:[95,225],b:[95,150],c:'#868e96',r:'R',n:4,rr:2},{a:[190,150],b:[210,225],c:'#2f9e44',r:'L',n:4},{a:[40,265],b:[110,150],c:'#4dabf7',r:'L',n:4},{a:[200,250],b:[330,250],c:'#7048e8',r:'R',n:4}];
+let ph=0;
+function d1(dt){const L=$('#li').value/100,A=$('#ac').value/100;$('#a1').textContent=Math.round(L*100);$('#a2').textContent=Math.round(A*100);let h='';
+ FL.forEach((fl,k)=>{const rate=fl.r=='L'?L:A*(.3+.7*Math.max(L,.2)),n=Math.round(fl.n*rate*1.5);for(let i=0;i<n;i++){const t=(ph+i/Math.max(1,n))%1,x=fl.a[0]+(fl.b[0]-fl.a[0])*t,y=fl.a[1]+(fl.b[1]-fl.a[1])*t,hl=(s1==0&&k<5&&k!=1&&k!=5&&k!=2)||(s1==1&&k==1)||(s1==2&&(k==2||k==3||k==5))||s1==3;h+=`<circle cx="${x}" cy="${y}" r="${hl?5:3.5}" fill="${fl.c}" opacity="${hl?1:.45}"/>`}});
+ $('#pt').innerHTML=h;$('#atp').textContent=s1>=2?'ATP + nhiệt năng':'';$('#tr').style.opacity=s1==0?1:.85;$('#i1').innerHTML=`<b>${ST1[s1][0]}</b><br>${ST1[s1][1]}<br><span class="sm">${L==0?'Ban đêm / không có ánh sáng: thực vật không quang hợp, không tạo thêm đường và O₂ — chứng tỏ năng lượng của vòng này đến từ Mặt Trời.':'Quang hợp đang diễn ra với '+Math.round(L*100)+'% cường độ ánh sáng.'}</span>`}
+const ST2=[['1. Bốc hơi','Ánh sáng Mặt Trời làm nóng nước biển, nước bốc hơi: quang năng → nhiệt năng, nước lên cao có thế năng.'],['2. Ngưng tụ, mây','Hơi nước gặp lạnh ngưng tụ thành mây; thoát hơi nước ở thực vật cũng đưa hơi nước vào khí quyển.'],['3. Gió','Mặt Trời làm nóng không đều, chênh lệch nhiệt độ làm không khí chuyển động: nhiệt năng → động năng của gió (năng lượng gió).'],['4. Mưa, dòng chảy','Mưa, tuyết rơi xuống, nước chảy từ cao xuống thấp: thế năng → động năng của dòng chảy (năng lượng dòng chảy), về lại biển.']];
+let s2=0;$('#sg2').innerHTML=ST2.map((s,i)=>`<button class="btn ${i?'g':'on'} s2" data-i="${i}">${s[0]}</button>`).join('');
+$$('.s2').forEach(b=>b.onclick=()=>{s2=+b.dataset.i;$$('.s2').forEach(x=>{x.classList.toggle('g',x!=b);x.classList.toggle('on',x==b)})});
+function d2(dt){const S=$('#sn').value/100;$('#b1').textContent=Math.round(S*100);const v=.15+S*.5;let h='';const q=(i,n,s)=>(ph*v*3+i/n)%1;
+ const rays=Math.round(S*6);for(let i=0;i<rays;i++){const t=q(i,rays);h+=`<circle cx="${450-t*60}" cy="${60+t*150}" r="3.5" fill="#ffd43b"/>`}
+ const ev=Math.round(S*9);for(let i=0;i<ev;i++){const t=q(i,ev),x=340+(i%5)*35+Math.sin(t*6)*5;h+=`<circle cx="${x}" cy="${232-t*115}" r="${s2==0?5:3.2}" fill="#4dabf7" opacity="${s2==0?1:.5}"/>`}
+ for(let i=0;i<7;i++){const t=(ph*v*2+i/7)%1;h+=`<path d="M${420-t*220} ${100+Math.sin(t*9+i)*6}h14" stroke="#ced4da" stroke-width="${s2==2?4:2.5}" opacity="${s2==2?1:.5}" stroke-linecap="round"/>`}
+ if(S>.35){const dr=Math.round(S*10);for(let i=0;i<dr;i++){const t=q(i,dr),x=215+(i%4)*14;h+=`<path d="M${x} ${105+t*100}v8" stroke="#4dabf7" stroke-width="2.5" opacity="${s2==3?1:.5}"/>`}}
+ for(let i=0;i<4;i++){const t=(ph*v*2+i/4)%1,x=245+t*50,y=185+Math.pow(t,1.3)*50;h+=`<circle cx="${x}" cy="${y}" r="3.5" fill="#4dabf7" opacity="${s2==3?1:.5}"/>`}
+ $('#p2').innerHTML=h;const cs=.6+S*.7;$('#cld').innerHTML=`<g transform="translate(350 90) scale(${cs})" opacity="${s2==1?1:.8}"><ellipse cx="0" cy="0" rx="42" ry="20" fill="#e9ecef" class="sk"/><ellipse cx="-22" cy="-12" rx="26" ry="16" fill="#f1f3f5" class="sk"/></g><g transform="translate(230 85) scale(${cs})"><ellipse cx="0" cy="0" rx="36" ry="18" fill="#dee2e6" class="sk"/></g>`;
+ $('#i2').innerHTML=`<b>${ST2[s2][0]}</b><br>${ST2[s2][1]}<br><span class="sm">${S<.1?'Gần như không có ánh sáng: nước hầu như không bốc hơi, gió và dòng chảy yếu đi — năng lượng gió và dòng chảy đều bắt nguồn từ Mặt Trời.':'Ánh sáng càng mạnh, nước bốc hơi và gió càng mạnh.'}</span>`}
+/* hình thành dầu mỏ */
+const ST3=['Hàng triệu năm trước: động vật, thực vật sống trên Trái Đất và dưới biển.','Xác sinh vật tích tụ dưới đáy đại dương, tạo thành trầm tích.','Các lớp trầm tích dày lên, bị vi khuẩn phân huỷ và chìm sâu; nhiệt độ và áp suất tăng.','Ở độ sâu khoảng 1 km, trầm tích biến thành bùn đen và dầu mỏ; dầu theo các vết đứt gãy dâng lên.','Ngày nay: dầu tích tụ trong các túi đá, con người khoan khai thác mỏ dầu.'],TT=['Hàng triệu năm trước','Tích tụ trầm tích','Các lớp trầm tích','Các đứt gãy, dầu dâng lên','Ngày nay'];
+function d3(){const s=+$('#tm').value;$('#c1').textContent=TT[s];let h='<rect width="520" height="280" fill="#cfe9ff"/>';
+ if(s<=2)h+=`<rect x="0" y="60" width="520" height="70" fill="#4dabf7" opacity=".7"/>`;
+ h+=`<rect x="40" y="130" width="440" height="140" fill="#c2410c" opacity=".35"/>`;
+ if(s==0)h+=[0,1,2,3,4,5].map(i=>`<circle cx="${70+i*70}" cy="${100+(i%2)*10}" r="7" fill="${i%2?'#51cf66':'#e8590c'}"/>`).join('');
+ const lay=[null,1,3,5,5][s];if(lay)for(let i=0;i<lay;i++)h+=`<rect x="40" y="${130-i*12-0}" width="440" height="12" fill="${['#e9c46a','#a98467','#6c584c','#adb5bd','#8d99ae'][i%5]}" opacity=".9" transform="translate(0 ${s>=2?(5-lay)*0:0})"/>`;
+ if(s>=2)h+=`<rect x="40" y="180" width="440" height="30" fill="#343a40" opacity="${s>=3?.9:.5}"/>`;
+ if(s>=3){h+=`<path d="M200 270L260 120M300 270L340 120" stroke="#222" stroke-width="3" fill="none" stroke-dasharray="6 4"/>`;h+=[0,1,2,3].map(i=>`<circle cx="${255-i*8}" cy="${190-i*25}" r="5" fill="#111"/>`).join('')}
+ if(s==4){h+=`<ellipse cx="270" cy="100" rx="40" ry="18" fill="#111" opacity=".85"/><rect x="262" y="40" width="16" height="70" fill="#868e96" class="sk"/><path d="M230 40h80l-20 -22h-40z" fill="#e8590c" class="sk"/><path d="M270 110V150" stroke="#222" stroke-width="4"/>`}
+ h+=`<path d="M40 130H480" stroke="#7a5230" stroke-width="3"/><text class="tx" x="20" y="22">${TT[s]}</text>`;$('#s3').innerHTML=h;$('#i3').textContent=ST3[s]}
+const R4={r:100,run:0,t:0};$('#rg').onclick=()=>R4.run=1;$('#rr').onclick=()=>{R4.r=100;R4.run=0;R4.t=0};
+function d4(dt){const c=+$('#cs').value;$('#c2').textContent=c;if(R4.run&&R4.r>0){R4.t+=dt*c;R4.r=Math.max(0,100-R4.t*2)}$('#rb').style.width=R4.r+'%';$('#i4').textContent=R4.r<=0?'Trữ lượng dầu đã cạn: hàng triệu năm mới hình thành nhưng bị dùng hết trong thời gian ngắn, nên dầu mỏ không thể bổ sung kịp.':'Khai thác càng nhanh, trữ lượng càng nhanh cạn.'}
+$('#tm').oninput=d3;d3();
+/* đốt nhiên liệu */
+const FU=[['Than mỏ',{'CO₂':.9,CO:.5,'SO₂':.9,'NO₂':.5,'Bụi':.9},'#444'],['Xăng, dầu',{'CO₂':.75,CO:.6,'SO₂':.4,'NO₂':.8,'Bụi':.5},'#666'],['Khí thiên nhiên',{'CO₂':.5,CO:.2,'SO₂':.05,'NO₂':.35,'Bụi':.1},'#aaa']];let fu=0,burn=0,sp=0;
+$$('.fu').forEach(b=>b.onclick=()=>{fu=+b.dataset.f;$$('.fu').forEach(x=>{x.classList.toggle('g',x!=b);x.classList.toggle('on',x==b)});dm()});$('#bn').onclick=()=>{burn=burn?0:1;$('#bn').textContent=burn?'Tắt':'Đốt';dm()};
+function dm(){const e=FU[fu][1];$('#em').innerHTML=`<b>${FU[fu][0]}${burn?' đang cháy':''}</b> – mức phát thải tương đối:`+Object.entries(e).map(([k,v])=>`<div class="sm">${k}</div><div class="bar"><i style="width:${burn?v*100:0}%;background:${v>.6?'#e03131':v>.3?'#f59f00':'#2b8a3e'}"></i></div>`).join('')+`<div class="sm">CO₂ gây hiệu ứng nhà kính; CO, NO₂, SO₂ gây ô nhiễm không khí, ảnh hưởng sức khoẻ con người.</div>`}
+function d5(dt){sp+=dt;let h='';if(burn){const e=FU[fu][1],n=Math.round(6+e['Bụi']*10);h+=`<path d="M230 190q15 -30 30 -10q15 -35 30 10z" fill="#ff922b"/><path d="M245 190q10 -18 15 -6q10 -20 15 6z" fill="#ffe066"/>`;for(let i=0;i<n;i++){const t=(sp*.25+i/n)%1,x=260+Math.sin(t*5+i)*22*t+t*30,y=170-t*165;h+=`<circle cx="${x}" cy="${y}" r="${4+t*14}" fill="${FU[fu][2]}" opacity="${.65*(1-t)}"/>`}}$('#smk').innerHTML=h}
+/* giá nhiên liệu */
+const PI=[['Chi phí khai thác',50,'#1c7ed6'],['Chi phí lọc dầu và lợi nhuận',25,'#ffd43b'],['Thuế',14,'#51cf66'],['Phân phối và tiếp thị',11,'#e03131']];
+function d6(){const k=+$('#kt').value,t=+$('#tx').value;$('#d1').textContent=k;$('#d2').textContent=t;const v=[50*(1+k/100),25,14+t,11],T=v.reduce((a,b)=>a+b,0);let a=-Math.PI/2,h='';v.forEach((x,i)=>{const b=a+x/T*2*Math.PI,l=x/T>.5?1:0,X=(p,r)=>130+r*Math.cos(p),Y=(p,r)=>120+r*Math.sin(p);h+=`<path d="M130 120L${X(a,100)} ${Y(a,100)}A100 100 0 ${l} 1 ${X(b,100)} ${Y(b,100)}Z" fill="${PI[i][2]}" stroke="var(--cd)" stroke-width="2"/><text x="${X((a+b)/2,62)}" y="${Y((a+b)/2,62)}" text-anchor="middle" style="fill:#fff;font:700 13px sans-serif">${Math.round(x/T*100)}%</text>`;a=b});$('#pie').innerHTML=h;
+ $('#pr').innerHTML=PI.map((p,i)=>`<div class="sm"><span style="color:${p[2]}">●</span> ${p[0]}: ${f(v[i],1)}</div>`).join('')+`<b>Giá nhiên liệu: ${f(T,1)}</b> (gốc 100) → ${T>100?'<span class="er">tăng '+f(T-100,1)+'%</span>':'không đổi'}`}
+$('#kt').oninput=$('#tx').oninput=d6;d6();dm();
+loop(dt=>{ph=(ph+dt*.35)%1;if(cur==0)d1(dt);if(cur==1)d2(dt);if(cur==2)d4(dt);if(cur==3)d5(dt)});
+quiz('qs',[{q:'Năng lượng trong vòng năng lượng giữa các vật sống trên Trái Đất ban đầu đến từ đâu?',o:['Mặt Trời','Lõi Trái Đất','Gió'],a:0,e:'Thực vật hấp thụ năng lượng Mặt Trời qua quang hợp rồi truyền cho động vật qua chuỗi thức ăn.'},
+{q:'Trong quang hợp, năng lượng Mặt Trời được chuyển hoá thành dạng nào?',o:['Hoá năng dự trữ trong phân tử đường','Điện năng','Động năng của gió'],a:0,e:'Quang năng → hoá năng trong glucose, lưu trữ ở lục lạp.'},
+{q:'Quá trình hô hấp của động vật phân giải glucose tạo ra:',o:['CO₂, nước và năng lượng ATP','O₂ và đường','Chỉ nhiệt năng'],a:0,e:'Glucose + O₂ → CO₂ + H₂O + ATP (kèm nhiệt).'},
+{q:'Vì sao nói năng lượng gió và năng lượng dòng chảy trên Trái Đất đến từ Mặt Trời?',o:['Mặt Trời làm nóng không đều, nước bốc hơi rồi rơi xuống, tạo ra gió và dòng chảy','Vì gió thổi từ Mặt Trời xuống','Vì dòng chảy do Mặt Trăng tạo ra'],a:0,e:'Chênh lệch nhiệt độ tạo chuyển động không khí, hải lưu; nước bốc hơi, mưa rồi chảy từ cao xuống thấp tạo dòng chảy.'},
+{q:'Năng lượng hoá thạch hình thành từ:',o:['Xác sinh vật bị vùi lấp qua hàng triệu năm','Đá núi lửa','Nước biển'],a:0,e:'Than mỏ, dầu mỏ, khí tự nhiên hình thành từ xác sinh vật nên cũng có nguồn gốc từ Mặt Trời.'},
+{q:'Vì sao dầu mỏ không thể bổ sung nhanh và sẽ cạn kiệt?',o:['Hình thành mất hàng triệu năm trong khi con người tiêu thụ rất nhanh','Vì dầu mỏ bay hơi hết','Vì dầu mỏ bị dùng làm nước uống'],a:0,e:'Tốc độ tiêu thụ vượt xa tốc độ hình thành.'},
+{q:'Ưu điểm của năng lượng hoá thạch là:',o:['Khai thác được khối lượng lớn, dễ vận chuyển, chi phí rẻ','Không gây ô nhiễm','Có thể tái tạo nhanh'],a:0,e:'Nhược điểm: gây ô nhiễm, hiệu ứng nhà kính và cạn kiệt.'},
+{q:'Chi phí khai thác chiếm khoảng bao nhiêu phần trăm giá xăng ở Mỹ năm 2023 (Hình 16.4)?',n:50,e:'Chi phí khai thác ≈ 50%; lọc dầu và lợi nhuận 25%; thuế 14%; phân phối, tiếp thị 11%.'}]);
+</script></body></html>

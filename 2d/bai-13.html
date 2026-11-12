@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 13 – Năng lượng của dòng điện và công suất điện</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f1f4f7;--cd:#fff;--ink:#1b2631;--mut:#5b6b7b;--ln:#d2dbe4;--bn:#e8eff5;--ac:#e8590c;--ok:#2b8a3e;--er:#e03131;--st:#34424f;--bl:#1c7ed6;--sky:#eef3f8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--sky:#121c26}}
+:root[data-theme="dark"]{--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--sky:#121c26}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+header{padding:12px 14px 0}h1{font-size:20px;margin:0 0 8px}h1 a{font-size:13px;font-weight:400;margin-left:8px;color:var(--mut)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--ln);background:var(--cd);color:var(--ink);padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit}
+.tab.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.pn{padding:14px;max-width:900px}.pn[hidden]{display:none}
+.cd{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:12px;margin-bottom:10px}
+svg.sc{display:block;width:100%;height:auto;background:var(--sky);border:1px solid var(--ln);border-radius:10px;margin-bottom:8px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:8px 0}
+.ctl label{display:block;font-weight:600;font-size:14px}.ctl input[type=range]{width:100%;accent-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.btn{border:0;background:var(--ac);color:#fff;padding:8px 12px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}.btn.g{background:var(--bn);color:var(--ink);border:1px solid var(--ln)}.btn.on{outline:3px solid var(--ac);outline-offset:1px}
+.sm{font-size:13px;color:var(--mut)}.ok{color:var(--ok);font-weight:600}.er{color:var(--er);font-weight:600}.fm{font-size:16px;font-weight:600;margin:4px 0}
+.ap{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:10px}
+.ac{border:2px solid var(--ln);border-radius:10px;background:var(--cd);color:var(--ink);padding:6px;cursor:pointer;font:inherit;font-size:13px}.ac.on{border-color:var(--ac);background:var(--bn)}.ac svg{width:100%;height:76px}
+.stk{display:flex;height:26px;border-radius:6px;overflow:hidden;margin:6px 0}.stk div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;transition:width .4s}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid var(--ln);padding:5px 7px;text-align:center}th{background:var(--bn)}
+td input{width:62px;font:inherit;padding:3px 4px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink);text-align:center}
+.q{border:1px solid var(--ln);background:var(--cd);border-radius:10px;padding:10px 12px;margin-bottom:10px}.q label{display:block;margin:3px 0;cursor:pointer}
+.q input[type=text]{width:100px;font:inherit;padding:4px 6px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink)}.q.good{border-color:var(--ok)}.q.bad{border-color:var(--er)}
+.tx{fill:var(--ink);font:600 12px "Segoe UI",system-ui,sans-serif}.tm{fill:var(--mut);font:11px "Segoe UI",system-ui,sans-serif}
+.sk{stroke:var(--st);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.sk:not([fill]){fill:none}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes up{0%{transform:translateY(0);opacity:.8}100%{transform:translateY(-22px);opacity:0}}
+.on .bl{animation:spin .45s linear infinite;transform-origin:50px 34px}.on .stm circle{animation:up 1.5s infinite;fill:#cfd8dc}.on .stm circle:nth-child(2){animation-delay:.5s}.on .stm circle:nth-child(3){animation-delay:1s}
+.gl,.hw{opacity:0;transition:opacity .5s}.on .gl,.on .hw{opacity:1}.on .sole{fill:#e8590c}
+@media(prefers-reduced-motion:reduce){.on .bl,.on .stm circle{animation:none}}
+</style></head><body>
+<header><h1>Bài 13. Năng lượng của dòng điện và công suất điện<a href="index.html">← Danh sách bài</a></h1>
+<nav><button class="tab on">Điện năng chuyển hoá</button><button class="tab">W = U·I·t</button><button class="tab">Công suất định mức</button><button class="tab">Công tơ &amp; tiền điện</button><button class="tab">Câu hỏi</button></nav></header>
+
+<div class="pn" id="v0"><div class="cd">Bấm vào từng thiết bị để cho nó hoạt động và xem điện năng được chuyển hoá thành những dạng năng lượng nào.</div>
+<div class="ap" id="ap"></div><div class="cd" id="cv"></div></div>
+
+<div class="pn" id="v1" hidden><div class="cd">Bóng đèn dây tóc (điện trở 12 Ω) nối với nguồn có hiệu điện thế U chỉnh được. Năng lượng điện bóng đèn tiêu thụ tăng dần theo thời gian: W = U·I·t.</div>
+<svg class="sc" id="s2" viewBox="0 0 520 200"><path d="M70 100V40H450V100M70 100V160H450V100" class="sk" fill="none"/><rect x="40" y="76" width="60" height="48" rx="6" fill="var(--cd)" class="sk"/><text class="tx" x="70" y="104" text-anchor="middle">Nguồn</text><text x="106" y="72" fill="#e03131" font-weight="700">+</text>
+<circle id="gl2" cx="450" cy="100" r="50" fill="#ffe066" opacity="0"/><circle cx="450" cy="100" r="24" fill="var(--cd)" class="sk"/><circle id="on2" cx="450" cy="100" r="23" fill="#ffe066" opacity="0"/><path class="sk" d="M438 110L445 92L450 108L455 92L462 110"/>
+<rect x="180" y="26" width="90" height="28" rx="14" fill="var(--cd)" class="sk"/><text id="am2" class="tx" x="225" y="45" text-anchor="middle"></text><text class="tm" x="225" y="20" text-anchor="middle">ampe kế</text>
+<rect x="290" y="146" width="90" height="28" rx="14" fill="var(--cd)" class="sk"/><text id="vm2" class="tx" x="335" y="165" text-anchor="middle"></text><text class="tm" x="335" y="190" text-anchor="middle">vôn kế (hai đầu đèn)</text></svg>
+<div class="ctl"><div><label>Hiệu điện thế U = <span id="u2"></span> V</label><input type="range" id="us" min="0" max="6" step="0.1" value="4"></div>
+<div><label>Tốc độ thời gian</label><div class="row" style="margin:2px 0"><button class="btn g sp on" data-s="1">×1</button><button class="btn g sp" data-s="10">×10</button><button class="btn g sp" data-s="60">×60</button></div></div></div>
+<div class="row"><button class="btn" id="st2">Bắt đầu đo</button><button class="btn g" id="rs2">Đặt lại</button><button class="btn g" id="rc2">Ghi số liệu</button></div>
+<div class="cd"><div class="fm" id="f2"></div><div class="sm" id="d2"></div></div>
+<div class="cd"><table><thead><tr><th>Lần</th><th>U (V)</th><th>I (A)</th><th>t (s)</th><th>W = U·I·t (J)</th></tr></thead><tbody id="tb2"></tbody></table><p class="sm" id="o2" style="margin:6px 0 0"></p></div></div>
+
+<div class="pn" id="v2" hidden><div class="cd">Các số ghi trên thiết bị (ví dụ 220 V – 60 W) là hiệu điện thế định mức và công suất định mức. Chọn thiết bị rồi thay đổi hiệu điện thế đặt vào để quan sát.</div>
+<div class="row" id="rt"></div>
+<svg class="sc" id="s3" viewBox="0 0 520 190"><circle id="gl3" cx="130" cy="95" r="70" fill="#ffe066" opacity="0"/><g id="ic3"></g><text id="nt3" class="tx" x="260" y="30" style="font-size:15px"></text></svg>
+<div class="ctl"><div><label>Hiệu điện thế đặt vào U = <span id="u3"></span> V</label><input type="range" id="us3" min="0" max="100" value="100"></div></div>
+<div class="row"><button class="btn g" id="dm3">Đặt đúng hiệu điện thế định mức</button></div>
+<div class="cd"><div class="fm" id="f3"></div><div id="d3"></div></div></div>
+
+<div class="pn" id="v3" hidden><div class="cd">Công tơ điện đo điện năng theo kilôoát giờ (1 kWh = 3,6·10⁶ J). Nhập công suất, số lượng và số giờ dùng mỗi ngày của các thiết bị trong gia đình để ước tính điện năng và tiền điện trong 30 ngày.</div>
+<svg class="sc" id="s4" viewBox="0 0 520 150"><rect x="150" y="10" width="220" height="130" rx="14" fill="var(--cd)" class="sk"/><text class="tx" x="260" y="34" text-anchor="middle">CÔNG TƠ ĐIỆN</text><rect x="190" y="44" width="140" height="30" rx="4" fill="#111"/><text id="kw" x="260" y="67" text-anchor="middle" style="fill:#7CFC00;font:700 20px monospace;letter-spacing:2px"></text><text class="tm" x="340" y="68">kWh</text>
+<g id="dk"><circle cx="260" cy="108" r="22" fill="#cfd8dc" stroke="var(--st)" stroke-width="2"/><path d="M260 90v36" stroke="#e03131" stroke-width="5"/></g></svg>
+<div class="cd"><table><thead><tr><th>Thiết bị</th><th>Công suất (W)</th><th>Số lượng</th><th>Giờ/ngày</th><th>kWh/30 ngày</th></tr></thead><tbody id="tb4"></tbody></table>
+<div class="row"><label>Đơn giá (đồng/kWh): <input type="number" id="pr" value="2500" min="0" style="width:90px;font:inherit;padding:4px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink)"></label></div>
+<div class="fm" id="f4"></div><div class="sm">Giá điện sinh hoạt thực tế tính theo bậc thang nên đơn giá ở đây chỉ để ước tính; bạn có thể sửa cho phù hợp.</div></div></div>
+
+<div class="pn" id="v4" hidden><div id="qs"></div></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const f=(n,d=2)=>n.toLocaleString('vi-VN',{maximumFractionDigits:d}),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+let cur=0;$$('.tab').forEach((b,i)=>b.onclick=()=>{cur=i;$$('.tab').forEach((x,j)=>x.classList.toggle('on',i==j));$$('.pn').forEach((p,j)=>p.hidden=i!=j)});
+/* ---- 1. Điện năng chuyển hoá ---- */
+const AP=[
+['Đèn dây tóc','<circle class="gl" cx="50" cy="30" r="30" fill="#ffe066"/><circle class="sk" cx="50" cy="30" r="17" fill="var(--cd)"/><path class="sk" d="M42 38L47 24L50 34L53 24L58 38"/><rect class="sk" x="42" y="47" width="16" height="12" fill="var(--bn)"/>',[['Quang năng','#f59f00',5],['Nhiệt năng','#e03131',95]],'Dây tóc bị nung nóng tới nhiệt độ rất cao nên phát sáng: điện năng → quang năng (rất ít) và nhiệt năng (phần lớn).'],
+['Quạt điện','<circle class="sk" cx="50" cy="34" r="26" fill="none"/><g class="bl"><path d="M50 34C44 18 56 12 56 24zM50 34C66 40 66 52 56 46zM50 34C36 44 30 34 42 30z" fill="#74c0fc" stroke="var(--st)" stroke-width="1.5"/></g><circle cx="50" cy="34" r="4" fill="var(--st)"/><path class="sk" d="M50 60V72M36 72H64"/>',[['Cơ năng','#1c7ed6',75],['Nhiệt năng','#e03131',25]],'Động cơ điện làm cánh quạt quay: điện năng → cơ năng, đồng thời một phần toả nhiệt (động cơ nóng lên).'],
+['Đèn huỳnh quang','<rect class="gl" x="3" y="22" width="94" height="24" rx="12" fill="#e7f5ff"/><rect class="sk" x="8" y="28" width="84" height="12" rx="6" fill="var(--cd)"/><path class="sk" d="M8 34H0M92 34H100"/>',[['Quang năng','#f59f00',25],['Nhiệt năng','#e03131',75]],'Đèn ống phát sáng hiệu quả hơn đèn dây tóc: điện năng → quang năng và một phần nhiệt năng.'],
+['Bàn là điện','<path class="sk" d="M16 54H84L76 28Q72 20 62 20H34Q22 20 20 32z" fill="var(--bn)"/><rect class="sole sk" x="16" y="54" width="68" height="7" fill="#868e96"/><path class="hw sk" d="M30 12q4-5 0-10M48 12q4-5 0-10M66 12q4-5 0-10" style="stroke:#e03131"/>',[['Nhiệt năng','#e03131',100]],'Dòng điện chạy qua dây điện trở làm đế bàn là nóng lên: điện năng → nhiệt năng.'],
+['Nồi cơm điện','<path class="sk" d="M22 62V34Q50 10 78 34V62z" fill="var(--bn)"/><rect class="sk" x="26" y="52" width="48" height="4" fill="#e03131"/><g class="stm"><circle cx="40" cy="14" r="4"/><circle cx="52" cy="12" r="4"/><circle cx="64" cy="14" r="4"/></g>',[['Nhiệt năng','#e03131',100]],'Điện trở nung nóng nấu chín cơm: điện năng → nhiệt năng.']];
+$('#ap').innerHTML=AP.map((a,i)=>`<button class="ac" data-i="${i}"><svg viewBox="0 0 100 76">${a[1]}</svg>${a[0]}</button>`).join('');
+let sel=0;function ap(){$$('.ac').forEach((b,i)=>b.classList.toggle('on',i==sel));const a=AP[sel];$('#cv').innerHTML=`<b>${a[0]}</b>: điện năng → ${a[2].map(x=>x[0].toLowerCase()).join(' + ')}<div class="stk">${a[2].map(x=>`<div style="width:${x[2]}%;background:${x[1]}">${x[0]} ~${x[2]}%</div>`).join('')}</div><div>${a[3]}</div><p class="sm" style="margin:6px 0 0">Tỉ lệ phần trăm chỉ là giá trị ước lượng điển hình để minh hoạ.</p>`}
+$$('.ac').forEach(b=>b.onclick=()=>{sel=+b.dataset.i;b.classList.toggle('on');ap();$$('.ac').forEach((x,i)=>{});b.classList.add('on')});ap();
+/* ---- 2. W = UIt ---- */
+const T2={run:0,t:0,sp:1,W:0},R2=12,rows=[];
+function d2(){const U=+$('#us').value,I=U/R2,Pw=U*I;$('#u2').textContent=f(U,1);
+ $('#am2').textContent=f(I)+' A';$('#vm2').textContent=f(U,1)+' V';const b=Math.min(1,Pw/3);$('#gl2').setAttribute('opacity',b*.7);$('#on2').setAttribute('opacity',b);
+ $('#f2').innerHTML=`P = U·I = ${f(U,1)} × ${f(I)} = ${f(Pw)} W<br>W = U·I·t = ${f(Pw)} × ${f(T2.t,1)} = <b>${f(T2.W,1)} J</b>`;
+ $('#d2').textContent=`t = ${f(T2.t,1)} s (${f(T2.t/60,2)} phút). Điện năng bóng đèn tiêu thụ: ${f(T2.W/3.6e6,6)} kWh.`}
+$('#us').oninput=()=>{T2.run=0;T2.t=0;T2.W=0;$('#st2').textContent='Bắt đầu đo';d2()};
+$('#st2').onclick=()=>{T2.run=!T2.run;$('#st2').textContent=T2.run?'Tạm dừng':'Tiếp tục đo'};
+$('#rs2').onclick=()=>{T2.run=0;T2.t=0;T2.W=0;$('#st2').textContent='Bắt đầu đo';d2()};
+$$('.sp').forEach(b=>b.onclick=()=>{T2.sp=+b.dataset.s;$$('.sp').forEach(x=>x.classList.toggle('on',x==b))});
+$('#rc2').onclick=()=>{const U=+$('#us').value;if(T2.t<=0)return;rows.push({U,I:U/R2,t:T2.t,W:T2.W});if(rows.length>6)rows.shift();tb2()};
+function tb2(){$('#tb2').innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${f(r.U,1)}</td><td>${f(r.I)}</td><td>${f(r.t,0)}</td><td>${f(r.W,0)}</td></tr>`).join('')||'<tr><td colspan="5" class="sm">Chưa có số liệu: đo một lúc rồi bấm “Ghi số liệu”.</td></tr>';
+ const n=rows.length;let t='';if(n>1){const a=rows[n-2],b=rows[n-1];if(a.U==b.U&&b.t>a.t*1.2)t=`Cùng U, I: thời gian ×${f(b.t/a.t,1)} thì W ×${f(b.W/a.W,1)}.`;else if(a.t&&Math.abs(a.t-b.t)/a.t<.15&&a.U!=b.U)t=`Cùng thời gian, U ×${f(b.U/a.U,1)} thì W ×${f(b.W/a.W,1)} (vì R không đổi nên I cũng tăng, W ∝ U²).`}$('#o2').textContent=t}
+tb2();d2();
+/* ---- 3. Công suất định mức ---- */
+const RT=[['Đèn pin 2,5 V – 2,5 W',2.5,2.5,'b'],['Bàn là 220 V – 1 000 W',220,1000,'i'],['Đèn sợi đốt 110 V – 100 W',110,100,'b'],['Đèn sợi đốt 220 V – 60 W',220,60,'b']];let rs=3;
+$('#rt').innerHTML=RT.map((r,i)=>`<button class="btn g rtb" data-i="${i}">${r[0]}</button>`).join('');
+function d3(){const[n,Ud,Pd,k]=RT[rs],U=Ud*1.4*(+$('#us3').value)/100,R=Ud*Ud/Pd,I=U/R,P=U*I,r=P/Pd,burn=U>Ud*1.2;$$('.rtb').forEach((b,i)=>b.classList.toggle('on',i==rs));$('#u3').textContent=f(U,U<10?2:0);
+ $('#nt3').textContent=n;const b=burn?0:Math.min(1,r);
+ $('#gl3').setAttribute('opacity',k=='b'?b*.6:0);
+ $('#ic3').innerHTML=k=='b'?`<circle cx="130" cy="95" r="38" fill="var(--cd)" class="sk"/><circle cx="130" cy="95" r="37" fill="#ffe066" opacity="${b}"/><path class="sk" d="${burn?'M114 114L124 80M136 80L146 114':'M114 114L124 80L130 108L136 80L146 114'}" style="stroke:${b>.05?'#e8590c':'var(--st)'}"/><rect class="sk" x="116" y="132" width="28" height="22" fill="var(--bn)"/>${burn?'<text class="tx" x="130" y="92" text-anchor="middle" style="fill:var(--er)">✖ cháy</text>':''}`
+  :`<path class="sk" d="M70 130H190L176 80Q170 66 154 66H100Q82 66 78 90z" fill="var(--bn)"/><rect class="sk" x="70" y="130" width="120" height="12" style="fill:${burn?'#333':`rgb(${Math.round(134+Math.min(1,r)*100)},${Math.round(142-Math.min(1,r)*60)},${Math.round(150-Math.min(1,r)*100)})`}"/>`;
+ $('#f3').innerHTML=`Định mức: ${f(Ud,1)} V – ${f(Pd)} W ⇒ R = U²/𝒫 = ${f(R,1)} Ω; I<sub>định mức</sub> = ${f(Pd/Ud,3)} A<br>Thực tế: I = ${f(I,3)} A; 𝒫 = U·I = ${f(P,1)} W (${f(r*100,0)}% công suất định mức)`;
+ $('#d3').innerHTML=burn?'<span class="er">Hiệu điện thế vượt quá định mức nhiều: thiết bị quá tải, có thể cháy hỏng.</span>':U<Ud*.05?'<span class="sm">Gần như không có dòng điện.</span>':r<.9?'<span class="sm">Hiệu điện thế nhỏ hơn định mức: công suất nhỏ hơn định mức, thiết bị hoạt động yếu.</span>':r<1.1?`<span class="ok">Đúng định mức: thiết bị hoạt động bình thường (đèn sáng bình thường / bàn là nóng đủ mức).</span>`:'<span class="er">Hiệu điện thế lớn hơn định mức: công suất vượt định mức, thiết bị nóng quá mức, rút ngắn tuổi thọ.</span>'}
+$$('.rtb').forEach(b=>b.onclick=()=>{rs=+b.dataset.i;$('#us3').value=100;d3()});$('#us3').oninput=d3;$('#dm3').onclick=()=>{$('#us3').value=100/1.4;d3()};
+$('#us3').value=100/1.4;d3();
+/* ---- 4. Công tơ và tiền điện ---- */
+const HH=[['Đèn LED',10,6,5],['Quạt điện',60,2,6],['Tủ lạnh',100,1,24],['Tivi',100,1,4],['Nồi cơm điện',700,1,1.5],['Bàn là',1000,1,0.3],['Máy điều hoà',1000,1,0]];
+$('#tb4').innerHTML=HH.map((h,i)=>`<tr><td>${h[0]}</td><td><input type="number" min="0" value="${h[1]}" data-i="${i}" data-k="1"></td><td><input type="number" min="0" value="${h[2]}" data-i="${i}" data-k="2"></td><td><input type="number" min="0" max="24" step="0.5" value="${h[3]}" data-i="${i}" data-k="3"></td><td id="kk${i}"></td></tr>`).join('');
+let ang=0,Ptot=0;function d4(){let E=0;Ptot=0;HH.forEach((h,i)=>{const e=h[1]*h[2]*h[3]*30/1000;E+=e;if(h[3]>0)Ptot+=h[1]*h[2];$('#kk'+i).textContent=f(e,1)});
+ const pr=+$('#pr').value||0;$('#kw').textContent=String(Math.round(E*10)).padStart(6,'0').replace(/(\d)$/,'.$1');
+ $('#f4').innerHTML=`Điện năng 30 ngày: <b>${f(E,1)} kWh</b> = ${f(E*3.6)}·10⁶ J<br>Tiền điện ước tính: <b>${f(Math.round(E*pr),0)} đồng</b>`}
+$$('#tb4 input').forEach(i=>i.oninput=()=>{HH[+i.dataset.i][+i.dataset.k]=+i.value||0;d4()});$('#pr').oninput=d4;d4();
+let lt=0;(function tick(t){const dt=Math.min(.05,(t-lt)/1000||0);lt=t;
+ if(cur==1&&T2.run){const U=+$('#us').value,Pw=U*U/R2;T2.t+=dt*T2.sp;T2.W+=Pw*dt*T2.sp;d2()}
+ if(cur==3){ang+=Math.min(720,Ptot*.4)*dt;$('#dk').setAttribute('transform',`rotate(${ang} 260 108)`)}
+ requestAnimationFrame(tick)})(0);
+/* ---- 5. Câu hỏi ---- */
+const Q=[{q:'Khi đèn dây tóc sáng, điện năng chủ yếu chuyển hoá thành dạng năng lượng nào?',o:['Quang năng và nhiệt năng (nhiệt năng chiếm phần lớn)','Chỉ có cơ năng','Hoá năng'],a:0,e:'Dây tóc nóng sáng nên điện năng chuyển hoá thành quang năng và nhiệt năng.'},
+{q:'Quạt điện hoạt động, điện năng chuyển hoá chủ yếu thành:',o:['Cơ năng (và một phần nhiệt năng)','Quang năng','Chỉ nhiệt năng'],a:0,e:'Động cơ quay cánh quạt nên có cơ năng, ngoài ra động cơ nóng lên một phần.'},
+{q:'Bàn là điện và nồi cơm điện chủ yếu biến đổi điện năng thành:',o:['Nhiệt năng','Quang năng','Cơ năng'],a:0,e:'Tác dụng nhiệt của dòng điện: điện năng → nhiệt năng.'},
+{q:'Động cơ điện một chiều có hiệu điện thế 12 V, cường độ dòng điện 0,5 A, hoạt động 30 phút. Tính điện năng tiêu thụ (J).',n:10800,e:'W = U·I·t = 12 × 0,5 × 1 800 = 10 800 J.'},
+{q:'Dây tóc bóng đèn có hiệu điện thế 3,5 V, điện trở 12 Ω khi sáng. Điện năng tiêu thụ trong 4 phút (J)?',n:245,e:'I = U/R = 3,5/12 ≈ 0,292 A; W = U·I·t = 3,5 × 0,292 × 240 = 245 J.'},
+{q:'Bóng đèn có hiệu điện thế 220 V, cường độ dòng điện 0,3 A. Tính công suất điện (W).',n:66,e:'𝒫 = U·I = 220 × 0,3 = 66 W.'},
+{q:'Cũng bóng đèn đó, điện năng tiêu thụ trong 3 giờ (J)?',n:712800,e:'W = 𝒫·t = 66 × 10 800 = 712 800 J (≈ 0,198 kWh).'},
+{q:'Trên bóng đèn ghi 220 V – 60 W nghĩa là:',o:['Mắc vào 220 V thì đèn sáng bình thường và công suất là 60 W','Đèn luôn có công suất 60 W dù mắc vào hiệu điện thế nào','Đèn chỉ dùng được trong 60 giây'],a:0,e:'Đó là hiệu điện thế và công suất định mức: giá trị khi thiết bị hoạt động bình thường.'},
+{q:'Đèn 220 V – 60 W dùng đúng công suất định mức trong 4 giờ. Tính điện năng tiêu thụ (J).',n:864000,e:'W = 60 × 4 × 3 600 = 864 000 J (= 0,24 kWh).'},
+{q:'Cường độ dòng điện chạy qua dây tóc đèn 220 V – 60 W khi hoạt động bình thường (A)?',n:60/220,e:'I = 𝒫/U = 60/220 ≈ 0,27 A.'},
+{q:'1 kWh bằng bao nhiêu jun?',o:['3,6·10⁶ J','3 600 J','1 000 J'],a:0,e:'1 kWh = 1 000 W × 3 600 s = 3,6·10⁶ J.'}];
+$('#qs').innerHTML=Q.map((q,i)=>`<div class="q" id="q${i}"><b>Câu ${i+1}.</b> ${q.q}<div style="margin-top:6px">${q.o?q.o.map((o,j)=>`<label><input type="radio" name="r${i}" value="${j}"> ${o}</label>`).join(''):`<input type="text" id="n${i}" inputmode="decimal" placeholder="đáp số">`}</div><div class="row"><button class="btn g" data-i="${i}">Kiểm tra</button><span id="r${i}"></span></div></div>`).join('');
+$$('#qs button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,q=Q[i];let ok=0,has=1;
+ if(q.o){const c=document.querySelector(`input[name=r${i}]:checked`);has=!!c;ok=c&&+c.value==q.a}else{const s=$('#n'+i).value.replace(/\s/g,'').replace(',','.');has=s!=='';ok=has&&Math.abs(parseFloat(s)-q.n)<=Math.max(q.n*.015,.011)}
+ if(!has){$('#r'+i).innerHTML='<span class="sm">Hãy chọn hoặc nhập đáp án.</span>';return}
+ $('#q'+i).className='q '+(ok?'good':'bad');$('#r'+i).innerHTML=`<span class="${ok?'ok':'er'}">${ok?'Chính xác!':'Chưa đúng.'}</span> <span class="sm">${q.e}</span>`});
+</script></body></html>

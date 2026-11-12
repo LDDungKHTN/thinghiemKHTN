@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 2 – Động năng. Thế năng</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f1f4f7;--cd:#fff;--ink:#1b2631;--mut:#5b6b7b;--ln:#d2dbe4;--bn:#e8eff5;--ac:#e8590c;--ok:#2b8a3e;--er:#e03131;--st:#34424f;--bl:#1c7ed6;--sky:#dbeafe;--gd:#b9a27a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--sky:#16293b;--gd:#6b5b3e}}
+:root[data-theme="dark"]{--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--sky:#16293b;--gd:#6b5b3e}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+header{padding:12px 14px 0}h1{font-size:20px;margin:0 0 8px}h1 a{font-size:13px;font-weight:400;margin-left:8px;color:var(--mut)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--ln);background:var(--cd);color:var(--ink);padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit}
+.tab.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.pn{padding:14px}.pn[hidden]{display:none}
+.cd{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:12px;margin-bottom:10px}
+svg.sc{display:block;width:100%;height:auto;background:var(--sky);border:1px solid var(--ln);border-radius:10px;touch-action:none}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0}
+.ctl label{display:block;font-weight:600;font-size:14px}.ctl input[type=range]{width:100%;accent-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.btn{border:0;background:var(--ac);color:#fff;padding:8px 12px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+.btn.g{background:var(--bn);color:var(--ink);border:1px solid var(--ln)}
+.fm{font-size:17px;font-weight:600;margin:4px 0}.sm{font-size:13px;color:var(--mut)}
+.ok{color:var(--ok);font-weight:600}.er{color:var(--er);font-weight:600}
+.bar{height:16px;background:var(--bn);border-radius:8px;overflow:hidden;margin:3px 0 8px}.bar i{display:block;height:100%;transition:width .15s}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid var(--ln);padding:5px 8px;text-align:center}th{background:var(--bn)}
+.q{border:1px solid var(--ln);background:var(--cd);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.q label{display:block;margin:3px 0;cursor:pointer}.q input[type=text]{width:90px;font:inherit;padding:4px 6px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink)}
+.q.good{border-color:var(--ok)}.q.bad{border-color:var(--er)}
+.tx{fill:var(--ink);font:600 12px "Segoe UI",system-ui,sans-serif}.tm{fill:var(--mut);font:11px "Segoe UI",system-ui,sans-serif}
+</style></head><body>
+<header><h1>Bài 2. Động năng. Thế năng<a href="index.html">← Danh sách bài</a></h1>
+<nav><button class="tab on">Động năng</button><button class="tab">Thế năng</button><button class="tab">Xích đu</button><button class="tab">Câu hỏi trong sách</button></nav></header>
+
+<div class="pn" id="v0"><div class="cd">Xe có khối lượng m chuyển động với tốc độ v đập vào khối gỗ. Khối gỗ trượt càng xa thì động năng của xe càng lớn. Chỉnh m, v rồi bấm “Thả xe”.</div>
+<svg class="sc" id="s1" viewBox="0 0 720 250"><rect x="0" y="200" width="720" height="50" fill="var(--gd)"/><path d="M0 200H720" stroke="var(--st)" stroke-width="3"/>
+<g id="rul"></g><path id="stp" d="" stroke="var(--er)" stroke-dasharray="5 4" stroke-width="2"/>
+<g id="bg"><rect x="420" y="160" width="40" height="40" rx="3" fill="#c28e5a" stroke="#7a5230" stroke-width="2"/><path d="M426 170h28M426 180h28" stroke="#7a5230" opacity=".5"/></g>
+<g id="cart"><rect id="cb" x="0" y="150" width="60" height="32" rx="4" fill="#e8590c" stroke="#8a3306" stroke-width="2"/><circle id="w1" cx="12" cy="188" r="10" fill="#333"/><circle id="w2" cx="48" cy="188" r="10" fill="#333"/><text id="ct" class="tx" x="30" y="171" text-anchor="middle" style="fill:#fff"></text><text id="cv" class="tm" x="0" y="140"></text></g></svg>
+<div class="ctl"><div><label>Khối lượng m = <span id="mv"></span> kg</label><input type="range" id="m1" min="1" max="20" step="1" value="5"></div>
+<div><label>Tốc độ v = <span id="vv"></span> m/s</label><input type="range" id="v1" min="1" max="20" step="1" value="5"></div></div>
+<div class="cd"><div class="fm" id="f1"></div><div class="sm">Động năng W<sub>đ</sub></div><div class="bar"><i id="b1" style="background:var(--ac)"></i></div><div id="d1" class="sm"></div>
+<div class="row"><button class="btn" id="go">Thả xe</button><button class="btn g" id="rc">Ghi kết quả</button><button class="btn g" id="cl">Xoá bảng</button></div></div>
+<div class="cd"><table><thead><tr><th>Lần</th><th>m (kg)</th><th>v (m/s)</th><th>W<sub>đ</sub> (J)</th><th>Khối gỗ trượt (m)</th></tr></thead><tbody id="tb"></tbody></table><p id="ob" class="ok" style="margin:8px 0 0"></p>
+<p class="sm" style="margin-bottom:0">Gợi ý: giữ nguyên m, tăng v gấp đôi; rồi giữ nguyên v, tăng m gấp đôi, rồi so sánh.</p></div></div>
+
+<div class="pn" id="v1" hidden><div class="cd">Kéo bao xi măng lên xuống để đổi độ cao, kéo đường nét đứt đỏ để chọn gốc thế năng. Thế năng trọng trường W<sub>t</sub> = P·h với h là độ cao so với gốc.</div>
+<svg class="sc" id="s2" viewBox="0 0 520 330"><rect x="0" y="300" width="520" height="30" fill="var(--gd)"/><rect x="50" y="100" width="150" height="200" fill="#9aa5b1" stroke="var(--st)" stroke-width="2"/><rect x="44" y="94" width="162" height="8" fill="#68737f"/>
+<g id="win" fill="#bcd0e0" opacity=".7"></g><g id="tk"></g>
+<path id="gl" d="" stroke="var(--er)" stroke-width="2.5" stroke-dasharray="7 5"/><text id="gt" class="tx" x="226" y="0" style="fill:var(--er)"></text><circle id="gh" data-d="g" cx="494" cy="0" r="11" fill="var(--er)" style="cursor:ns-resize"/>
+<g id="ob2" data-d="o" style="cursor:grab"><rect x="296" y="-28" width="54" height="28" rx="3" fill="#a8a29e" stroke="#57534e" stroke-width="2"/><text class="tx" x="323" y="-9" text-anchor="middle" style="fill:#1c1917">xi măng</text></g></svg>
+<div class="ctl"><div><label>Trọng lượng P = <span id="pv"></span> N</label><input type="range" id="pw" min="100" max="1000" step="50" value="500"></div></div>
+<div class="row"><button class="btn g" id="g0">Gốc: mặt đất</button><button class="btn g" id="g20">Gốc: sân thượng (20 m)</button><button class="btn g" id="o14">Bao trên vai công nhân (21,4 m)</button></div>
+<div class="cd"><div class="fm" id="f2"></div><div class="sm" id="d2"></div></div>
+<div class="cd"><b>Đập thuỷ điện (Hình 2.3)</b><p class="sm" style="margin:2px 0 6px">Mực nước hồ cao 60 m so với chân đập. Kéo thanh trượt để đặt tuabin cao hay thấp.</p>
+<svg class="sc" id="s3" viewBox="0 0 520 240"><rect x="0" y="220" width="520" height="20" fill="var(--gd)"/><path d="M0 40H190V220H0z" fill="#4dabf7" opacity=".8"/><path d="M190 30L215 30L260 220H190z" fill="#9aa5b1" stroke="var(--st)" stroke-width="2"/><path id="pen" d="" stroke="#4c6ef5" stroke-width="12" fill="none" opacity=".7"/><g id="tur"><circle r="16" fill="#adb5bd" stroke="var(--st)" stroke-width="3"/><path d="M0 -14V14M-14 0H14M-10 -10L10 10M10 -10L-10 10" stroke="var(--st)" stroke-width="2"/></g><text class="tm" x="8" y="34">mực nước</text><path id="hh" d="" stroke="var(--er)" stroke-width="2"/><text id="ht" class="tx" x="0" y="0" style="fill:var(--er)"></text></svg>
+<div class="ctl"><div><label>Độ cao tuabin so với chân đập: <span id="zv"></span> m</label><input type="range" id="z" min="2" max="40" step="1" value="10"></div></div>
+<div class="fm" id="f3"></div><div class="sm">Máy phát đặt càng thấp so với mực nước thì h càng lớn, mỗi mét khối nước tích trữ và truyền cho tuabin càng nhiều năng lượng.</div></div></div>
+
+<div class="pn" id="v2" hidden><div class="cd">Khi chơi xích đu, động năng của người chơi thay đổi thế nào khi chuyển động từ vị trí cao nhất A tới vị trí thấp nhất O? Hãy quan sát, gốc thế năng chọn tại O.</div>
+<svg class="sc" id="s4" viewBox="0 0 520 300"><rect x="0" y="272" width="520" height="28" fill="var(--gd)"/><path d="M120 272L260 34L400 272M260 34V34" stroke="#c2410c" stroke-width="7" fill="none" stroke-linecap="round"/><path id="rp" d="" stroke="var(--st)" stroke-width="3"/><g id="kid"><circle r="15" fill="#fbbf24" stroke="var(--st)" stroke-width="2"/><circle cx="-4" cy="-3" r="1.8" fill="#333"/><circle cx="4" cy="-3" r="1.8" fill="#333"/><path d="M-5 4q5 4 10 0" stroke="#333" fill="none"/></g><text class="tx" id="tA"></text><text class="tx" x="248" y="266">O</text><path id="hl" d="" stroke="var(--mut)" stroke-dasharray="4 4"/></svg>
+<div class="ctl"><div><label>Góc lệch ban đầu (vị trí A) = <span id="av"></span>°</label><input type="range" id="a0" min="10" max="80" step="1" value="50"></div><div><label>Khối lượng người chơi = <span id="kv"></span> kg</label><input type="range" id="k0" min="20" max="60" step="1" value="30"></div></div>
+<div class="row"><button class="btn" id="pl">Tạm dừng</button><button class="btn g" id="ra">Đưa về A</button></div>
+<div class="cd"><div class="sm">Động năng W<sub>đ</sub> = ½mv²</div><div class="bar"><i id="bd" style="background:var(--ac)"></i></div><div class="sm">Thế năng W<sub>t</sub> = Ph</div><div class="bar"><i id="bt" style="background:var(--bl)"></i></div><div id="d4" class="fm"></div>
+<p class="sm" style="margin-bottom:0">Từ A xuống O: độ cao giảm nên thế năng giảm, tốc độ tăng nên động năng tăng. Bỏ qua ma sát, tổng hai năng lượng này không đổi.</p></div></div>
+
+<div class="pn" id="v3" hidden><div id="qs"></div></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],NS='http://www.w3.org/2000/svg';
+const f=(n,d=2)=>n.toLocaleString('vi-VN',{maximumFractionDigits:d}),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+$$('.tab').forEach((b,i)=>b.onclick=()=>{$$('.tab').forEach((x,j)=>x.classList.toggle('on',i==j));$$('.pn').forEach((p,j)=>p.hidden=i!=j)});
+/* ---- 1. Động năng ---- */
+const A={x:30,bx:420,run:0,ph:0,u:0},rows=[];
+const P1=()=>{const m=+$('#m1').value,v=+$('#v1').value,W=.5*m*v*v,d=W/200;return{m,v,W,d,D:Math.min(330,d*10)}},cw=m=>36+m*2;
+$('#rul').innerHTML=[0,5,10,15,20,25,30].map(k=>`<path d="M${460+k*10} 200v8" stroke="var(--st)"/><text class="tm" x="${460+k*10}" y="222" text-anchor="middle">${k} m</text>`).join('');
+function place(){$('#cart').setAttribute('transform',`translate(${A.x} 0)`);$('#bg').setAttribute('transform',`translate(${A.bx-420} 0)`)}
+function d1(){const p=P1(),w=cw(p.m);$('#mv').textContent=p.m;$('#vv').textContent=p.v;$('#cb').setAttribute('width',w);$('#w2').setAttribute('cx',w-12);$('#ct').setAttribute('x',w/2);$('#ct').textContent=p.m+' kg';$('#cv').textContent='v = '+p.v+' m/s →';
+ $('#f1').innerHTML=`W<sub>đ</sub> = ½·m·v² = ½ × ${p.m} × ${p.v}² = ${f(p.W)} J`;$('#b1').style.width=cl(p.W/4000*100,1,100)+'%';
+ $('#d1').textContent=`Khối gỗ sẽ trượt ≈ ${f(p.d)} m (lực cản không đổi 200 N, quãng đường tỉ lệ với động năng).`;
+ if(!A.run){A.x=30;A.bx=420;A.ph=0;$('#stp').setAttribute('d','');place()}}
+$('#m1').oninput=$('#v1').oninput=d1;
+$('#go').onclick=()=>{const p=P1();A.x=30;A.bx=420;A.ph=0;A.run=1;A.vv=60+p.v*14;A.D=p.D;A.a=p.D>1?A.vv*A.vv/(2*p.D):1e6;$('#stp').setAttribute('d','');place()};
+$('#rc').onclick=()=>{const p=P1();rows.push(p);if(rows.length>6)rows.shift();tb()};$('#cl').onclick=()=>{rows.length=0;tb()};
+function tb(){$('#tb').innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.m}</td><td>${r.v}</td><td>${f(r.W)}</td><td>${f(r.d)}</td></tr>`).join('')||'<tr><td colspan="5" class="sm">Chưa có số liệu</td></tr>';
+ let t='';const n=rows.length;if(n>1){const a=rows[n-2],b=rows[n-1];if(a.m==b.m&&a.v!=b.v){const k=b.v/a.v;t=`Cùng khối lượng, tốc độ ×${f(k)} thì W<sub>đ</sub> ×${f(b.W/a.W)} (≈ ${f(k)}²).`}else if(a.v==b.v&&a.m!=b.m){t=`Cùng tốc độ, khối lượng ×${f(b.m/a.m)} thì W<sub>đ</sub> ×${f(b.W/a.W)}.`}}$('#ob').innerHTML=t}
+let last=0;(function tick(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if(A.run){const w=cw(P1().m);
+ if(A.ph==0){A.x+=A.vv*dt;if(A.x+w>=A.bx){A.x=A.bx-w;A.ph=1;A.u=A.vv}}
+ else{const mv=A.u*dt;A.x+=mv;A.bx+=mv;A.u-=A.a*dt;if(A.u<=0||A.bx-420>=A.D){A.run=0;$('#stp').setAttribute('d',`M${A.bx} 150V205`)}}place()}requestAnimationFrame(tick)})(0);d1();tb();
+/* ---- 2. Thế năng ---- */
+const B={o:21.4,g:0};let drag=null;
+$('#tk').innerHTML=[0,5,10,15,20,25,30].map(k=>`<path d="M270 ${300-k*10}h10" stroke="var(--st)" stroke-width="2"/><text class="tm" x="262" y="${304-k*10}" text-anchor="end">${k} m</text>`).join('')+'<path d="M280 0V300" stroke="var(--st)" stroke-width="1" opacity=".5"/>';
+$('#win').innerHTML=[0,1,2,3].map(r=>[0,1,2].map(c=>`<rect x="${68+c*46}" y="${120+r*44}" width="30" height="26"/>`).join('')).join('');
+function d2(){const P=+$('#pw').value,h=B.o-B.g,W=P*h,Y=v=>300-v*10;$('#pv').textContent=P;
+ $('#ob2').setAttribute('transform',`translate(0 ${Y(B.o)})`);$('#gl').setAttribute('d',`M30 ${Y(B.g)}H480`);$('#gt').setAttribute('y',Y(B.g)-6);$('#gt').textContent='gốc thế năng';$('#gh').setAttribute('cy',Y(B.g));
+ $('#f2').innerHTML=`W<sub>t</sub> = P·h = ${f(P)} × ${f(h,1)} = ${f(W)} J`;
+ $('#d2').textContent=`Bao cao ${f(B.o,1)} m so với mặt đất; gốc thế năng ở độ cao ${f(B.g,1)} m. Đổi gốc thì thế năng đổi theo${h<0?' (âm vì bao thấp hơn gốc)':''}.`}
+function ptr(e){const s=$('#s2'),q=s.createSVGPoint();q.x=e.clientX;q.y=e.clientY;return q.matrixTransform(s.getScreenCTM().inverse())}
+$('#s2').addEventListener('pointerdown',e=>{const t=e.target.closest('[data-d]');if(t){drag=t.dataset.d;e.preventDefault()}});
+addEventListener('pointermove',e=>{if(!drag)return;const y=ptr(e).y;B[drag]=Math.round(cl((300-y)/10,0,30)*10)/10;d2()});addEventListener('pointerup',()=>drag=null);
+$('#pw').oninput=d2;$('#g0').onclick=()=>{B.g=0;d2()};$('#g20').onclick=()=>{B.g=20;d2()};$('#o14').onclick=()=>{B.o=21.4;d2()};d2();
+function d3(){const z=+$('#z').value,y=220-z*3,h=60-z;$('#zv').textContent=z;$('#tur').setAttribute('transform',`translate(285 ${y})`);$('#pen').setAttribute('d',`M200 60L200 80L255 ${y}`);
+ $('#hh').setAttribute('d',`M420 40V${y}`);$('#ht').setAttribute('x',428);$('#ht').setAttribute('y',(40+y)/2);$('#ht').textContent='h = '+h+' m';
+ $('#f3').innerHTML=`Mỗi 1 m³ nước (P ≈ 10 000 N): W<sub>t</sub> = P·h = 10 000 × ${h} = ${f(10000*h)} J`}
+$('#z').oninput=d3;d3();
+/* ---- 3. Xích đu ---- */
+const L=2.5,K=85,g=10,S={th:0,w:0,run:1};
+function d4(){const th0=+$('#a0').value*Math.PI/180,m=+$('#k0').value;$('#av').textContent=$('#a0').value;$('#kv').textContent=m;
+ const px=260+L*K*Math.sin(S.th),py=34+L*K*Math.cos(S.th),h=L*(1-Math.cos(S.th)),Wt=m*g*h,Wd=.5*m*(L*S.w)**2,hA=L*(1-Math.cos(th0)),E=m*g*hA||1;
+ $('#kid').setAttribute('transform',`translate(${px} ${py+15})`);$('#rp').setAttribute('d',`M260 34L${px} ${py}`);
+ const ax=260+L*K*Math.sin(th0),ay=34+L*K*Math.cos(th0);$('#tA').setAttribute('x',ax-5);$('#tA').setAttribute('y',ay+40);$('#tA').textContent='A';$('#hl').setAttribute('d',`M${ax} ${ay+15}V262M240 262H${ax}`);
+ $('#bd').style.width=cl(Wd/E*100,0,100)+'%';$('#bt').style.width=cl(Wt/E*100,0,100)+'%';
+ $('#d4').innerHTML=`W<sub>đ</sub> = ${f(Wd,1)} J &nbsp; W<sub>t</sub> = ${f(Wt,1)} J &nbsp; Tổng = ${f(Wd+Wt,1)} J`}
+function reset4(){S.th=+$('#a0').value*Math.PI/180;S.w=0;d4()}
+$('#a0').oninput=reset4;$('#k0').oninput=d4;$('#ra').onclick=reset4;$('#pl').onclick=()=>{S.run=!S.run;$('#pl').textContent=S.run?'Tạm dừng':'Tiếp tục'};
+let l2=0;(function sw(t){const dt=Math.min(.03,(t-l2)/1000||0);l2=t;if(S.run){const n=12;for(let i=0;i<n;i++){S.w+=-(g/L)*Math.sin(S.th)*dt/n;S.th+=S.w*dt/n}d4()}requestAnimationFrame(sw)})(0);reset4();
+/* ---- 4. Câu hỏi ---- */
+const Q=[
+{q:'Quan sát Hình 2.2: bóng rổ (0,6 kg; ≈ 7 m/s), ô tô (1 200 kg; ≈ 25 m/s), máy bay (60 000 kg; ≈ 250 m/s). Vật nào có động năng lớn nhất?',o:['Quả bóng','Ô tô','Máy bay'],a:2,e:'W<sub>đ</sub> bóng ≈ 14,7 J; ô tô ≈ 375 000 J; máy bay ≈ 1 875 000 000 J. Máy bay có khối lượng và tốc độ đều lớn nhất.'},
+{q:'Động năng của ô tô thay đổi thế nào nếu tốc độ tăng gấp đôi?',o:['Tăng 2 lần','Tăng 4 lần','Không đổi','Giảm 2 lần'],a:1,e:'W<sub>đ</sub> tỉ lệ với v², nên v gấp đôi thì W<sub>đ</sub> gấp 4 lần (thử lại ở tab Động năng).'},
+{q:'Tính động năng quả bóng đá khối lượng 0,45 kg, bay với tốc độ 10 m/s.',n:22.5,u:'J',e:'W<sub>đ</sub> = ½ × 0,45 × 10² = 22,5 J.'},
+{q:'Khi chơi xích đu, từ vị trí cao nhất A tới vị trí thấp nhất O, động năng của người chơi thay đổi thế nào?',o:['Tăng dần','Giảm dần','Không đổi'],a:0,e:'Độ cao giảm nên thế năng giảm, tốc độ tăng nên động năng tăng dần (xem tab Xích đu).'},
+{q:'Hai vật ở cùng độ cao so với gốc thế năng; vật thứ nhất có khối lượng gấp 3 lần vật thứ hai. Thế năng của vật thứ nhất so với vật thứ hai?',o:['Gấp 3 lần','Bằng nhau','Bằng 1/3','Gấp 9 lần'],a:0,e:'W<sub>t</sub> = Ph, P tỉ lệ với m, cùng h nên W<sub>t</sub> gấp 3 lần.'},
+{q:'Bao xi măng 500 N, sân thượng cao 20 m, bao cao 1,4 m so với sân thượng. Thế năng khi chọn gốc tại mặt sân thượng (J)?',n:700,u:'J',e:'h = 1,4 m nên W<sub>t</sub> = 500 × 1,4 = 700 J.'},
+{q:'Cũng bài trên, thế năng khi chọn gốc tại mặt đất (J)?',n:10700,u:'J',e:'h = 20 + 1,4 = 21,4 m nên W<sub>t</sub> = 500 × 21,4 = 10 700 J.'},
+{q:'Vì sao ở nhà máy thuỷ điện, máy phát thường đặt thấp so với mực nước hồ chứa?',o:['Để h lớn, khai thác được nhiều thế năng của nước hơn','Để tuabin ít bị ướt','Để nước chảy chậm lại'],a:0,e:'Thế năng của nước tỉ lệ với độ cao h so với tuabin, đặt máy phát càng thấp thì h càng lớn.'}];
+$('#qs').innerHTML=Q.map((q,i)=>`<div class="q" id="q${i}"><b>Câu ${i+1}.</b> ${q.q}<div style="margin-top:6px">${q.o?q.o.map((o,j)=>`<label><input type="radio" name="r${i}" value="${j}"> ${o}</label>`).join(''):`<input type="text" id="n${i}" inputmode="decimal" placeholder="đáp số"> ${q.u}`}</div><div class="row"><button class="btn g" data-i="${i}">Kiểm tra</button><span id="r${i}"></span></div></div>`).join('');
+$$('#qs button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,q=Q[i];let ok=0,has=1;
+ if(q.o){const c=document.querySelector(`input[name=r${i}]:checked`);has=!!c;ok=c&&+c.value==q.a}else{const s=$('#n'+i).value.replace(/\s/g,'').replace(',','.');has=s!=='';ok=has&&Math.abs(parseFloat(s)-q.n)<=q.n*.01}
+ if(!has){$('#r'+i).innerHTML='<span class="sm">Hãy chọn hoặc nhập đáp án.</span>';return}
+ $('#q'+i).className='q '+(ok?'good':'bad');$('#r'+i).innerHTML=`<span class="${ok?'ok':'er'}">${ok?'Chính xác!':'Chưa đúng.'}</span> <span class="sm">${q.e}</span>`});
+</script></body></html>

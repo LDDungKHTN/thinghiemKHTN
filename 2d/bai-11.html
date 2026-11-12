@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thí nghiệm Điện trở – Định luật Ohm</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f1f4f7;--cd:#fff;--ink:#1b2631;--mut:#5b6b7b;--ln:#d2dbe4;--bn:#e8eff5;--gr:#d3dde7;--ac:#e8590c;--st:#34424f;--ok:#2b8a3e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--gr:#21303d;--ac:#ff922b;--st:#b8c7d6;--ok:#69db7c}}
+:root[data-theme="dark"]{--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--gr:#21303d;--ac:#ff922b;--st:#b8c7d6;--ok:#69db7c}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+header{padding:12px 14px 0}
+h1{font-size:20px;margin:0 0 8px;letter-spacing:-.2px}
+h1 small{font-weight:400;color:var(--mut);font-size:13px;margin-left:6px}
+h3{margin:0 0 8px;font-size:15px}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--ln);background:var(--cd);color:var(--ink);padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit}
+.tab.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+main{display:grid;grid-template-columns:170px 1fr;gap:12px;padding:12px 14px 20px}
+aside,.card{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:10px}
+#tray.drop{outline:3px dashed var(--ac)}
+#items{display:grid;gap:6px}
+#items button{text-align:left;border:1px solid var(--ln);background:var(--bn);color:var(--ink);padding:8px;border-radius:7px;cursor:pointer;font:inherit;font-size:13.5px}
+#items button:hover:not(:disabled){border-color:var(--ac)}
+#items button:disabled{opacity:.4;cursor:default}
+.sm{font-size:12.5px;color:var(--mut);margin:8px 0 0}
+#bench{display:block;width:100%;height:auto;background:var(--bn);border:1px solid var(--ln);border-radius:10px;touch-action:none;user-select:none}
+.gl{stroke:var(--gr);stroke-width:1;fill:none}
+.lead{stroke:var(--st);stroke-width:3.5;fill:none;stroke-linecap:round}
+.body{fill:var(--cd);stroke:var(--st);stroke-width:2.2}
+.tx{fill:var(--ink);font:600 13px "Segoe UI",system-ui,sans-serif}
+.ax{fill:var(--mut);font:11px "Segoe UI",system-ui,sans-serif}
+.rd{fill:var(--ac);font:700 15px "Segoe UI",system-ui,sans-serif;text-anchor:middle}
+.comp{cursor:grab}.comp:active{cursor:grabbing}
+.term{fill:var(--cd);stroke:var(--ac);stroke-width:2.5;cursor:crosshair}
+.term:hover{fill:var(--ac)}.term.on{fill:var(--ok);stroke:var(--ok)}
+.sl{cursor:ew-resize}
+.wire{fill:none;stroke:#3b82c4;stroke-width:4.5;stroke-linecap:round;cursor:pointer}
+.wire:hover{stroke:#e03131}
+#tmp{fill:none;stroke:var(--ac);stroke-width:3;stroke-dasharray:6 5;pointer-events:none}
+#msg{margin:8px 2px 0;font-weight:600}
+#data{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid var(--ln);padding:6px 8px;text-align:center}
+th{background:var(--bn)}
+.bar{display:inline-block;width:70px;height:8px;border-radius:4px;background:var(--gr);vertical-align:middle;margin-left:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:#fab005}
+.row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.btn{border:0;background:var(--ac);color:#fff;padding:8px 12px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+.btn.g{background:var(--bn);color:var(--ink);border:1px solid var(--ln)}
+.ok{color:var(--ok);font-weight:600;margin:8px 0 0}
+details{margin-top:8px;font-size:13.5px}
+@media(max-width:720px){main{grid-template-columns:1fr}#items{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
+</style></head><body>
+<header><h1>Điện trở – Định luật Ohm<small>Bài 11 · KHTN 9 · phòng thí nghiệm ảo</small></h1>
+<nav><button class="tab on" data-e="0">Thí nghiệm 1: Tính chất của điện trở</button><button class="tab" data-e="1">Thí nghiệm 2: I phụ thuộc vào U</button></nav></header>
+<main>
+<aside id="tray"><h3>Khay dụng cụ</h3><div id="items"></div><p class="sm">Bấm để đưa dụng cụ lên bàn. Kéo dụng cụ thả vào khay này để cất lại hoặc thay thế.</p></aside>
+<section>
+<svg id="bench" viewBox="0 0 860 460">
+<defs><pattern id="gp" width="20" height="20" patternUnits="userSpaceOnUse"><path class="gl" d="M20 0H0V20"/></pattern>
+<radialGradient id="gl"><stop offset="0" stop-color="#ffe066" stop-opacity=".95"/><stop offset=".55" stop-color="#ffd43b" stop-opacity=".45"/><stop offset="1" stop-color="#ffd43b" stop-opacity="0"/></radialGradient></defs>
+<rect width="860" height="460" fill="url(#gp)"/><g id="gw"></g><g id="gc"></g><path id="tmp" d=""/>
+</svg>
+<div id="msg"></div>
+<details open><summary>Cách thao tác</summary>
+<p class="sm" style="margin-top:4px">Kéo dụng cụ lại gần nhau, các đầu nối (chấm tròn) sẽ tự dính; chấm xanh là đã nối. Cũng có thể kéo từ một chấm tròn sang chấm khác để nối dây, bấm vào dây để gỡ. Bấm vào công tắc để đóng/mở.</p>
+<p class="sm" id="gd"></p></details>
+</section>
+<section id="data">
+<div class="card" id="p0"><h3>Bảng 11.1. Độ sáng của bóng đèn</h3><div id="t1"></div><div id="c1"></div></div>
+<div class="card" id="p1" hidden><h3>Bảng 11.2. Số liệu đo</h3>
+<div class="row"><button class="btn" id="rb">Ghi số liệu</button><button class="btn g" id="cb">Xoá bảng</button></div><div id="t2"></div><div id="c2"></div></div>
+<div class="card" id="p2" hidden><h3>Đồ thị I theo U</h3><svg id="gr" viewBox="0 0 300 220" style="width:100%;height:auto"></svg></div>
+</section></main>
+<script>
+const $=s=>document.querySelector(s),NS='http://www.w3.org/2000/svg',W=110;
+const fmt=(v,d=2)=>v.toFixed(d).replace('.',','),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const P={bat:['Nguồn điện 12 V','Nguồn'],sw:['Công tắc K',''],lamp:['Bóng đèn 2,5 V','Đèn 2,5 V'],r1:['Điện trở R₁','R₁',20],r2:['Điện trở R₂','R₂',50],r3:['Điện trở R₃','R₃',100],rx:['Điện trở R','R',6],rh:['Biến trở R₀',''],am:['Ampe kế','Ampe kế'],vm:['Vôn kế','Vôn kế']};
+const EXP=[['bat','sw','lamp','r1','r2','r3'],['bat','sw','rh','am','vm','rx']];
+const GD=['<b>Cách mắc:</b> Nguồn → Công tắc K → Điện trở → Bóng đèn → về nguồn. Đóng K và quan sát độ sáng. Để thay điện trở, thả điện trở cũ vào khay rồi đưa điện trở khác lên (hoặc kéo dây sang điện trở khác).','<b>Cách mắc:</b> Nguồn → K → Biến trở R₀ → Ampe kế → Điện trở R → về nguồn. Vôn kế mắc song song hai đầu R: kéo dây từ hai đầu vôn kế sang hai đầu R. Kéo tay trượt trên biến trở để đặt U = 3 V, 6 V, 9 V, 12 V rồi bấm “Ghi số liệu”. Với U = 0 V, hãy mở công tắc K.'];
+let ex=0,comps=[],wires=[],rec={},rows=[],uid=1,mode=null,cache={};
+const svg=$('#bench'),gW=$('#gw'),gC=$('#gc'),tmp=$('#tmp'),tray=$('#tray');
+const byId=i=>comps.find(c=>c.id==i);
+const L=(a,b)=>`<path class="lead" d="M${a} 0H${b}"/>`;
+const nm=(t,y=-30)=>P[t][1]?`<text class="tx" x="55" y="${y}" text-anchor="middle">${P[t][1]}</text>`:'';
+function tpl(t){
+ if(t=='bat')return L(0,20)+L(90,110)+`<rect class="body" x="20" y="-20" width="70" height="40" rx="7"/><text class="tx" x="55" y="6" text-anchor="middle" font-size="16">12 V</text><text class="tx" x="9" y="-11" text-anchor="middle" font-size="16">−</text><text x="101" y="-11" text-anchor="middle" fill="#e03131" font-weight="700" font-size="16">+</text>`+nm(t);
+ if(t=='sw')return L(0,25)+L(85,110)+`<rect x="15" y="-42" width="80" height="50" fill="transparent"/><circle class="body" cx="25" r="4.5"/><circle class="body" cx="85" r="4.5"/><line class="blade lead" x1="25" x2="83" style="stroke-width:5"/><text class="tx st" x="55" y="34" text-anchor="middle"></text>`;
+ if(t=='lamp')return L(0,33)+L(77,110)+`<circle class="glow" cx="55" r="30" fill="url(#gl)" style="opacity:0;pointer-events:none"/><circle class="body" cx="55" r="22"/><circle class="on" cx="55" r="21" fill="#ffe066" style="opacity:0"/><path class="fil lead" d="M43 9L50 -7L55 7L60 -7L67 9" style="stroke-width:2.5"/>`+nm(t,-40);
+ if(t=='rh')return L(0,12)+L(98,110)+`<rect class="body" x="12" y="-14" width="86" height="28" rx="5"/><path class="lead" style="stroke-width:2" d="M16 0q4.5 -10 9 0t9 0t9 0t9 0t9 0t9 0t9 0t9 0t9 0"/><line x1="20" y1="-18" x2="90" y2="-18" stroke="var(--mut)" stroke-dasharray="3 3"/><g class="sl"><rect x="-9" y="-44" width="18" height="20" rx="4" fill="var(--ac)"/><path d="M-5 -24L5 -24L0 -15Z" fill="var(--ac)"/></g><text class="rd" x="55" y="38" style="font-size:14px"></text>`;
+ if(t=='am'||t=='vm')return L(0,31)+L(79,110)+`<circle class="body" cx="55" r="24" style="stroke:var(--ac)"/><text class="tx" x="55" y="9" text-anchor="middle" font-size="24">${t=='am'?'A':'V'}</text><text class="rd" x="55" y="46"></text>`+nm(t,-34);
+ return L(0,20)+L(90,110)+`<rect class="body" x="20" y="-11" width="70" height="22" rx="5"/><rect x="34" y="-11" width="6" height="22" fill="#c2410c"/><rect x="46" y="-11" width="6" height="22" fill="#7c3aed"/><rect x="58" y="-11" width="6" height="22" fill="#2b8a3e"/><rect x="74" y="-11" width="5" height="22" fill="#d4a017"/>`+nm(t,-24);
+}
+function add(t){if(byId0(t))return;const s=EXP[ex].indexOf(t);
+ const c={id:uid++,t,x:30+(s%3)*270,y:110+Math.floor(s/3)*160,closed:false,val:15,b:0,I:0,U:0};
+ const g=document.createElementNS(NS,'g');g.setAttribute('class','comp');g.dataset.id=c.id;
+ g.innerHTML=tpl(t)+`<circle class="term" data-t="${c.id}a" r="7"/><circle class="term" data-t="${c.id}b" cx="${W}" r="7"/>`;
+ c.g=g;c.ta=g.querySelector(`[data-t="${c.id}a"]`);c.tb=g.querySelector(`[data-t="${c.id}b"]`);
+ gC.appendChild(g);comps.push(c);draw()}
+const byId0=t=>comps.find(c=>c.t==t);
+function remove(c){c.g.remove();comps=comps.filter(x=>x!==c);wires=wires.filter(w=>parseInt(w[0])!=c.id&&parseInt(w[1])!=c.id)}
+const tp=k=>{const c=byId(parseInt(k));return{x:c.x+(k.endsWith('b')?W:0),y:c.y}};
+const rOf=c=>c.t=='sw'?(c.closed?.01:null):c.t=='lamp'?5:c.t=='rh'?Math.max(.01,c.val):c.t=='am'?.01:(P[c.t][2]||null);
+function solve(){
+ const par={},f=k=>par[k]==k?k:(par[k]=f(par[k])),ks=[],T={};
+ comps.forEach(c=>['a','b'].forEach(s=>{const k=c.id+s;par[k]=k;ks.push(k);T[k]={x:c.x+(s=='b'?W:0),y:c.y,c}}));
+ for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){const p=T[ks[i]],q=T[ks[j]];if(p.c!==q.c&&Math.hypot(p.x-q.x,p.y-q.y)<14)par[f(ks[i])]=f(ks[j])}
+ wires.forEach(w=>{par[f(w[0])]=f(w[1])});
+ const idx={};let n=0;const nd=k=>{k=f(k);return idx[k]??(idx[k]=n++)};
+ comps.forEach(c=>{c.na=nd(c.id+'a');c.nb=nd(c.id+'b')});
+ const cnt={};ks.forEach(k=>{const r=f(k);cnt[r]=(cnt[r]||0)+1});
+ ks.forEach(k=>T[k].c['o'+k.slice(-1)]=cnt[f(k)]>1);
+ const bat=byId0('bat'),N=n+(bat?1:0),A=Array.from({length:N},()=>Array(N+1).fill(0));
+ for(let i=0;i<n;i++)A[i][i]+=1e-9;
+ comps.forEach(c=>{const r=rOf(c);if(r==null)return;const g=1/r,a=c.na,b=c.nb;A[a][a]+=g;A[b][b]+=g;A[a][b]-=g;A[b][a]-=g});
+ if(bat){const p=bat.nb,q=bat.na;A[p][n]+=1;A[q][n]-=1;A[n][p]+=1;A[n][q]-=1;A[n][N]=12}
+ for(let i=0;i<N;i++){let p=i;for(let r=i+1;r<N;r++)if(Math.abs(A[r][i])>Math.abs(A[p][i]))p=r;[A[i],A[p]]=[A[p],A[i]];if(Math.abs(A[i][i])<1e-14)continue;for(let r=0;r<N;r++)if(r!=i){const k=A[r][i]/A[i][i];if(k)for(let j=i;j<=N;j++)A[r][j]-=k*A[i][j]}}
+ const X=A.map((r,i)=>Math.abs(r[i])<1e-14?0:r[N]/r[i]);
+ comps.forEach(c=>{const v=X[c.na]-X[c.nb],r=rOf(c);c.U=Math.abs(v);c.I=r==null?0:Math.abs(v/r);if(c.I<1e-6)c.I=0;c.b=c.t=='lamp'?Math.min(1,(c.I/.5)**2):0});
+ return{T,bat,it:bat?Math.abs(X[n]):0};
+}
+const lab=b=>b>.8?'Sáng mạnh':b>.3?'Sáng vừa':b>.1?'Sáng yếu':b>.02?'Rất mờ':'Không sáng';
+function setH(el,h){if(cache[el.id]!==h){cache[el.id]=h;el.innerHTML=h}}
+function draw(){
+ const{T,bat,it}=solve();
+ comps.forEach(c=>{const q=s=>c.g.querySelector(s);c.g.setAttribute('transform',`translate(${c.x} ${c.y})`);c.ta.classList.toggle('on',!!c.oa);c.tb.classList.toggle('on',!!c.ob);
+  if(c.t=='sw'){q('.blade').setAttribute('transform',c.closed?'':'rotate(-32 25 0)');q('.st').textContent='K: '+(c.closed?'đóng':'mở')}
+  else if(c.t=='lamp'){const b=c.b,gl=q('.glow');gl.setAttribute('r',26+40*b);gl.style.opacity=Math.min(1,b**.6*1.1);q('.on').style.opacity=b;q('.fil').style.stroke=b>.03?'#e8590c':''}
+  else if(c.t=='am')q('.rd').textContent=fmt(c.I)+' A';
+  else if(c.t=='vm')q('.rd').textContent=fmt(c.U,1)+' V';
+  else if(c.t=='rh'){q('.sl').setAttribute('transform',`translate(${20+c.val/30*70} 0)`);q('.rd').textContent='R₀ = '+fmt(c.val,1)+' Ω'}});
+ gW.innerHTML=wires.map((w,i)=>{const a=tp(w[0]),b=tp(w[1]),d=Math.hypot(a.x-b.x,a.y-b.y);return`<path class="wire" data-i="${i}" d="M${a.x} ${a.y}Q${(a.x+b.x)/2} ${(a.y+b.y)/2+Math.min(50,d/3)} ${b.x} ${b.y}"><title>Bấm để gỡ dây</title></path>`}).join('');
+ document.querySelectorAll('#items button').forEach(b=>b.disabled=!!byId0(b.dataset.t));
+ $('#msg').textContent=!bat?'Hãy đưa nguồn điện lên bàn thí nghiệm.':bat.na==bat.nb?'⚠ Đoản mạch! Hai cực của nguồn đang nối trực tiếp với nhau.':it<1e-6?'Mạch chưa kín hoặc công tắc đang mở: không có dòng điện.':'Mạch kín: có dòng điện chạy trong mạch.';
+ if(ex==0){const lp=byId0('lamp');if(lp&&lp.I>1e-3)comps.forEach(c=>{if(/^r[123]$/.test(c.t)&&c.I>1e-3)rec[c.t]={d:lab(lp.b),b:lp.b}});
+  setH($('#t1'),`<table><tr><th>Vật dẫn</th><th>Mô tả độ sáng của bóng đèn</th></tr>${['r1','r2','r3'].map(k=>`<tr><td>Điện trở ${P[k][1]}</td><td>${rec[k]?`${rec[k].d}<span class="bar"><i style="width:${Math.round(rec[k].b*100)}%"></i></span>`:'?'}</td></tr>`).join('')}</table>`);
+  setH($('#c1'),Object.keys(rec).length==3?'<p class="ok">Kết luận: điện trở có tác dụng cản trở dòng điện; điện trở khác nhau cản trở dòng điện khác nhau (điện trở càng lớn, đèn càng mờ).</p>':'<p class="sm">Lần lượt mắc R₁, R₂, R₃ vào mạch, đóng K để ghi nhận độ sáng.</p>')}
+ else{setH($('#t2'),`<table><tr><th>Lần đo</th><th>U (V)</th><th>I (A)</th><th>U/I (Ω)</th></tr>${[0,1,2,3,4].map(i=>{const r=rows[i];return`<tr><td>${i+1}</td><td>${r?fmt(r.U,1):'?'}</td><td>${r?fmt(r.I):'?'}</td><td>${r&&r.I?fmt(r.U/r.I,1):'—'}</td></tr>`}).join('')}</table>`);
+  const v=rows.filter(r=>r.I>0&&r.U>0);let h='<p class="sm">Ghi 5 lần đo với U = 0; 3; 6; 9; 12 V.</p>';
+  if(v.length>=3){const m=v.reduce((s,r)=>s+r.U/r.I,0)/v.length;h=`<p class="ok">Thương số U/I gần như không đổi (≈ ${fmt(m,1)} Ω) nên là điện trở R của đoạn dây. Đồ thị là đường thẳng đi qua gốc toạ độ: I tỉ lệ thuận với U. Định luật Ohm: I = U/R.</p>`}
+  setH($('#c2'),h);graph()}
+}
+function graph(){const X=u=>40+u/12*240,Y=i=>190-i/2.4*175;let s='';
+ for(let u=0;u<=12;u+=3)s+=`<path class="gl" d="M${X(u)} 15V190"/><text class="ax" x="${X(u)}" y="206" text-anchor="middle">${u}</text>`;
+ for(let i=0;i<=2;i+=.5)s+=`<path class="gl" d="M40 ${Y(i)}H280"/><text class="ax" x="34" y="${Y(i)+4}" text-anchor="end">${i}</text>`;
+ s+=`<path d="M40 190H285M40 190V10" stroke="var(--st)" fill="none" stroke-width="1.5"/><text class="ax" x="262" y="218">U (V)</text><text class="ax" x="4" y="10">I (A)</text>`;
+ const suu=rows.reduce((a,r)=>a+r.U*r.U,0);if(rows.length>=2&&suu>0){const k=rows.reduce((a,r)=>a+r.U*r.I,0)/suu;s+=`<path d="M${X(0)} ${Y(0)}L${X(12)} ${Y(Math.min(2.4,12*k))}" stroke="var(--ac)" stroke-width="2" opacity=".6"/>`}
+ s+=rows.map(r=>`<circle cx="${X(r.U)}" cy="${Y(r.I)}" r="4.5" fill="var(--ac)"/>`).join('');$('#gr').innerHTML=s}
+const pt=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())};
+const nearest=(p,ex_,r)=>{let best=null,bd=r;comps.forEach(c=>['a','b'].forEach(s=>{const k=c.id+s;if(k==ex_)return;const q=tp(k),d=Math.hypot(p.x-q.x,p.y-q.y);if(d<bd){bd=d;best=k}}));return best};
+function snap(c){let best=null,bd=28;['a','b'].forEach(s=>{const mine=tp(c.id+s);comps.forEach(o=>{if(o===c)return;['a','b'].forEach(t=>{const q=tp(o.id+t),d=Math.hypot(mine.x-q.x,mine.y-q.y);if(d<bd){bd=d;best={dx:q.x-mine.x,dy:q.y-mine.y}}})})});if(best){c.x+=best.dx;c.y+=best.dy}}
+function slide(c,p){c.val=Math.round(cl((p.x-c.x-20)/70,0,1)*60)/2;draw()}
+const overTray=e=>{const r=tray.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom};
+svg.addEventListener('pointerdown',e=>{const p=pt(e),tm=e.target.closest('.term'),sl=e.target.closest('.sl'),cg=e.target.closest('.comp'),wi=e.target.closest('.wire');
+ if(tm){mode={k:'wire',from:tm.dataset.t};e.preventDefault()}
+ else if(sl){const c=byId(sl.closest('.comp').dataset.id);mode={k:'sl',c};slide(c,p);e.preventDefault()}
+ else if(cg){const c=byId(cg.dataset.id);gC.appendChild(cg);mode={k:'drag',c,ox:p.x-c.x,oy:p.y-c.y,sx:e.clientX,sy:e.clientY,moved:0};e.preventDefault()}
+ else if(wi){wires.splice(+wi.dataset.i,1);draw()}});
+addEventListener('pointermove',e=>{if(!mode)return;const p=pt(e);
+ if(mode.k=='drag'){if(Math.hypot(e.clientX-mode.sx,e.clientY-mode.sy)>4)mode.moved=1;if(mode.moved){mode.c.x=cl(p.x-mode.ox,5,745);mode.c.y=cl(p.y-mode.oy,55,430);tray.classList.toggle('drop',overTray(e));draw()}}
+ else if(mode.k=='sl')slide(mode.c,p);
+ else if(mode.k=='wire'){const a=tp(mode.from);tmp.setAttribute('d',`M${a.x} ${a.y}L${p.x} ${p.y}`)}});
+addEventListener('pointerup',e=>{if(!mode)return;const m=mode;mode=null;tmp.setAttribute('d','');tray.classList.remove('drop');
+ if(m.k=='drag'){if(!m.moved){if(m.c.t=='sw')m.c.closed=!m.c.closed}else if(overTray(e))remove(m.c);else snap(m.c)}
+ if(m.k=='wire'){const t=nearest(pt(e),m.from,24);if(t&&!wires.some(w=>(w[0]==m.from&&w[1]==t)||(w[0]==t&&w[1]==m.from)))wires.push([m.from,t])}
+ draw()});
+$('#rb').onclick=()=>{const a=byId0('am'),v=byId0('vm');if(!a||!v){$('#c2').innerHTML='<p class="sm">Cần đưa cả ampe kế và vôn kế lên bàn để đo.</p>';cache.c2='';return}
+ if(rows.length>=5)return;rows.push({U:+v.U.toFixed(1),I:+a.I.toFixed(2)});draw()};
+$('#cb').onclick=()=>{rows=[];draw()};
+function setExp(i){ex=i;comps.forEach(c=>c.g.remove());comps=[];wires=[];rec={};rows=[];cache={};
+ document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.e==i));
+ $('#p0').hidden=i!=0;$('#p1').hidden=$('#p2').hidden=i!=1;$('#gd').innerHTML=GD[i];
+ $('#items').innerHTML=EXP[i].map(t=>`<button data-t="${t}">${P[t][0]}</button>`).join('');
+ document.querySelectorAll('#items button').forEach(b=>b.onclick=()=>add(b.dataset.t));draw()}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setExp(+b.dataset.e));
+setExp(0);
+</script></body></html>

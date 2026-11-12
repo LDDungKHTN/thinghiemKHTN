@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 1 – Nhận biết dụng cụ, hoá chất</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f1f4f7;--cd:#fff;--ink:#1b2631;--mut:#5b6b7b;--ln:#d2dbe4;--bn:#e8eff5;--ac:#e8590c;--ok:#2b8a3e;--er:#e03131;--st:#34424f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6}}
+:root[data-theme="dark"]{--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+header{padding:12px 14px 0}h1{font-size:20px;margin:0 0 8px}h1 a{font-size:13px;font-weight:400;margin-left:8px;color:var(--mut)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--ln);background:var(--cd);color:var(--ink);padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit}
+.tab.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.pn{padding:14px}.pn[hidden]{display:none}
+.cd{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:12px}
+h2{font-size:15px;margin:14px 0 6px}
+.gr{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.card{background:var(--cd);border:2px solid var(--ln);border-radius:10px;padding:6px;cursor:pointer;color:var(--ink);font:inherit;font-size:12.5px;text-align:center}
+.card:hover{border-color:var(--ac)}.card.on{border-color:var(--ac);background:var(--bn)}
+.card svg{width:100%;height:60px;stroke:var(--st);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn{border:0;background:var(--ac);color:#fff;padding:8px 12px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+.btn.g{background:var(--bn);color:var(--ink);border:1px solid var(--ln)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.ok{color:var(--ok);font-weight:600}.er{color:var(--er);font-weight:600}
+.sm{font-size:13px;color:var(--mut)}
+details{margin:6px 0}summary{cursor:pointer;font-weight:600}
+.bots{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.bot{text-align:center;cursor:pointer;background:none;border:2px solid var(--ln);border-radius:10px;padding:8px;color:var(--ink);font:inherit}
+.bot.ok2{border-color:var(--ok)}.bot.no{border-color:var(--er)}
+.bot svg{width:50px;height:76px}
+.lab{display:grid;grid-template-columns:minmax(250px,320px) 1fr;gap:14px}
+#sh{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rg{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--ln);background:var(--cd);color:var(--ink);border-radius:8px;padding:7px 9px;cursor:pointer;font:inherit;font-size:13.5px;transition:transform .35s}
+.rg:hover{border-color:var(--ac)}.rg.pour{transform:rotate(-18deg) translateY(-5px)}
+.rg i{width:16px;height:22px;border-radius:3px 3px 6px 6px;border:2px solid var(--st);flex:none}
+#tube{width:100%;max-width:320px;display:block;margin:0 auto}
+#liq{transition:y 1s ease,height 1s ease,fill 1.4s ease}
+#strip{transition:fill 1s}
+@keyframes rise{0%{transform:translateY(0);opacity:.9}100%{transform:translateY(-150px);opacity:0}}
+#bub circle{animation:rise 1.6s infinite linear;fill:#fff;fill-opacity:.8}
+.ord{display:flex;gap:6px;align-items:center;border:1px solid var(--ln);background:var(--cd);border-radius:8px;padding:6px 8px;margin:5px 0}
+.ord.ok2{border-color:var(--ok)}.ord.no{border-color:var(--er)}
+.ord b{flex:1;font-weight:600}.ord small{color:var(--mut);display:block;font-weight:400}
+.ord button{border:1px solid var(--ln);background:var(--bn);color:var(--ink);border-radius:6px;width:30px;height:30px;cursor:pointer}
+@media(max-width:700px){.lab{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){#bub circle{animation:none}}
+</style></head><body>
+<header><h1>Bài 1. Nhận biết dụng cụ, hoá chất<a href="index.html">← Danh sách bài</a></h1>
+<nav><button class="tab on">Dụng cụ</button><button class="tab">Hoá chất &amp; an toàn</button><button class="tab">Thực hành acid – base</button><button class="tab">Báo cáo khoa học</button></nav></header>
+
+<div class="pn" id="v0"><div class="row"><button class="btn" id="mk">Chế độ kiểm tra</button><span class="sm" id="sc"></span></div>
+<div class="cd" id="in">Bấm vào một dụng cụ để xem tên và chức năng.</div><div id="gt"></div>
+<h2>Câu hỏi trong sách</h2>
+<details><summary>Phễu, phễu chiết, bình cầu thường làm bằng vật liệu gì? Cần lưu ý gì?</summary><p>Làm bằng thuỷ tinh nên dễ vỡ: cầm nhẹ tay, không để va đập, không làm nóng hoặc làm lạnh đột ngột, kiểm tra vết nứt trước khi dùng.</p></details>
+<details><summary>Vì sao đun dung dịch trong cốc thuỷ tinh phải dùng lưới tản nhiệt?</summary><p>Lưới tản nhiệt phân tán nhiệt đều, giúp cốc không bị nóng cục bộ và nứt vỡ.</p></details></div>
+
+<div class="pn" id="v1" hidden><div class="cd"><b>Bảo quản hoá chất.</b> Bấm vào từng lọ để chọn lọ thường (trong suốt) hoặc lọ tối màu để nơi tối, rồi bấm “Kiểm tra”.</div>
+<div class="bots" id="bs" style="margin-top:10px"></div><div class="row"><button class="btn" id="ck">Kiểm tra</button><span id="ckr"></span></div>
+<p class="sm">Hoá chất rắn, lỏng, kim loại, phi kim, oxide, acid, base, chất hữu cơ và chất chỉ thị đều cần để trong chai, lọ có nắp đậy và dán nhãn.</p>
+<h2>An toàn khi dùng hoá chất</h2>
+<details><summary>Cần lưu ý gì để hoá chất tinh khiết và bảo quản được lâu?</summary><p>Dùng thìa, ống hút sạch cho từng lọ; không đổ hoá chất thừa trở lại lọ; đậy nắp ngay sau khi lấy.</p></details>
+<details><summary>Vì sao phải đọc kĩ nhãn trước khi dùng?</summary><p>Để lấy đúng hoá chất, đúng nồng độ và biết mức độ độc hại, tránh nhầm lẫn.</p></details>
+<details><summary>Vì sao không tự ý nghiền, trộn các hoá chất?</summary><p>Có thể xảy ra phản ứng nguy hiểm (cháy nổ, toả nhiệt mạnh, sinh khí độc) và làm sai kết quả thí nghiệm.</p></details>
+<details><summary>Lưu ý với hoá chất dễ bay hơi, độc hại, nguy hiểm như H₂SO₄ đặc?</summary><p>Làm ở nơi thoáng hoặc tủ hút; đeo kính, găng tay, áo choàng; không ngửi trực tiếp. Pha loãng H₂SO₄ đặc: rót từ từ acid vào nước, khuấy nhẹ, không làm ngược lại.</p></details></div>
+
+<div class="pn" id="v2" hidden><div class="cd">Đề xuất trong sách: dùng dụng cụ và hoá chất để chứng minh tính chất hoá học chung của acid, base. Bấm vào lọ để rót (mỗi lần 5 mL) hoặc nhỏ chất chỉ thị.</div>
+<div class="lab" style="margin-top:10px"><div><svg id="tube" viewBox="0 0 260 330"><defs><clipPath id="tc"><path d="M90 30V250A40 40 0 0 0 170 250V30Z"/></clipPath></defs>
+<g clip-path="url(#tc)"><rect id="liq" x="80" y="290" width="100" height="0" fill="#cfe8f3" fill-opacity=".75"/><g id="cuo" opacity="0" fill="#1b1b1b"><circle cx="105" cy="282" r="5"/><circle cx="118" cy="285" r="4"/><circle cx="131" cy="281" r="5"/><circle cx="144" cy="285" r="4"/><circle cx="157" cy="282" r="5"/><circle cx="112" cy="276" r="3"/><circle cx="138" cy="275" r="3"/></g><path id="zn" d="M116 284l10-7 14 2 8 7-9 7-18-2z" fill="#9aa5b1" stroke="#68737f" opacity="0"/><g id="bub" visibility="hidden"><circle cx="110" cy="270" r="3"/><circle cx="125" cy="262" r="2.5" style="animation-delay:.4s"/><circle cx="138" cy="272" r="3.5" style="animation-delay:.9s"/><circle cx="150" cy="265" r="2.5" style="animation-delay:.2s"/><circle cx="130" cy="278" r="2" style="animation-delay:1.2s"/><circle cx="118" cy="274" r="2.5" style="animation-delay:.7s"/></g></g>
+<path d="M90 30V250A40 40 0 0 0 170 250V30" fill="none" stroke="var(--st)" stroke-width="3"/><path d="M84 30H176" stroke="var(--st)" stroke-width="4" stroke-linecap="round"/><path d="M100 50V240" stroke="#fff" stroke-opacity=".45" stroke-width="5" stroke-linecap="round"/>
+<g id="sg" visibility="hidden"><rect x="196" y="60" width="26" height="110" rx="3" fill="#ccc" stroke="var(--st)" id="strip"/><text x="209" y="188" text-anchor="middle" font-size="13" fill="var(--ink)">giấy pH</text></g></svg>
+<div class="row" style="justify-content:center"><button class="btn g" id="rs">Rửa ống nghiệm</button><button class="btn g" id="ph">Nhúng giấy pH</button></div></div>
+<div><div id="sh"></div><div class="cd" id="ob" style="margin-top:10px"></div></div></div></div>
+
+<div class="pn" id="v3" hidden><div class="cd">Bài báo cáo một vấn đề khoa học có 8 phần. Dùng nút ▲ ▼ để sắp xếp đúng thứ tự, rồi bấm “Kiểm tra”.</div><div id="od" style="margin-top:10px"></div>
+<div class="row"><button class="btn" id="co">Kiểm tra</button><button class="btn g" id="sf">Xáo trộn lại</button><span id="cor"></span></div></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+$$('.tab').forEach((b,i)=>b.onclick=()=>{$$('.tab').forEach((x,j)=>x.classList.toggle('on',i==j));$$('.pn').forEach((p,j)=>p.hidden=i!=j)});
+/* ---- Dụng cụ ---- */
+const TL=[
+['Quang học','Đèn dây tóc 12 V – 21 W','Tạo chùm sáng hẹp khi nối với nguồn điện 12 V; các tấm chắn sáng có một hoặc nhiều khe sáng.','<rect x="6" y="22" width="58" height="16" rx="2" fill="#cfd8dc"/><path d="M12 24v12M19 24v12M26 24v12"/><circle cx="58" cy="30" r="3" fill="#e03131"/><path d="M64 26l12-8M64 34l12 8"/>'],
+['Quang học','Đèn laser','Tạo tia sáng, mỗi tia điều khiển bằng một công tắc trên đèn. Lưu ý: không để tia laser chiếu vào mắt.','<rect x="14" y="6" width="52" height="48" rx="8" fill="#fff"/><rect x="30" y="12" width="20" height="8" rx="2" fill="#e03131"/><rect x="30" y="26" width="20" height="8" rx="2" fill="#e03131"/><rect x="30" y="40" width="20" height="8" rx="2" fill="#e03131"/>'],
+['Quang học','Bản bán trụ và bảng chia độ','Bản bán trụ là khối thuỷ tinh trong suốt; bảng chia độ dùng đọc góc tới, góc khúc xạ, góc phản xạ khi nghiên cứu khúc xạ và phản xạ toàn phần.','<path d="M12 46a28 28 0 0 1 56 0z" fill="#bbdefb"/><path d="M40 46V14M20 46l8-22M60 46l-8-22"/>'],
+['Quang học','Bộ dụng cụ ảnh qua thấu kính','Gồm thấu kính hội tụ, thấu kính phân kì, màn chắn và vật sáng (khe hình chữ F chiếu bằng đèn), đặt trên giá quang học đồng trục để dịch chuyển dễ dàng.','<path d="M4 50H76"/><rect x="10" y="24" width="6" height="16" fill="#f9a825"/><ellipse cx="32" cy="32" rx="4" ry="15" fill="#bbdefb"/><ellipse cx="46" cy="32" rx="2.5" ry="15" fill="#bbdefb"/><rect x="64" y="18" width="3" height="30" fill="#fff"/>'],
+['Điện từ','Điện kế','Phát hiện dòng điện cảm ứng. Dòng vào chốt G₀ (hoặc G₁), ra chốt âm (−): kim lệch phải; vào chốt âm, ra chốt G: kim lệch trái. Vạch 0 nằm giữa thang đo để nhận biết được cả hai chiều dòng điện.','<rect x="12" y="8" width="56" height="42" rx="3" fill="#fff"/><path d="M20 30a22 22 0 0 1 40 0"/><path d="M40 44l7-22" stroke="#e03131"/>'],
+['Điện từ','Đồng hồ đo điện đa năng','Đo cường độ dòng điện, hiệu điện thế, điện trở… trong mạch điện một chiều và xoay chiều.','<rect x="22" y="3" width="36" height="54" rx="6" fill="#fbc02d"/><rect x="27" y="8" width="26" height="12" fill="#cfe8d5"/><circle cx="40" cy="38" r="9" fill="#fff"/>'],
+['Điện từ','Cuộn dây dẫn có hai đèn LED','Hai đèn LED mắc song song, ngược cực với cuộn dây: đèn nào sáng cho biết có dòng điện cảm ứng và chiều của nó.','<path d="M14 42c0-9 6-9 6 0s6 9 6 0 6-9 6 0 6 9 6 0 6-9 6 0 6 9 6 0" stroke="#b5651d" stroke-width="3.5"/><path d="M14 42V14h52v28"/><circle cx="32" cy="14" r="5" fill="#fff59d"/><circle cx="48" cy="14" r="5" fill="#ffab91"/>'],
+['Chất và sự biến đổi chất','Bát sứ','Trộn hoặc đun nóng chảy các chất rắn, cô đặc dung dịch; thực hiện một số phản ứng toả nhiệt mạnh.','<path d="M8 26h64a32 24 0 0 1-64 0z" fill="#f5f5f5"/>'],
+['Chất và sự biến đổi chất','Phễu','Rót chất lỏng hoặc dùng để lọc.','<path d="M12 10h56L44 36v20h-8V36z" fill="#e3f2fd"/>'],
+['Chất và sự biến đổi chất','Phễu chiết','Tách chất theo phương pháp chiết.','<path d="M34 5h12M40 5L30 29c-3 13 4 19 10 19s13-6 10-19z" fill="#e3f2fd"/><path d="M40 48v10M33 53h14"/>'],
+['Chất và sự biến đổi chất','Bình cầu','Đựng chất lỏng, pha chế dung dịch, đun nóng, chưng cất.','<circle cx="40" cy="38" r="19" fill="#e3f2fd"/><path d="M34 20V5h12v15"/>'],
+['Chất và sự biến đổi chất','Lưới tản nhiệt','Phân tán nhiệt khi đốt.','<rect x="12" y="12" width="56" height="38" fill="#b0bec5" fill-opacity=".4"/><path d="M12 22h56M12 31h56M12 40h56M24 12v38M36 12v38M48 12v38M60 12v38"/>'],
+['Quan sát nhiễm sắc thể','Kính hiển vi và tiêu bản cố định NST','Dùng quan sát nhiễm sắc thể. Ở độ phóng đại 100× cần nhỏ dầu soi kính để thấy rõ mẫu vật nhỏ, trong suốt, chỉ số khúc xạ cao.','<path d="M30 6l14 4-9 28"/><path d="M22 54h34M34 54a16 16 0 0 0 20-14"/><rect x="34" y="38" width="16" height="4" fill="#fff"/>']];
+let qz=null,cur=-1;
+function gt(){const gs=[...new Set(TL.map(t=>t[0]))];$('#gt').innerHTML=gs.map(g=>`<h2>${g}</h2><div class="gr">${TL.map((t,i)=>t[0]==g?`<button class="card" data-i="${i}"><svg viewBox="0 0 80 60">${t[3]}</svg>${qz?'':t[1]}</button>`:'').join('')}</div>`).join('');
+ $$('.card').forEach(b=>b.onclick=()=>pick(+b.dataset.i))}
+function ask(){const i=Math.floor(Math.random()*TL.length);qz.q=i;$('#in').innerHTML=`<b>Câu ${qz.n+1}/8:</b> Dụng cụ nào có chức năng sau?<p>${TL[i][2]}</p>`}
+function pick(i){if(qz){const ok=i==qz.q;qz.n++;if(ok)qz.s++;$('#in').innerHTML=`<span class="${ok?'ok':'er'}">${ok?'Chính xác!':'Chưa đúng.'}</span> Đó là <b>${TL[qz.q][1]}</b>.`;$('#sc').textContent=`Điểm: ${qz.s}/${qz.n}`;
+ setTimeout(()=>{if(!qz)return;if(qz.n>=8){$('#in').innerHTML=`<b>Hoàn thành: ${qz.s}/8 câu đúng.</b> Bấm “Thoát kiểm tra” rồi “Chế độ kiểm tra” để làm lại.`;qz.q=-1}else ask()},1300);return}
+ $$('.card').forEach(b=>b.classList.toggle('on',+b.dataset.i==i));$('#in').innerHTML=`<b>${TL[i][1]}</b><p style="margin:4px 0 0">${TL[i][2]}</p>`}
+$('#mk').onclick=()=>{if(qz){qz=null;$('#mk').textContent='Chế độ kiểm tra';$('#sc').textContent='';$('#in').textContent='Bấm vào một dụng cụ để xem tên và chức năng.'}else{qz={n:0,s:0,q:0};$('#mk').textContent='Thoát kiểm tra';$('#sc').textContent='Điểm: 0/0';ask()}gt()};gt();
+/* ---- Hoá chất ---- */
+const BS=[['KMnO₄',1],['AgNO₃',1],['NaCl',0],['HCl',0],['CuSO₄',0],['C₂H₅OH',0]];let dk=BS.map(()=>0);
+function bs(r){$('#bs').innerHTML=BS.map((b,i)=>{const d=dk[i],c=d?'#7b3f00':'#cfe8f3';return`<button class="bot ${r?(dk[i]==b[1]?'ok2':'no'):''}" data-i="${i}"><svg viewBox="0 0 50 76"><rect x="19" y="2" width="12" height="9" rx="2" fill="#555"/><path d="M19 11h12v8l10 10v38a6 6 0 0 1-6 6H15a6 6 0 0 1-6-6V29l10-10z" fill="${c}" fill-opacity="${d?1:.6}" stroke="#34424f" stroke-width="2"/><rect x="14" y="40" width="22" height="16" fill="#fff" opacity=".9"/><text x="25" y="52" text-anchor="middle" font-size="7" fill="#111">${b[0]}</text></svg><div class="sm">${d?'Lọ tối màu, để chỗ tối':'Lọ thường'}</div></button>`}).join('');
+ $$('.bot').forEach(b=>b.onclick=()=>{dk[+b.dataset.i]^=1;$('#ckr').textContent='';bs()})}
+$('#ck').onclick=()=>{bs(1);const ok=BS.every((b,i)=>b[1]==dk[i]);$('#ckr').innerHTML=ok?'<span class="ok">Đúng! KMnO₄ và AgNO₃ dễ bị phân huỷ bởi ánh sáng nên cần lọ tối màu, để nơi tối.</span>':'<span class="er">Chưa đúng: chỉ những chất dễ bị ánh sáng phân huỷ như KMnO₄, AgNO₃ mới cần lọ tối màu.</span>'};bs();
+/* ---- Thực hành acid-base ---- */
+const mx=(a,b,t)=>{const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),x=p(a),y=p(b);return'#'+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,'0')).join('')},cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const RG=[['hcl','HCl 0,1 M','#dff1f8'],['h2o','Nước cất','#e8f4fa'],['naoh','NaOH 0,1 M','#dff1f8'],['pp','Phenolphthalein','#f8f9fa'],['qt','Quỳ tím','#7c4dff'],['zn','Mẩu kẽm (Zn)','#9aa5b1'],['cuo','Bột CuO (đen)','#222']];
+const PH=['#d62828','#e8590c','#f08c00','#f59f00','#e6c200','#b5c334','#7cb342','#43a047','#26a69a','#1e88e5','#3949ab','#5e35b1','#6a1b9a','#4a148c'];
+let S={a:0,b:0,w:0,ind:'',zn:0,cu:0,cuo:0,strip:0};
+$('#sh').innerHTML=RG.map(r=>`<button class="rg" data-k="${r[0]}"><i style="background:${r[2]}"></i>${r[1]}</button>`).join('');
+const V=()=>S.a+S.b+S.w,pH=()=>{const v=V();if(!v)return 7;const n=.1*(S.a-S.b);return Math.abs(n)<1e-6?7:n>0?-Math.log10(n/v*1000/1000*1):14+Math.log10(-n/v)};
+function color(p){let c='#cfe8f3',o=.75;
+ if(S.ind=='pp'){c=mx('#cfe8f3','#d6246e',cl((p-8.2)/1.8,0,1));o=.75+.2*cl((p-8.2)/1.8,0,1)}
+ if(S.ind=='qt'){c=p<4.5?'#e03131':p<7?mx('#e03131','#7e57c2',(p-4.5)/2.5):p<8.3?mx('#7e57c2','#3b5bdb',(p-7)/1.3):'#3b5bdb';o=.85}
+ if(S.cu>0)c=mx(c,'#2bb7c9',S.cu*.8);return[c,o]}
+function render(){const v=V(),p=pH(),h=cl(v/40,0,1)*240,[c,o]=color(p);
+ const L=$('#liq');L.setAttribute('y',290-h);L.setAttribute('height',h+10);L.setAttribute('fill',c);L.setAttribute('fill-opacity',o);
+ const acid=v>0&&p<6,bub=S.zn>.02&&acid;$('#bub').setAttribute('visibility',bub?'visible':'hidden');
+ $('#zn').setAttribute('opacity',S.zn>.02?1:0);$('#zn').style.transform=`scale(${.4+.6*S.zn})`;$('#zn').style.transformOrigin='130px 285px';
+ $('#cuo').setAttribute('opacity',S.cuo*(1-S.cu));$('#sg').setAttribute('visibility',S.strip&&v?'visible':'hidden');$('#strip').setAttribute('fill',PH[cl(Math.round(p),1,14)-1]);
+ let t=[];if(!v)t.push('Ống nghiệm đang trống: hãy rót dung dịch vào.');else{t.push(`pH ≈ ${p.toFixed(1).replace('.',',')}: môi trường ${Math.abs(p-7)<.3?'trung tính':p<7?'acid':'base'}.`);
+ if(S.a&&S.b)t.push('HCl + NaOH → NaCl + H₂O (phản ứng trung hoà).');
+ if(S.ind=='pp')t.push(p>8.2?'Phenolphthalein hoá hồng (môi trường base).':'Phenolphthalein không màu (acid hoặc trung tính).');
+ if(S.ind=='qt')t.push(p<4.5?'Quỳ tím hoá đỏ (acid).':p>8.3?'Quỳ tím hoá xanh (base).':'Quỳ tím tím (gần trung tính).');
+ if(S.zn>.02)t.push(bub?'Mẩu kẽm tan dần, có bọt khí H₂ thoát ra: Zn + 2HCl → ZnCl₂ + H₂↑.':'Kẽm không phản ứng trong môi trường này.');
+ if(S.cuo)t.push(acid?(S.cu>.95?'CuO tan hết, dung dịch xanh lam: CuO + 2HCl → CuCl₂ + H₂O.':'Bột CuO đen đang tan dần, dung dịch chuyển xanh lam…'):'Bột CuO đen không tan trong nước hoặc base.')}
+ if(S.strip&&v)t.push(`Giấy pH chuyển màu ứng với pH ≈ ${Math.round(p)}.`);
+ $('#ob').innerHTML='<b>Hiện tượng</b><br>'+t.join('<br>')}
+$$('.rg').forEach(b=>b.onclick=()=>{const k=b.dataset.k;b.classList.add('pour');setTimeout(()=>b.classList.remove('pour'),600);
+ if(k=='hcl'||k=='h2o'||k=='naoh'){if(V()>=40)return;S[k=='hcl'?'a':k=='naoh'?'b':'w']+=5}
+ else if(k=='pp'||k=='qt'){if(!V())return;S.ind=k}else if(k=='zn')S.zn=1;else S.cuo=1;render()});
+$('#ph').onclick=()=>{S.strip=1;render()};
+$('#rs').onclick=()=>{S={a:0,b:0,w:0,ind:'',zn:0,cu:0,cuo:0,strip:0};render()};
+setInterval(()=>{const acid=V()>0&&pH()<6;let ch=0;if(S.cuo&&acid&&S.cu<1){S.cu=Math.min(1,S.cu+.03);ch=1}
+ if(S.zn>.02&&acid){S.zn=Math.max(.02,S.zn-.004);ch=1}if(ch)render()},120);render();
+/* ---- Báo cáo ---- */
+const RP=[['Tiêu đề','Chính xác, mô tả rõ nội dung báo cáo'],['Tóm tắt','Đoạn ngắn tổng hợp mục tiêu, phương pháp, kết quả, kết luận'],['Giới thiệu','Vấn đề nghiên cứu, tầm quan trọng và mục tiêu'],['Phương pháp','Quá trình thí nghiệm hoặc thu thập, xử lí dữ liệu; vật liệu, hoá chất, dụng cụ'],['Kết quả','Dữ liệu trình bày rõ ràng bằng biểu đồ, hình ảnh hoặc bảng'],['Thảo luận','Phân tích, giải thích ý nghĩa kết quả; so sánh với nghiên cứu khác'],['Kết luận','Những phát hiện chính và gợi ý nghiên cứu sau'],['Tài liệu tham khảo','Liệt kê các nguồn thông tin đã sử dụng']];
+let od=[],ck=0;const sf=()=>{od=RP.map((_,i)=>i).sort(()=>Math.random()-.5);if(od.every((v,i)=>v==i))od.reverse();ck=0;$('#cor').textContent='';ro()};
+function ro(){$('#od').innerHTML=od.map((k,i)=>`<div class="ord ${ck?(k==i?'ok2':'no'):''}"><b>${RP[k][0]}<small>${RP[k][1]}</small></b><button data-i="${i}" data-d="-1">▲</button><button data-i="${i}" data-d="1">▼</button></div>`).join('');
+ $$('.ord button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,j=i+ +b.dataset.d;if(j<0||j>7)return;[od[i],od[j]]=[od[j],od[i]];ck=0;$('#cor').textContent='';ro()})}
+$('#co').onclick=()=>{ck=1;ro();$('#cor').innerHTML=od.every((v,i)=>v==i)?'<span class="ok">Chính xác! Đúng cấu trúc báo cáo khoa học.</span>':'<span class="er">Chưa đúng, hãy xem các dòng viền đỏ.</span>'};$('#sf').onclick=sf;sf();
+</script></body></html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 15 – Tác dụng của dòng điện xoay chiều</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f1f4f7;--cd:#fff;--ink:#1b2631;--mut:#5b6b7b;--ln:#d2dbe4;--bn:#e8eff5;--ac:#e8590c;--ok:#2b8a3e;--er:#e03131;--st:#34424f;--bl:#1c7ed6;--sky:#eef3f8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--sky:#121c26}}
+:root[data-theme="dark"]{--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--sky:#121c26}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+header{padding:12px 14px 0}h1{font-size:20px;margin:0 0 8px}h1 a{font-size:13px;font-weight:400;margin-left:8px;color:var(--mut)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--ln);background:var(--cd);color:var(--ink);padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit}
+.tab.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.pn{padding:14px;max-width:900px}.pn[hidden]{display:none}
+.cd{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:12px;margin-bottom:10px}
+svg.sc{display:block;width:100%;height:auto;background:var(--sky);border:1px solid var(--ln);border-radius:10px;margin-bottom:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.btn{border:0;background:var(--ac);color:#fff;padding:8px 12px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}.btn.g{background:var(--bn);color:var(--ink);border:1px solid var(--ln)}.btn.on{outline:3px solid var(--ac);outline-offset:1px}
+.sm{font-size:13px;color:var(--mut)}.ok{color:var(--ok);font-weight:600}.er{color:var(--er);font-weight:600}
+.q{border:1px solid var(--ln);background:var(--cd);border-radius:10px;padding:10px 12px;margin-bottom:10px}.q label{display:block;margin:3px 0;cursor:pointer}
+.q input[type=text]{width:100px;font:inherit;padding:4px 6px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink)}.q.good{border-color:var(--ok)}.q.bad{border-color:var(--er)}
+.sk{stroke:var(--st);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.sk:not([fill]){fill:none}
+.tx{fill:var(--ink);font:600 12px "Segoe UI",system-ui,sans-serif}.tm{fill:var(--mut);font:11px "Segoe UI",system-ui,sans-serif}
+.cls{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center}.cls select{font:inherit;padding:4px 6px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink)}.cls .ok2{color:var(--ok)}.cls .no{color:var(--er)}
+</style></head><body>
+<header><h1>Bài 15. Tác dụng của dòng điện xoay chiều<a href="index.html">← Danh sách bài</a></h1>
+<nav><button class="tab on">Tác dụng nhiệt</button><button class="tab">Tác dụng phát sáng</button><button class="tab">Tác dụng từ</button><button class="tab">Tác dụng sinh lí</button><button class="tab">Phân loại &amp; câu hỏi</button></nav></header>
+
+<div class="pn" id="v0"><div class="cd">Dòng điện xoay chiều chạy qua vật dẫn làm nó nóng lên. Chọn thiết bị, bật điện và theo dõi nhiệt độ (có thể tua nhanh thời gian).</div>
+<div class="row" id="ts"></div>
+<svg class="sc" id="s1" viewBox="0 0 520 250"><g id="ic1"></g><rect x="440" y="30" width="22" height="170" rx="11" fill="var(--cd)" class="sk"/><rect id="th" x="445" y="195" width="12" height="0" rx="6" fill="#e03131"/><circle cx="451" cy="212" r="16" fill="#e03131" class="sk"/><text id="tt" class="tx" x="451" y="20" text-anchor="middle"></text></svg>
+<div class="row"><button class="btn" id="po">Bật điện</button><button class="btn g" id="re">Tắt và để nguội</button><span class="sm">Tốc độ:</span><button class="btn g sp on" data-s="1">×1</button><button class="btn g sp" data-s="10">×10</button><button class="btn g sp" data-s="30">×30</button></div>
+<div class="cd" id="i1"></div></div>
+
+<div class="pn" id="v1" hidden><div class="cd">Dòng điện xoay chiều qua đèn sợi đốt hoặc đèn huỳnh quang làm đèn phát sáng. Tần số 50 Hz rất nhanh nên mắt thấy đèn sáng đều; hãy chọn “quan sát chậm” để thấy dòng điện đổi chiều và độ sáng thay đổi theo.</div>
+<div class="row"><button class="btn on lm" data-l="0">Đèn sợi đốt</button><button class="btn g lm" data-l="1">Đèn huỳnh quang</button><span style="width:14px"></span><button class="btn on vm" data-v="0">Quan sát chậm</button><button class="btn g vm" data-v="1">Quan sát thường (50 Hz)</button></div>
+<svg class="sc" id="s2" viewBox="0 0 520 220"><path d="M80 110V50H260M360 50H440V110M80 110V170H440V110" class="sk"/><circle cx="80" cy="110" r="26" fill="var(--cd)" class="sk"/><path d="M66 110q7 -14 14 0t14 0" class="sk"/><text class="tm" x="80" y="156" text-anchor="middle">nguồn xoay chiều</text><g id="lp"></g><text id="d2" class="tx" x="310" y="190" text-anchor="middle"></text></svg>
+<svg class="sc" id="g2" viewBox="0 0 520 130" style="background:var(--cd)"></svg>
+<div class="cd" id="i2"></div></div>
+
+<div class="pn" id="v2" hidden><div class="cd">Thí nghiệm Hình 15.4: cuộn dây có lõi sắt nối nguồn qua công tắc K. Chọn vật đặt dưới cuộn dây, loại dòng điện rồi bấm K. Dòng điện xoay chiều sinh ra từ trường nên hút được đinh sắt.</div>
+<div class="row" id="ob"></div><div class="row"><button class="btn on cm" data-c="0">Dòng điện xoay chiều</button><button class="btn g cm" data-c="1">Dòng điện một chiều</button><button class="btn g" id="kk">Đóng K</button></div>
+<svg class="sc" id="s3" viewBox="0 0 520 250"><rect x="0" y="225" width="520" height="25" fill="#b8a27a"/><g id="cg3"></g><path d="M60 40H210M310 40H460V125M60 40V205H200" class="sk" fill="none"/><circle cx="260" cy="40" r="4" fill="var(--cd)" class="sk"/><g id="kb"><circle cx="210" cy="40" r="4" fill="var(--cd)" class="sk"/><line id="bl3" x1="210" y1="40" x2="305" y2="40" class="sk" style="stroke-width:4"/></g><text id="kt3" class="tx" x="260" y="25" text-anchor="middle"></text>
+<g id="fl3"></g><g id="oj" ></g><text id="pl" class="tx" x="150" y="100" text-anchor="end"></text><text id="pr" class="tx" x="380" y="100"></text></svg>
+<div class="cd" id="i3"></div></div>
+
+<div class="pn" id="v3" hidden><div class="cd">Dòng điện xoay chiều đi qua cơ thể có thể làm cơ co giật, tim ngừng đập, ngạt thở. Trong y học, máy khử rung tim ứng dụng tác dụng sinh lí của xung điện để đưa nhịp tim về bình thường. Chọn tình trạng nhịp tim rồi bấm “Phát xung điện”.</div>
+<div class="row"><button class="btn on hm" data-h="0">Nhịp tim bình thường</button><button class="btn g hm" data-h="1">Tim đập quá nhanh</button><button class="btn g hm" data-h="2">Tim đập quá chậm</button><button class="btn g hm" data-h="3">Rối loạn (rung)</button></div>
+<svg class="sc" id="s4" viewBox="0 0 520 190" style="background:#06150c"><g id="grd"></g><path id="ec" d="" fill="none" stroke="#51ff7a" stroke-width="2.2"/><rect id="fs" x="0" y="0" width="520" height="190" fill="#fff" opacity="0"/><g id="ht" transform="translate(470 150)"><path d="M0 -4C-12 -22 -26 -4 0 20C26 -4 12 -22 0 -4z" fill="#e03131"/></g><text id="bp" x="16" y="26" style="fill:#51ff7a;font:700 20px monospace"></text></svg>
+<div class="row"><button class="btn" id="sh">Phát xung điện (máy khử rung tim)</button></div><div class="cd" id="i4"></div>
+<div class="cd er">Lưu ý an toàn: dòng điện xoay chiều có thể gây nguy hiểm đến tính mạng. Cẩn thận khi dùng điện ở gia đình và không lại gần các trạm biến thế.</div></div>
+
+<div class="pn" id="v4" hidden><div class="cd"><b>Phân loại ví dụ.</b> Với mỗi ví dụ, chọn tác dụng của dòng điện xoay chiều được thể hiện rồi bấm “Kiểm tra”.</div><div class="cd"><div class="cls" id="cl"></div><div class="row"><button class="btn" id="ck">Kiểm tra</button><span id="cr"></span></div></div><div id="qs"></div></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const f=(n,d=2)=>n.toLocaleString('vi-VN',{maximumFractionDigits:d}),cl=(v,a,b)=>Math.max(a,Math.min(b,v)),mx=(a,b,t)=>{const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),x=p(a),y=p(b);return'#'+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,'0')).join('')};
+let cur=0;$$('.tab').forEach((b,i)=>b.onclick=()=>{cur=i;$$('.tab').forEach((x,j)=>x.classList.toggle('on',i==j));$$('.pn').forEach((p,j)=>p.hidden=i!=j)});
+const sel=(sel,cls,fn)=>$$(sel).forEach(b=>b.onclick=()=>{$$(sel).forEach(x=>{x.classList.toggle('g',x!=b);x.classList.toggle('on',x==b)});fn(b)});
+/* ---- 1. Nhiệt ---- */
+const TH=[['Máy sấy tóc',65,25,'Vỏ nhựa ấm lên khi dùng lâu; hơi nóng thổi ra từ đầu sấy. Điện năng → nhiệt năng (dây điện trở) và cơ năng (quạt thổi gió). Điều này chứng tỏ dòng điện xoay chiều có tác dụng nhiệt.'],['Ấm đun nước',100,100,'Dây điện trở toả nhiệt làm nước nóng lên tới sôi (100 °C). Điện năng → nhiệt năng.'],['Bàn là điện',150,60,'Dòng điện qua dây điện trở trong bàn là làm đế bàn là rất nóng. Điện năng → nhiệt năng.'],['Bình nước nóng',60,70,'Thanh điện trở đốt nóng nước trong bình. Điện năng → nhiệt năng.']];
+const S1={k:0,on:0,t:0,T:25,sp:1};
+$('#ts').innerHTML=TH.map((t,i)=>`<button class="btn ${i?'g':'on'} tb" data-i="${i}">${t[0]}</button>`).join('');
+function icon1(k,fr){const c=mx('#adb5bd','#e03131',fr);
+ if(k==0)return `<path class="sk" d="M110 120C110 70 190 60 250 80L310 80L310 120L250 120L200 190H160L180 120z" fill="#845ef7"/><rect x="310" y="80" width="36" height="40" fill="${c}" class="sk"/>${[0,1,2,3].map(i=>`<path d="M356 ${88+i*9}q30 -8 60 0t60 0" fill="none" stroke="#e8590c" stroke-width="3" opacity="${S1.on?.8:0}" stroke-dasharray="8 6"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="0.8s" repeatCount="indefinite"/></path>`).join('')}`;
+ if(k==1)return `<path class="sk" d="M150 90H330L350 190H130z" fill="#e9ecef"/><rect x="146" y="100" width="188" height="${90*0+70}" fill="#4dabf7" opacity=".6" style="fill:${mx('#4dabf7','#ff8787',fr*.6)}"/><path class="sk" d="M330 110H380V160H345"/>${S1.T>=99.5?[0,1,2].map(i=>`<circle cx="${210+i*40}" cy="80" r="7" fill="#cfd8dc"><animate attributeName="cy" from="80" to="40" dur="1.2s" begin="${i*.4}s" repeatCount="indefinite"/><animate attributeName="opacity" from=".9" to="0" dur="1.2s" begin="${i*.4}s" repeatCount="indefinite"/></circle>`).join(''):''}`;
+ if(k==2)return `<path class="sk" d="M110 180H400L370 110Q360 80 330 80H210Q150 80 140 130z" fill="#74c0fc"/><rect x="104" y="180" width="300" height="16" rx="5" fill="${c}" class="sk"/><path class="sk" d="M215 80C215 55 330 55 330 80"/>`;
+ return `<rect x="190" y="50" width="130" height="150" rx="20" fill="#e9ecef" class="sk"/><rect x="200" y="${200-120*fr-10}" width="110" height="${120*fr+10}" rx="10" fill="${c}" opacity=".7"/><path class="sk" d="M255 50V30M255 200V220"/>`}
+sel('.tb','',b=>{S1.k=+b.dataset.i;S1.on=0;S1.t=0;S1.T=25;$('#po').textContent='Bật điện'});
+$('#po').onclick=()=>{S1.on^=1;$('#po').textContent=S1.on?'Ngắt điện':'Bật điện'};$('#re').onclick=()=>{S1.on=0;S1.t=0;S1.T=25;$('#po').textContent='Bật điện'};
+sel('.sp','',b=>S1.sp=+b.dataset.s);
+function d1(dt){const[n,tm,tau,note]=TH[S1.k];if(S1.on){S1.t+=dt*S1.sp;const x=25+(tm*(S1.k==1?1.1:1)-25)*(1-Math.exp(-S1.t/tau));S1.T=Math.min(x,tm)}else S1.T+=(25-S1.T)*Math.min(1,dt*S1.sp/(tau*1.5));
+ const fr=cl((S1.T-25)/(tm-25),0,1);$('#ic1').innerHTML=icon1(S1.k,fr)+`<text class="tx" x="250" y="228" text-anchor="middle">${n}</text>`;
+ $('#th').setAttribute('y',195-cl((S1.T)/160,0,1)*150);$('#th').setAttribute('height',cl(S1.T/160,0,1)*150+5);$('#tt').textContent=f(S1.T,1)+' °C';
+ $('#i1').innerHTML=`<b>${n}</b> – nhiệt độ bộ phận toả nhiệt: ${f(S1.T,1)} °C. ${S1.on?'<span class="ok">Dòng điện đang chạy: thiết bị nóng lên → tác dụng nhiệt.</span>':'Đang ngắt điện.'}<br>${note}`}
+/* ---- 2. Phát sáng ---- */
+const L2={l:0,v:0,t:0};sel('.lm','',b=>L2.l=+b.dataset.l);sel('.vm','',b=>L2.v=+b.dataset.v);
+function d2(dt){L2.t+=dt;const ph=L2.v?L2.t*50:L2.t*.25,i=Math.sin(2*Math.PI*ph),e=i*i;let b;if(L2.v)b=L2.l?.5:.75;else b=L2.l?.05+.95*e:.7+.3*e;
+ $('#lp').innerHTML=L2.l?`<circle cx="310" cy="50" r="46" fill="#e7f5ff" opacity="${b*.6}"/><rect x="258" y="38" width="104" height="24" rx="12" fill="var(--cd)" class="sk"/><rect x="262" y="42" width="96" height="16" rx="8" fill="#e7f5ff" opacity="${b}"/>`:`<circle cx="310" cy="50" r="48" fill="#ffe066" opacity="${b*.6}"/><circle cx="310" cy="50" r="22" fill="var(--cd)" class="sk"/><circle cx="310" cy="50" r="21" fill="#ffe066" opacity="${b}"/><path class="sk" d="M299 60L305 40L310 56L315 40L321 60" style="stroke:${b>.3?'#e8590c':'var(--st)'}"/>`;
+ $('#d2').textContent=L2.v?'Quan sát thường: mắt thấy đèn sáng đều':`Dòng điện i = ${f(i,2)} (đơn vị I₀) – ${i>0?'chiều thuận':'chiều ngược'}`;
+ let a='',c='';for(let k=0;k<=200;k++){const x=k*2.4+20,p=(k/200)*2+ (L2.v?0:0),ii=Math.sin(2*Math.PI*p),ee=L2.l?.05+.95*ii*ii:.7+.3*ii*ii;a+=(k?'L':'M')+x+' '+(65-ii*45);c+=(k?'L':'M')+x+' '+(120-ee*50)}
+ const cx=20+ ((ph%2+2)%2)/2*480;$('#g2').innerHTML=`<path d="M20 65H500" stroke="var(--mut)" stroke-dasharray="3 4"/><path d="${a}" fill="none" stroke="#e8590c" stroke-width="2"/><path d="${c}" fill="none" stroke="#f59f00" stroke-width="2" opacity=".8" transform="translate(0 -4)"/>${L2.v?'':`<path d="M${cx} 8V122" stroke="var(--bl)" stroke-width="2"/>`}<text class="tx" x="24" y="14" style="fill:#e8590c">i (dòng điện xoay chiều)</text><text class="tx" x="300" y="14" style="fill:#f59f00">độ sáng của đèn</text>`;
+ $('#i2').innerHTML=`${L2.l?'Đèn huỳnh quang':'Đèn sợi đốt'} phát sáng khi có dòng điện xoay chiều chạy qua → tác dụng phát sáng. `+(L2.v?'':`Độ sáng thay đổi 2 lần trong mỗi chu kì (100 lần/s ở lưới điện 50 Hz). `)+(L2.l?'Đèn huỳnh quang nhấp nháy rõ hơn khi quay chậm.':'Dây tóc nóng sáng nên độ sáng dao động ít vì còn nóng giữa hai lần dòng điện bằng 0.')}
+/* ---- 3. Từ ---- */
+const OBJ=[['Đinh sắt',1,'#868e96'],['Kẹp giấy bằng thép',1,'#adb5bd'],['Sợi dây đồng',0,'#c2410c'],['Lá nhôm',0,'#ced4da']];
+const M3={o:0,ac:1,k:0,y:0,t:0};
+$('#ob').innerHTML=OBJ.map((o,i)=>`<button class="btn ${i?'g':'on'} ob" data-i="${i}">${o[0]}</button>`).join('');
+sel('.ob','',b=>{M3.o=+b.dataset.i;M3.y=0});sel('.cm','',b=>M3.ac=+b.dataset.c==0);$('#kk').onclick=()=>{M3.k^=1;$('#kk').textContent=M3.k?'Mở K':'Đóng K'};
+(function(){let s='';for(let i=0;i<9;i++)s+=`<ellipse cx="${210+i*12}" cy="140" rx="7" ry="42" fill="none" stroke="#c2410c" stroke-width="3.5"/>`;$('#cg3').innerHTML=`<rect x="205" y="122" width="115" height="36" fill="#868e96" class="sk"/>`+s}());
+function d3(dt){M3.t+=dt;const o=OBJ[M3.o],pull=M3.k&&o[1],tgt=pull?1:0;M3.y+=(tgt-M3.y)*Math.min(1,dt*5);const y=215-M3.y*(215-178);
+ $('#bl3').setAttribute('y2',M3.k?40:12);$('#bl3').setAttribute('x2',M3.k?305:298);$('#kt3').textContent='K: '+(M3.k?'đóng':'mở');
+ const pol=M3.ac?(Math.sin(M3.t*2*Math.PI*.6)>0):1;$('#pl').textContent=M3.k?(pol?'S':'N'):'';$('#pr').textContent=M3.k?(pol?'N':'S'):'';
+ $('#fl3').innerHTML=M3.k?[0,1,2].map(i=>`<path d="M${262+(i-1)*22} 182V${y-8}" stroke="#2b8a3e" stroke-dasharray="4 4" opacity="${.35+.2*i}" fill="none"/>`).join(''):'';
+ $('#oj').innerHTML=o[0]=='Đinh sắt'?`<rect x="245" y="${y-5}" width="30" height="8" rx="2" fill="${o[2]}" class="sk"/><rect x="240" y="${y-8}" width="8" height="14" fill="${o[2]}" class="sk"/>`:o[0].startsWith('Kẹp')?`<path d="M240 ${y} h34 a6 6 0 0 0 0 -10 h-28 a4 4 0 0 0 0 7 h24" class="sk" style="stroke:${o[2]}"/>`:o[0].startsWith('Sợi')?`<path d="M238 ${y}q8 -10 16 0t16 0" class="sk" style="stroke:${o[2]};stroke-width:4"/>`:`<rect x="240" y="${y-3}" width="36" height="5" fill="${o[2]}" class="sk"/>`;
+ $('#i3').innerHTML=!M3.k?'Công tắc K đang mở: không có dòng điện, cuộn dây không có từ trường.':(o[1]?`<span class="ok">${o[0]} bị hút lên: dòng điện ${M3.ac?'xoay chiều':'một chiều'} chạy trong cuộn dây sinh ra từ trường → tác dụng từ.</span>`:`${o[0]} không bị hút (không phải vật liệu từ như sắt, thép).`)+(M3.ac?' Với dòng xoay chiều, hai đầu cuộn dây đổi cực N–S liên tục (100 lần/s) nhưng đinh sắt vẫn bị hút: hiện tượng gần như không khác khi dùng dòng một chiều.':' Với dòng một chiều, cực từ của cuộn dây cố định.')}
+/* ---- 4. Sinh lí ---- */
+const H={m:0,t:0,buf:[],acc:0,flash:0,msg:''};sel('.hm','',b=>{H.m=+b.dataset.h;H.msg=''});
+(function(){let g='';for(let x=0;x<=520;x+=26)g+=`<path d="M${x} 0V190" stroke="#0e3a1e" stroke-width="1"/>`;for(let y=0;y<=190;y+=26)g+=`<path d="M0 ${y}H520" stroke="#0e3a1e" stroke-width="1"/>`;$('#grd').innerHTML=g})();
+const gs=(p,m,s)=>Math.exp(-((p-m)**2)/(2*s*s)),HR=[72,165,34,0];
+function ecg(t){if(H.m==3)return .45*Math.sin(t*23)+.3*Math.sin(t*37+1)+.25*Math.sin(t*51+2)+.12*(Math.random()-.5);const hr=HR[H.m],p=((t*hr/60)%1+1)%1;return .12*gs(p,.15,.025)-.1*gs(p,.27,.01)+1*gs(p,.3,.012)-.25*gs(p,.33,.012)+.3*gs(p,.55,.05)}
+$('#sh').onclick=()=>{H.flash=1;if(H.m!=0){H.m=0;H.msg='<span class="ok">Máy khử rung tim đã phát xung điện: nhịp tim trở về bình thường (khoảng 72 lần/phút).</span>';sel2()}else H.msg='<span class="sm">Nhịp tim đang bình thường nên máy không cần can thiệp.</span>'};
+function sel2(){$$('.hm').forEach(x=>{x.classList.toggle('g',x.dataset.h!=0);x.classList.toggle('on',x.dataset.h==0)})}
+function d4(dt){H.t+=dt;H.acc+=dt;while(H.acc>=.02){H.acc-=.02;H.buf.push(ecg(H.t));if(H.buf.length>250)H.buf.shift()}
+ const n=H.buf.length;$('#ec').setAttribute('d',H.buf.map((v,i)=>(i?'L':'M')+(i*2.08)+' '+(120-v*70)).join(''));H.flash=Math.max(0,H.flash-dt*3);$('#fs').setAttribute('opacity',H.flash*.7);
+ const hr=HR[H.m];$('#bp').textContent=hr?hr+' lần/phút':'-- (rối loạn)';const sc=hr?1+.2*Math.max(0,Math.sin(H.t*Math.PI*hr/30)):1.05;$('#ht').setAttribute('transform',`translate(470 150) scale(${sc})`);
+ $('#i4').innerHTML=H.msg||({0:'Nhịp tim bình thường.',1:'Tim đập nhanh: máy sẽ phát xung điện để khử bớt nhịp đập của tim.',2:'Tim đập chậm: máy sẽ phát xung điện để kích thích tăng nhịp tim.',3:'Rối loạn nhịp: máy phát xung điện kịp thời để khôi phục nhịp đập bình thường. Xung điện là dòng điện không liên tục, chỉ xuất hiện trong thời gian ngắn.'})[H.m]}
+/* ---- 5. Phân loại ---- */
+const CL=[['Máy sấy tóc',0],['Ấm đun nước',0],['Bàn là',0],['Bóng đèn sợi đốt',1],['Đèn huỳnh quang',1],['Nam châm điện nâng bột sắt',2],['Rơ le điện từ',2],['Máy chụp cộng hưởng từ',2],['Máy khử rung tim',3],['Dòng điện làm co giật cơ',3]],CT=['Tác dụng nhiệt','Tác dụng phát sáng','Tác dụng từ','Tác dụng sinh lí'];
+$('#cl').innerHTML=CL.map((c,i)=>`<span id="cn${i}">${c[0]}</span><select id="cs${i}"><option value="">— chọn —</option>${CT.map((t,j)=>`<option value="${j}">${t}</option>`).join('')}</select>`).join('');
+$('#ck').onclick=()=>{let ok=0,all=1;CL.forEach((c,i)=>{const v=$('#cs'+i).value,g=v!==''&&+v==c[1];if(v==='')all=0;ok+=g;$('#cn'+i).className=v===''?'':g?'ok2':'no'});$('#cr').innerHTML=all?`<span class="${ok==10?'ok':'er'}">Đúng ${ok}/10.</span>`:'<span class="sm">Hãy chọn cho đủ các ví dụ.</span>'};
+let lt=0;(function tick(t){const dt=Math.min(.05,(t-lt)/1000||0);lt=t;if(cur==0)d1(dt);if(cur==1)d2(dt);if(cur==2)d3(dt);if(cur==3)d4(dt);requestAnimationFrame(tick)})(0);
+const Q=[{q:'Hơi nóng thổi ra từ đầu máy sấy tóc cho thấy điện năng được chuyển hoá thành dạng năng lượng nào (ngoài cơ năng quay quạt)?',o:['Nhiệt năng','Hoá năng','Quang năng'],a:0,e:'Dây điện trở toả nhiệt làm nóng không khí thổi qua: dòng điện xoay chiều có tác dụng nhiệt.'},
+{q:'Dòng điện xoay chiều chạy qua đèn sợi đốt làm đèn phát sáng chứng tỏ dòng điện xoay chiều có tác dụng gì?',o:['Phát sáng','Từ','Sinh lí'],a:0,e:'Đó là tác dụng phát sáng (đèn huỳnh quang cũng vậy).'},
+{q:'Khi đóng K ở Hình 15.4, đinh sắt bị hút lên, chứng tỏ dòng điện xoay chiều có tác dụng gì?',o:['Tác dụng từ','Tác dụng nhiệt','Tác dụng sinh lí'],a:0,e:'Cuộn dây có dòng điện sinh ra từ trường nên hút đinh sắt.'},
+{q:'Thay dòng điện xoay chiều bằng dòng điện một chiều trong thí nghiệm Hình 15.4 thì đinh sắt:',o:['Vẫn bị hút lên','Không bị hút nữa','Bị đẩy ra xa'],a:0,e:'Cả hai loại dòng điện đều sinh ra từ trường làm cuộn dây hút sắt; khác nhau ở chỗ cực từ cố định (một chiều) hay đổi liên tục (xoay chiều).'},
+{q:'Máy khử rung tim ứng dụng tác dụng nào của dòng điện?',o:['Tác dụng sinh lí','Tác dụng nhiệt','Tác dụng phát sáng'],a:0,e:'Xung điện tác động lên cơ tim, đưa nhịp đập về bình thường.'},
+{q:'Dòng điện xoay chiều đi qua cơ thể người có thể gây ra:',o:['Cơ co giật, tim ngừng đập, ngạt thở, thần kinh bị tê liệt','Chỉ làm cơ thể ấm lên','Không gây ảnh hưởng gì'],a:0,e:'Vì vậy cần thận trọng khi dùng điện ở gia đình và không lại gần trạm biến thế.'}];
+$('#qs').innerHTML=Q.map((q,i)=>`<div class="q" id="q${i}"><b>Câu ${i+1}.</b> ${q.q}<div style="margin-top:6px">${q.o.map((o,j)=>`<label><input type="radio" name="r${i}" value="${j}"> ${o}</label>`).join('')}</div><div class="row"><button class="btn g" data-i="${i}">Kiểm tra</button><span id="r${i}"></span></div></div>`).join('');
+$$('#qs button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,q=Q[i],c=document.querySelector(`input[name=r${i}]:checked`);if(!c){$('#r'+i).innerHTML='<span class="sm">Hãy chọn đáp án.</span>';return}const ok=+c.value==q.a;$('#q'+i).className='q '+(ok?'good':'bad');$('#r'+i).innerHTML=`<span class="${ok?'ok':'er'}">${ok?'Chính xác!':'Chưa đúng.'}</span> <span class="sm">${q.e}</span>`});
+</script></body></html>

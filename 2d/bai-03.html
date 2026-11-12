@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 3 – Cơ năng</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f1f4f7;--cd:#fff;--ink:#1b2631;--mut:#5b6b7b;--ln:#d2dbe4;--bn:#e8eff5;--ac:#e8590c;--ok:#2b8a3e;--er:#e03131;--st:#34424f;--bl:#1c7ed6;--gn:#2f9e44;--sky:#dbeafe;--gd:#8d7a55}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--gn:#69db7c;--sky:#16293b;--gd:#5e5238}}
+:root[data-theme="dark"]{--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--bn:#111a22;--ac:#ff922b;--ok:#69db7c;--er:#ff6b6b;--st:#b8c7d6;--bl:#74c0fc;--gn:#69db7c;--sky:#16293b;--gd:#5e5238}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+header{padding:12px 14px 0}h1{font-size:20px;margin:0 0 8px}h1 a{font-size:13px;font-weight:400;margin-left:8px;color:var(--mut)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--ln);background:var(--cd);color:var(--ink);padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit}
+.tab.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.pn{padding:14px;max-width:900px}.pn[hidden]{display:none}
+.cd{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:12px;margin-bottom:10px}
+svg.sc{display:block;width:100%;height:auto;background:var(--sky);border:1px solid var(--ln);border-radius:10px;touch-action:none;margin-bottom:8px}
+svg.gp{display:block;width:100%;height:auto;background:var(--cd);border:1px solid var(--ln);border-radius:10px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:8px 0}
+.ctl label{display:block;font-weight:600;font-size:14px}.ctl input[type=range]{width:100%;accent-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.btn{border:0;background:var(--ac);color:#fff;padding:8px 12px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}.btn.g{background:var(--bn);color:var(--ink);border:1px solid var(--ln)}
+.sm{font-size:13px;color:var(--mut)}.ok{color:var(--ok);font-weight:600}.er{color:var(--er);font-weight:600}
+.br{display:grid;grid-template-columns:110px 1fr 90px;gap:8px;align-items:center;margin:3px 0;font-size:14px}.br div{height:14px;background:var(--bn);border-radius:7px;overflow:hidden}.br i{display:block;height:100%}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid var(--ln);padding:5px 8px;text-align:center}th{background:var(--bn)}
+.q{border:1px solid var(--ln);background:var(--cd);border-radius:10px;padding:10px 12px;margin-bottom:10px}.q label{display:block;margin:3px 0;cursor:pointer}
+.q input[type=text]{width:90px;font:inherit;padding:4px 6px;border:1px solid var(--ln);border-radius:6px;background:var(--bn);color:var(--ink)}
+.q.good{border-color:var(--ok)}.q.bad{border-color:var(--er)}
+.tx{fill:var(--ink);font:600 12px "Segoe UI",system-ui,sans-serif}.tm{fill:var(--mut);font:11px "Segoe UI",system-ui,sans-serif}
+</style></head><body>
+<header><h1>Bài 3. Cơ năng<a href="index.html">← Danh sách bài</a></h1>
+<nav><button class="tab on">Rơi và tung vật</button><button class="tab">Con lắc đơn</button><button class="tab">Ném vật</button><button class="tab">Xe thế năng</button><button class="tab">Câu hỏi</button></nav></header>
+
+<div class="pn" id="v0"><div class="cd">Khi đóng cọc, đầu búa máy được nâng lên rồi thả rơi. Trong lúc rơi, động năng và thế năng của búa chuyển hoá qua lại thế nào? Đặt v₀ &gt; 0 để mô phỏng tung vật lên cao (Hình 3.1). Gốc thế năng ở mặt đất, bỏ qua lực cản không khí.</div>
+<svg class="sc" id="s1" viewBox="0 0 520 300"><g id="tk1"></g><rect id="pile" x="222" y="236" width="16" height="70" fill="#8d6e63" stroke="#5d4037" stroke-width="2"/><rect x="0" y="250" width="520" height="50" fill="var(--gd)"/><path d="M0 250H520" stroke="var(--st)" stroke-width="2"/>
+<g id="ob1"><rect x="-24" y="-30" width="48" height="30" rx="4" fill="#e8590c" stroke="#8a3306" stroke-width="2"/><text id="ol" class="tx" x="0" y="-10" text-anchor="middle" style="fill:#fff"></text></g></svg>
+<div class="ctl"><div><label>Khối lượng m = <span id="a1"></span> kg</label><input type="range" id="m1" min="1" max="10" value="2"></div><div><label>Độ cao ban đầu h = <span id="a2"></span> m</label><input type="range" id="h1" min="1" max="20" value="10"></div><div><label>Vận tốc ban đầu hướng lên v₀ = <span id="a3"></span> m/s</label><input type="range" id="v1" min="0" max="15" value="0"></div></div>
+<div class="row"><button class="btn" id="go1">Thả / Ném</button><button class="btn g" id="rs1">Đặt lại</button></div>
+<div class="cd"><div id="B1"></div><div id="i1" class="sm" style="margin-top:6px"></div></div>
+<svg class="gp" id="g1" viewBox="0 0 520 150"></svg></div>
+
+<div class="pn" id="v1" hidden><div class="cd">Thí nghiệm Hình 3.2: kéo vật nặng đến A rồi thả nhẹ. <b>Kéo trực tiếp quả nặng</b> để chọn độ cao h của A, buông chuột để thả. Bật “lực cản” để xem điều gì xảy ra với độ cao điểm B.</div>
+<svg class="sc" id="s2" viewBox="0 0 520 280"><path d="M60 30H460" stroke="var(--st)" stroke-width="6"/><path id="gh" d="" stroke="var(--mut)" stroke-dasharray="4 4"/><g id="gho"></g><path id="rp2" d="" stroke="var(--st)" stroke-width="2.5"/><circle id="bob" r="15" fill="#2f9e44" stroke="#1b5e20" stroke-width="2.5" style="cursor:grab"/><path d="M60 224H460" stroke="var(--mut)" stroke-dasharray="2 5"/><text class="tm" x="64" y="218">mức thấp nhất O (gốc thế năng)</text><text id="tA" class="tx" x="0" y="0">A</text></svg>
+<div class="row"><label><input type="checkbox" id="dm"> Có lực cản của không khí</label><button class="btn" id="pp">Tạm dừng</button><button class="btn g" id="ra2">Kéo về A (50°)</button></div>
+<div class="cd"><div id="B2"></div><div class="sm" id="i2" style="margin-top:6px"></div><div id="o2" style="margin-top:6px"></div></div></div>
+
+<div class="pn" id="v2" hidden><div class="cd">Hình 3.3: hai vật được ném từ cùng độ cao với cùng tốc độ ban đầu: (1) ném ngang, (2) ném chếch lên. Bỏ qua lực cản không khí. Hãy so sánh tốc độ khi chạm đất.</div>
+<svg class="sc" id="s3" viewBox="0 0 520 300"><rect id="cf" x="0" y="0" width="30" height="0" fill="var(--gd)" stroke="var(--st)"/><rect x="0" y="270" width="520" height="30" fill="var(--gd)"/><path id="tr1" d="" stroke="#e03131" stroke-dasharray="5 4" fill="none" stroke-width="2"/><path id="tr2" d="" stroke="#1c7ed6" stroke-dasharray="5 4" fill="none" stroke-width="2"/><circle id="b1" r="9" fill="#e03131"/><circle id="b2" r="9" fill="#1c7ed6"/><text class="tx" x="8" y="292">gốc thế năng: mặt đất</text></svg>
+<div class="ctl"><div><label>Tốc độ ban đầu v₀ = <span id="c1"></span> m/s</label><input type="range" id="p1" min="5" max="20" value="10"></div><div><label>Độ cao ném h = <span id="c2"></span> m</label><input type="range" id="p2" min="2" max="20" value="10"></div><div><label>Góc ném vật (2) = <span id="c3"></span>°</label><input type="range" id="p3" min="10" max="60" value="30"></div></div>
+<div class="row"><button class="btn" id="go3">Ném</button><button class="btn g" id="rs3">Đặt lại</button></div>
+<div class="cd"><table><tr><th></th><th>Tốc độ v (m/s)</th><th>Động năng W<sub>đ</sub> (J)</th><th>Thế năng W<sub>t</sub> (J)</th><th>Cơ năng (J)</th></tr><tbody id="t3"></tbody></table><p id="r3" class="sm" style="margin:8px 0 0">Vật khối lượng 0,5 kg.</p></div></div>
+
+<div class="pn" id="v3" hidden><div class="cd">Xe thế năng (Hình 3.4): quả nặng rơi xuống kéo sợi dây làm bánh xe lăn. Chỉnh m₁, h, m₂ và phần năng lượng hao phí do ma sát, cản, rồi bấm “Thả quả nặng”.</div>
+<svg class="sc" id="s4" viewBox="0 0 520 250"><rect x="0" y="222" width="520" height="28" fill="var(--gd)"/><g id="car"><rect x="30" y="170" width="150" height="34" rx="5" fill="#f59f00" stroke="#8a5a00" stroke-width="2"/><rect x="48" y="60" width="8" height="110" fill="#51cf66"/><rect x="48" y="58" width="104" height="9" fill="#f59f00" stroke="#8a5a00"/><circle cx="140" cy="62" r="10" fill="#74c0fc" stroke="var(--st)" stroke-width="2"/><path id="rope" d="" stroke="#e8590c" stroke-width="2"/><circle class="wh" cx="55" cy="208" r="16" fill="#333"/><circle class="wh" cx="155" cy="208" r="16" fill="#333"/><path class="sp" d="M55 192V224M39 208H71M155 192V224M139 208H171" stroke="#bbb" stroke-width="2"/><rect id="wt" x="0" y="0" width="22" height="26" rx="3" fill="#495057" stroke="var(--st)"/></g><path id="fl" d="M0 170H520" stroke="var(--mut)" stroke-dasharray="3 5" opacity=".0"/></svg>
+<div class="ctl"><div><label>Khối lượng quả nặng m₁ = <span id="d1"></span> g</label><input type="range" id="q1" min="10" max="50" step="5" value="20"></div><div><label>Độ cao h = <span id="d2"></span> cm</label><input type="range" id="q2" min="2" max="15" value="8"></div><div><label>Khối lượng xe m₂ = <span id="d3"></span> g</label><input type="range" id="q3" min="20" max="100" step="10" value="50"></div><div><label>Năng lượng hao phí = <span id="d4"></span> %</label><input type="range" id="q4" min="0" max="60" step="5" value="0"></div></div>
+<div class="row"><button class="btn" id="go4">Thả quả nặng</button><button class="btn g" id="rs4">Đặt lại</button></div>
+<div class="cd"><div id="f4"></div><div id="r4" class="sm" style="margin-top:6px"></div></div></div>
+
+<div class="pn" id="v4" hidden><div id="qs"></div></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],G=10;
+const f=(n,d=2)=>n.toLocaleString('vi-VN',{maximumFractionDigits:d}),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+let cur=0;$$('.tab').forEach((b,i)=>b.onclick=()=>{cur=i;$$('.tab').forEach((x,j)=>x.classList.toggle('on',i==j));$$('.pn').forEach((p,j)=>p.hidden=i!=j)});
+function mkB(id){$('#'+id).innerHTML=[['Động năng W<sub>đ</sub>','var(--ac)'],['Thế năng W<sub>t</sub>','var(--bl)'],['Cơ năng W<sub>C</sub>','var(--gn)']].map(r=>`<div class="br"><span>${r[0]}</span><div><i style="background:${r[1]}"></i></div><b></b></div>`).join('')}
+function upB(id,a,b,c,mx,u='J',d=1){const r=$$('#'+id+' .br');[a,b,c].forEach((v,i)=>{r[i].querySelector('i').style.width=cl(v/mx*100,0,100)+'%';r[i].querySelector('b').textContent=f(v,d)+' '+u})}
+['B1','B2'].forEach(mkB);
+/* ---- 1. Rơi và tung ---- */
+const T1={t:0,run:0},p1=()=>({m:+$('#m1').value,h:+$('#h1').value,v0:+$('#v1').value});
+const sim1=(t)=>{const{h,v0}=p1(),T=(v0+Math.sqrt(v0*v0+2*G*h))/G,tt=Math.min(t,T);return{y:Math.max(0,h+v0*tt-.5*G*tt*tt),v:v0-G*tt,T}};
+function d1(){const{m,h,v0}=p1();$('#a1').textContent=m;$('#a2').textContent=h;$('#a3').textContent=v0;const s=sim1(T1.t),ym=h+v0*v0/(2*G),k=Math.min(12,205/ym),E=m*G*h+.5*m*v0*v0;
+ const wd=.5*m*s.v*s.v,wt=m*G*s.y,done=T1.t>=s.T,sink=done?Math.min(48,.5*m*s.v*s.v/60)*cl((T1.t-s.T)/.25,0,1):0,top=236+sink;
+ $('#pile').setAttribute('y',top);$('#ob1').setAttribute('transform',`translate(230 ${top-s.y*k})`);$('#ol').textContent=m+' kg';
+ $('#tk1').innerHTML=[0,5,10,15,20].filter(v=>v<=ym+1).map(v=>`<path d="M300 ${236-v*k}h10" stroke="var(--st)"/><text class="tm" x="316" y="${240-v*k}">${v} m</text>`).join('')+`<path d="M305 236V${236-Math.ceil(ym)*k}" stroke="var(--st)" opacity=".4"/>`;
+ upB('B1',wd,wt,wd+wt,E);$('#i1').textContent=`Độ cao y = ${f(s.y)} m; tốc độ v = ${f(Math.abs(s.v))} m/s${s.v>0&&T1.run?' (đang đi lên)':''}${done?'. Vật chạm đất: toàn bộ thế năng đã chuyển hoá thành động năng.':''}`;
+ const T=s.T,pts=[...Array(61).keys()].map(i=>{const t=T*i/60,y=Math.max(0,h+v0*t-.5*G*t*t),v=v0-G*t,a=.5*m*v*v,b=m*G*y;return[a,b,a+b]}),X=i=>40+i/60*460,Y=e=>120-e/E*100;
+ const pl=(j,c)=>`<polyline fill="none" stroke="${c}" stroke-width="2.5" points="${pts.map((p,i)=>X(i)+','+Y(p[j])).join(' ')}"/>`,cx=40+cl(T1.t/T,0,1)*460;
+ $('#g1').innerHTML=`<path d="M40 120H500M40 10V120" stroke="var(--st)"/>`+pl(0,'#e8590c')+pl(1,'#1c7ed6')+pl(2,'#2f9e44')+`<path d="M${cx} 10V120" stroke="var(--mut)" stroke-dasharray="3 3"/><text class="tm" x="460" y="138">t (s) →</text><text class="tm" x="44" y="14">Năng lượng (J)</text><text class="tx" x="330" y="14" style="fill:#e8590c">W<tspan font-size="9">đ</tspan></text><text class="tx" x="360" y="14" style="fill:#1c7ed6">W<tspan font-size="9">t</tspan></text><text class="tx" x="395" y="14" style="fill:#2f9e44">W<tspan font-size="9">C</tspan> (không đổi)</text>`}
+['m1','h1','v1'].forEach(i=>$('#'+i).oninput=()=>{T1.t=0;T1.run=0;d1()});$('#go1').onclick=()=>{T1.t=0;T1.run=1};$('#rs1').onclick=()=>{T1.t=0;T1.run=0;d1()};d1();
+/* ---- 2. Con lắc đơn ---- */
+const L2=1.2,K2=150,M2=.2,S2={th:.87,w:0,run:0,drag:0,th0:.87,pk:[]};
+function d2(){const th=S2.th,x=260+L2*K2*Math.sin(th),y=30+L2*K2*Math.cos(th),h=L2*(1-Math.cos(th)),wt=M2*G*h,wd=.5*M2*(L2*S2.w)**2,E=M2*G*L2*(1-Math.cos(S2.th0))||1;
+ $('#bob').setAttribute('cx',x);$('#bob').setAttribute('cy',y);$('#rp2').setAttribute('d',`M260 30L${x} ${y}`);
+ const ax=260+L2*K2*Math.sin(S2.th0),ay=30+L2*K2*Math.cos(S2.th0);$('#tA').setAttribute('x',ax-18);$('#tA').setAttribute('y',ay+4);
+ $('#gho').innerHTML=`<circle cx="${ax}" cy="${ay}" r="15" fill="none" stroke="var(--mut)" stroke-dasharray="3 3"/>`+S2.pk.slice(0,4).map((p,i)=>`<circle cx="${260+L2*K2*Math.sin(p)}" cy="${30+L2*K2*Math.cos(p)}" r="${15-i*2}" fill="none" stroke="${i?'var(--mut)':'var(--er)'}" stroke-dasharray="3 3"/>`).join('');
+ $('#gh').setAttribute('d',`M${ax} ${ay}V224M60 ${ay}H460`);
+ upB('B2',wd,wt,wd+wt,E,'mJ',0);$$('#B2 b').forEach((e,i)=>e.textContent=f([wd,wt,wd+wt][i]*1000,0)+' mJ');
+ $('#i2').textContent=`Độ cao hiện tại h = ${f(h*100,1)} cm so với O.`;
+ const hs=S2.pk.map(p=>L2*(1-Math.cos(p))*100);let t='';
+ if(hs.length)t=`Độ cao điểm A: ${f(L2*(1-Math.cos(S2.th0))*100,1)} cm. Các lần dừng liên tiếp: ${hs.slice(0,5).map(v=>f(v,1)+' cm').join(' → ')}. `+(hs.length>1&&hs[hs.length-1]<hs[0]-.3?'<span class="er">Độ cao giảm dần: cơ năng chuyển hoá thành nhiệt năng do lực cản (cơ năng không được bảo toàn, nhưng năng lượng vẫn được bảo toàn).</span>':'<span class="ok">Điểm B cao bằng điểm A: cơ năng được bảo toàn.</span>');
+ $('#o2').innerHTML=t}
+function a2(){S2.th=S2.th0=.87;S2.w=0;S2.pk=[];S2.run=1;$('#pp').textContent='Tạm dừng';d2()}
+$('#ra2').onclick=a2;$('#pp').onclick=()=>{S2.run=!S2.run;$('#pp').textContent=S2.run?'Tạm dừng':'Tiếp tục'};
+$('#dm').onchange=a2;
+$('#bob').addEventListener('pointerdown',e=>{S2.drag=1;S2.run=0;S2.pk=[];e.preventDefault()});
+addEventListener('pointermove',e=>{if(!S2.drag)return;const s=$('#s2'),q=s.createSVGPoint();q.x=e.clientX;q.y=e.clientY;const p=q.matrixTransform(s.getScreenCTM().inverse());S2.th=S2.th0=cl(Math.atan2(p.x-260,p.y-30),-1.4,1.4);S2.w=0;d2()});
+addEventListener('pointerup',()=>{if(S2.drag){S2.drag=0;S2.run=1;$('#pp').textContent='Tạm dừng'}});
+/* ---- 3. Ném vật ---- */
+const T3={t:0,run:0},M3=.5;
+function p3(){const v=+$('#p1').value,h=+$('#p2').value,a=+$('#p3').value*Math.PI/180;return[{vx:v,vy:0,h},{vx:v*Math.cos(a),vy:v*Math.sin(a),h}]}
+const pos3=(b,t)=>{const T=(b.vy+Math.sqrt(b.vy*b.vy+2*G*b.h))/G,tt=Math.min(t,T);return{x:b.vx*tt,y:Math.max(0,b.h+b.vy*tt-.5*G*tt*tt),vx:b.vx,vy:b.vy-G*tt,T}};
+function d3(){const bs=p3(),h=bs[0].h;$('#c1').textContent=$('#p1').value;$('#c2').textContent=h;$('#c3').textContent=$('#p3').value;
+ const mxx=Math.max(...bs.map(b=>pos3(b,99).x)),mxy=Math.max(...bs.map(b=>h+b.vy*b.vy/(2*G))),k=Math.min(11,440/(mxx+2),235/(mxy+1)),x0=40,gy=270;
+ $('#cf').setAttribute('height',h*k);$('#cf').setAttribute('y',gy-h*k);$('#cf').setAttribute('width',x0+4);
+ bs.forEach((b,i)=>{const T=pos3(b,99).T,pts=[...Array(41).keys()].map(j=>{const p=pos3(b,T*j/40);return(x0+p.x*k)+','+(gy-p.y*k)}).join(' L');$('#tr'+(i+1)).setAttribute('d','M'+pts);const p=pos3(b,T3.t);$('#b'+(i+1)).setAttribute('cx',x0+p.x*k);$('#b'+(i+1)).setAttribute('cy',gy-p.y*k-9)});
+ $('#t3').innerHTML=bs.map((b,i)=>{const p=pos3(b,T3.t),v=Math.hypot(p.vx,p.vy),a=.5*M3*v*v,c=M3*G*p.y;return`<tr><td style="color:${i?'#1c7ed6':'#e03131'}"><b>Vật (${i+1})</b></td><td>${f(v)}</td><td>${f(a,1)}</td><td>${f(c,1)}</td><td>${f(a+c,1)}</td></tr>`}).join('');
+ if(bs.every(b=>T3.t>=pos3(b,99).T)){const v=bs.map(b=>{const p=pos3(b,99);return Math.hypot(p.vx,p.vy)});$('#r3').innerHTML=`<span class="ok">Hai vật chạm đất với cùng tốc độ ${f(v[0])} m/s = ${f(v[1])} m/s</span>: cơ năng được bảo toàn, mỗi vật có cơ năng ban đầu như nhau (cùng độ cao, cùng tốc độ), dù quỹ đạo khác nhau. Vật (2) bay lâu hơn và xa hơn.`}else $('#r3').textContent='Vật khối lượng 0,5 kg.'}
+['p1','p2','p3'].forEach(i=>$('#'+i).oninput=()=>{T3.t=0;T3.run=0;d3()});$('#go3').onclick=()=>{T3.t=0;T3.run=1};$('#rs3').onclick=()=>{T3.t=0;T3.run=0;d3()};d3();
+/* ---- 4. Xe thế năng ---- */
+const T4={t:0,run:0,x:0};
+function d4(){const m1=+$('#q1').value,h=+$('#q2').value,m2=+$('#q3').value,ls=+$('#q4').value;$('#d1').textContent=m1;$('#d2').textContent=h;$('#d3').textContent=m2;$('#d4').textContent=ls;
+ const Wt=m1/1000*G*h/100,vi=Math.sqrt(2*Wt/(m2/1000)),vr=Math.sqrt(2*Wt*(1-ls/100)/(m2/1000));
+ $('#f4').innerHTML=`W<sub>t</sub> = m₁·g·h = ${f(m1/1000,3)} × 10 × ${f(h/100,2)} = <b>${f(Wt,4)} J</b><br>Lí tưởng: ½·m₂·v² = W<sub>t</sub> ⇒ v = √(2W<sub>t</sub>/m₂) = <b>${f(vi)} m/s</b><br>Thực tế (hao phí ${ls}%): v = <b>${f(vr)} m/s</b>`;
+ const T=2,u=cl(T4.t/T,0,1),e=u*u,drop=e*h*5.5,x=T4.run||T4.t>0?T4.x:0;
+ $('#car').setAttribute('transform',`translate(${x} 0)`);$('#wt').setAttribute('x',139);$('#wt').setAttribute('y',72+drop*1);
+ $('#rope').setAttribute('d',`M140 72V${72+drop+2}`);
+ $('#r4').textContent=T4.t>=T?`Khi quả nặng chạm sàn xe, xe đạt tốc độ ${f(vr)} m/s${ls?` (nhỏ hơn ${f(vi)} m/s tính lí tưởng vì một phần cơ năng chuyển hoá thành nhiệt năng do ma sát ở trục bánh xe, ròng rọc và lực cản của không khí)`:' (giá trị lí tưởng, bỏ qua mọi ma sát)'}.`:'Bấm “Thả quả nặng” để quan sát.'}
+['q1','q2','q3','q4'].forEach(i=>$('#'+i).oninput=()=>{T4.t=0;T4.run=0;T4.x=0;d4()});$('#go4').onclick=()=>{T4.t=0;T4.x=0;T4.run=1};$('#rs4').onclick=()=>{T4.t=0;T4.x=0;T4.run=0;d4()};d4();
+/* ---- vòng lặp ---- */
+let lt=0;(function tick(t){const dt=Math.min(.04,(t-lt)/1000||0);lt=t;
+ if(cur==0&&T1.run){T1.t+=dt;if(T1.t>sim1(0).T+.6)T1.run=0;d1()}
+ if(cur==1&&S2.run&&!S2.drag){const c=$('#dm').checked?.35:0,n=10;for(let i=0;i<n;i++){const pw=S2.w;S2.w+=(-(G/L2)*Math.sin(S2.th)-c*S2.w)*dt/n;S2.th+=S2.w*dt/n;if(pw*S2.w<0)S2.pk.push(S2.th)}d2()}
+ if(cur==2&&T3.run){T3.t+=dt;if(T3.t>8)T3.run=0;d3()}
+ if(cur==3&&T4.run){T4.t+=dt;const T=2,m1=+$('#q1').value,h=+$('#q2').value,m2=+$('#q3').value,ls=+$('#q4').value,vr=Math.sqrt(2*m1/1000*G*h/100*(1-ls/100)/(m2/1000));
+  T4.x+=(T4.t<T?vr*40*(T4.t/T):vr*80)*dt;if(T4.x>330)T4.x=330;if(T4.t>T+1.6)T4.run=0;d4()}
+ requestAnimationFrame(tick)})(0);a2();
+/* ---- Câu hỏi ---- */
+const Q=[{q:'Khi búa máy rơi xuống đóng cọc (bỏ qua lực cản), động năng và thế năng của đầu búa thay đổi thế nào?',o:['Thế năng giảm, động năng tăng; tổng không đổi','Cả hai cùng tăng','Cả hai cùng giảm','Thế năng tăng, động năng giảm'],a:0,e:'Búa rơi: độ cao giảm nên thế năng giảm, tốc độ tăng nên động năng tăng, cơ năng bảo toàn.'},
+{q:'Vật m = 1,5 kg thả rơi từ độ cao h = 4 m. Chọn gốc thế năng ở mặt đất, tính tốc độ ngay trước khi chạm đất (m/s). Lấy g = 10 m/s².',n:Math.sqrt(80),e:'m·g·h = ½·m·v² nên v = √(2gh) = √80 ≈ 8,94 m/s (không phụ thuộc khối lượng).'},
+{q:'Con lắc đơn kéo đến A rồi thả: nếu có lực cản, vì sao sau một thời gian độ cao của vật giảm dần?',o:['Một phần cơ năng chuyển hoá thành nhiệt năng do lực cản','Vật nặng bị mất bớt khối lượng','Trọng lượng của vật giảm dần'],a:0,e:'Lực cản của không khí làm cơ năng giảm dần (chuyển thành nhiệt năng) nên vật lên được ít cao hơn.'},
+{q:'Hình 3.3: hai vật ném từ cùng độ cao với cùng tốc độ ban đầu, ném ngang và ném chếch lên. Khi chạm đất (bỏ qua cản không khí), tốc độ của chúng:',o:['Vật ném chếch lên lớn hơn','Vật ném ngang lớn hơn','Bằng nhau'],a:2,e:'Cơ năng ban đầu như nhau và được bảo toàn, cùng độ cao nên động năng (tốc độ) khi chạm đất như nhau.'},
+{q:'Xe thế năng: quả nặng 20 g ở độ cao 8 cm, xe nặng 50 g. Coi toàn bộ thế năng quả nặng chuyển hoá thành động năng của xe, tính tốc độ xe (m/s).',n:.8,e:'W<sub>t</sub> = 0,02 × 10 × 0,08 = 0,016 J; ½ × 0,05 × v² = 0,016 nên v = 0,8 m/s.'},
+{q:'Trong thực tế, tốc độ xe thu được nhỏ hơn giá trị tính toán vì:',o:['Một phần cơ năng chuyển hoá thành nhiệt do ma sát và lực cản','Quả nặng nhẹ hơn khi rơi','Thế năng của quả nặng tự mất đi'],a:0,e:'Ma sát ở trục bánh, ròng rọc và lực cản không khí biến một phần cơ năng thành nhiệt năng.'},
+{q:'Vì sao để nhảy xa được, người ta cần chạy lấy đà đủ nhanh và bật cao tại vị trí giậm nhảy?',o:['Để có động năng và thế năng ban đầu lớn, cơ năng lớn thì bay xa hơn','Để cơ thể nhẹ đi','Để giảm trọng lực'],a:0,e:'Chạy nhanh tăng động năng, bật cao tăng thế năng; cơ năng ban đầu lớn giúp bay được xa hơn.'}];
+$('#qs').innerHTML=Q.map((q,i)=>`<div class="q" id="q${i}"><b>Câu ${i+1}.</b> ${q.q}<div style="margin-top:6px">${q.o?q.o.map((o,j)=>`<label><input type="radio" name="r${i}" value="${j}"> ${o}</label>`).join(''):`<input type="text" id="n${i}" inputmode="decimal" placeholder="đáp số">`}</div><div class="row"><button class="btn g" data-i="${i}">Kiểm tra</button><span id="r${i}"></span></div></div>`).join('');
+$$('#qs button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,q=Q[i];let ok=0,has=1;
+ if(q.o){const c=document.querySelector(`input[name=r${i}]:checked`);has=!!c;ok=c&&+c.value==q.a}else{const s=$('#n'+i).value.replace(/\s/g,'').replace(',','.');has=s!=='';ok=has&&Math.abs(parseFloat(s)-q.n)<=Math.max(q.n*.01,.011)}
+ if(!has){$('#r'+i).innerHTML='<span class="sm">Hãy chọn hoặc nhập đáp án.</span>';return}
+ $('#q'+i).className='q '+(ok?'good':'bad');$('#r'+i).innerHTML=`<span class="${ok?'ok':'er'}">${ok?'Chính xác!':'Chưa đúng.'}</span> <span class="sm">${q.e}</span>`});
+</script></body></html>

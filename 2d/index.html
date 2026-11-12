@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thí nghiệm ảo KHTN 9 – Kết nối tri thức</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f1f4f7;--cd:#fff;--ink:#1b2631;--mut:#5b6b7b;--ln:#d2dbe4;--ac:#e8590c;--ok:#2b8a3e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--ac:#ff922b;--ok:#69db7c}}
+:root[data-theme="dark"]{--bg:#0e141a;--cd:#18222c;--ink:#e6edf3;--mut:#93a4b5;--ln:#2a3744;--ac:#ff922b;--ok:#69db7c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,Roboto,sans-serif}
+.w{max-width:960px;margin:0 auto;padding:20px 14px 40px}
+h1{font-size:24px;margin:0 0 4px}p.s{color:var(--mut);margin:0 0 18px}
+h2{font-size:16px;margin:22px 0 8px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.c{display:flex;justify-content:space-between;gap:8px;background:var(--cd);border:1px solid var(--ln);border-radius:8px;padding:9px 12px;color:var(--ink);text-decoration:none}
+a.c{border-color:var(--ac)}a.c:hover{background:var(--ac);color:#fff}
+.c span{color:var(--mut);font-size:12.5px;white-space:nowrap}a.c span{color:var(--ok);font-weight:600}
+</style></head><body><div class="w">
+<h1>Thí nghiệm ảo KHTN 9</h1><p class="s">Bộ sách Kết nối tri thức với cuộc sống. Chọn bài để mở thí nghiệm tương tác.</p>
+<div id="L"></div></div>
+<script>
+const C=[["Mở đầu",[[1,"Nhận biết một số dụng cụ, hoá chất. Thuyết trình một vấn đề khoa học"]]],
+["Chương I. Năng lượng cơ học",[[2,"Động năng. Thế năng"],[3,"Cơ năng"],[4,"Công và công suất"]]],
+["Chương II. Ánh sáng",[[5,"Khúc xạ ánh sáng"],[6,"Phản xạ toàn phần"],[7,"Lăng kính"],[8,"Thấu kính"],[9,"Thực hành đo tiêu cự của thấu kính hội tụ"],[10,"Kính lúp. Bài tập thấu kính"]]],
+["Chương III. Điện",[[11,"Điện trở. Định luật Ohm"],[12,"Đoạn mạch nối tiếp, song song"],[13,"Năng lượng của dòng điện và công suất điện"]]],
+["Chương IV. Điện từ",[[14,"Cảm ứng điện từ. Nguyên tắc tạo ra dòng điện xoay chiều"],[15,"Tác dụng của dòng điện xoay chiều"]]],
+["Chương V. Năng lượng với cuộc sống",[[16,"Vòng năng lượng trên Trái Đất. Năng lượng hoá thạch"],[17,"Một số dạng năng lượng tái tạo"]]],
+["Chương VI. Kim loại",[[18,"Tính chất chung của kim loại"],[19,"Dãy hoạt động hoá học"],[20,"Tách kim loại và việc sử dụng hợp kim"],[21,"Sự khác nhau cơ bản giữa phi kim và kim loại"]]],
+["Chương VII. Chất hữu cơ, hydrocarbon",[[22,"Giới thiệu về hợp chất hữu cơ"],[23,"Alkane"],[24,"Alkene"],[25,"Nguồn nhiên liệu"]]],
+["Chương VIII. Ethylic alcohol và acetic acid",[[26,"Ethylic alcohol"],[27,"Acetic acid"]]],
+["Chương IX. Lipid, carbohydrate, protein, polymer",[[28,"Lipid"],[29,"Carbohydrate. Glucose và saccharose"],[30,"Tinh bột và cellulose"],[31,"Protein"],[32,"Polymer"]]],
+["Chương X. Khai thác tài nguyên từ vỏ Trái Đất",[[33,"Sơ lược về hoá học vỏ Trái Đất"],[34,"Khai thác đá vôi. Công nghiệp silicate"],[35,"Khai thác nhiên liệu hoá thạch. Chu trình carbon"]]],
+["Chương XI. Di truyền học Mendel",[[36,"Khái quát về di truyền học"],[37,"Các quy luật di truyền của Mendel"],[38,"Nucleic acid và gene"],[39,"Tái bản DNA và phiên mã tạo RNA"],[40,"Dịch mã và mối quan hệ từ gene đến tính trạng"],[41,"Đột biến gene"]]],
+["Chương XII. Di truyền nhiễm sắc thể",[[42,"Nhiễm sắc thể và bộ nhiễm sắc thể"],[43,"Nguyên phân và giảm phân"],[44,"Nhiễm sắc thể giới tính"],[45,"Di truyền liên kết"],[46,"Đột biến nhiễm sắc thể"]]],
+["Chương XIII. Di truyền học với con người",[[47,"Di truyền học với con người"],[48,"Ứng dụng công nghệ di truyền vào đời sống"]]],
+["Chương XIV. Tiến hoá",[[49,"Khái niệm tiến hoá và các hình thức chọn lọc"],[50,"Cơ chế tiến hoá"],[51,"Sự phát sinh và phát triển sự sống trên Trái Đất"]]]];
+const done={1:"bai-01.html",2:"bai-02.html",3:"bai-03.html",11:"bai-11.html",12:"bai-12.html",13:"bai-13.html",14:"bai-14.html",15:"bai-15.html",16:"bai-16.html",17:"bai-17.html",18:"bai-18.html",19:"bai-19.html"};
+document.getElementById("L").innerHTML=C.map(([t,ls])=>`<h2>${t}</h2><div class="g">${ls.map(([n,x])=>done[n]?`<a class="c" href="${done[n]}">Bài ${n}. ${x}<span>Đã có</span></a>`:`<div class="c">Bài ${n}. ${x}<span>Sắp có</span></div>`).join("")}</div>`).join("");
+</script></body></html>
