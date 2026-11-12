@@ -169,6 +169,20 @@ export function bottle(lab, pos, { name = '', color = 0xdff3ff, liquid = true, s
   return { g, name };
 }
 
+/** Đĩa đựng tập giấy chỉ thị (giấy quỳ, giấy pH…) – không đựng trong lọ */
+export function paperPack(lab, pos, { name = '', color = 0x8e5bd6 } = {}) {
+  const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);
+  const dish = new THREE.Mesh(lathe([[0, 0], [.028, 0], [.03, .006], [.029, .006], [.027, .0012], [0, .0012]], 32), new THREE.MeshPhysicalMaterial({ color: 0xf2fbff, transparent: true, opacity: .45, roughness: .05, clearcoat: 1, depthWrite: false }));
+  dish.renderOrder = 4; g.add(dish);
+  const pm = new THREE.MeshStandardMaterial({ color, roughness: .95 });
+  for (let i = 0; i < 6; i++) { const s = new THREE.Mesh(new THREE.BoxGeometry(.008, .0006, .04), pm); s.position.set(-.012 + i * .0045, .0016 + i * .0004, (i % 2) * .002); s.rotation.y = (i - 2.5) * .06; g.add(s); }
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(.006, .045, .0006), pm); strip.visible = false; lab.scene.add(strip);
+  const lb = new THREE.Mesh(new THREE.PlaneGeometry(.05, .014), new THREE.MeshStandardMaterial({ map: canvasTex(256, 72, (c, w, h) => { c.fillStyle = '#fffdf3'; c.fillRect(0, 0, w, h); c.strokeStyle = '#999'; c.strokeRect(2, 2, w - 4, h - 4); c.fillStyle = '#111'; c.textAlign = 'center'; c.textBaseline = 'middle'; let fs = 40; c.font = `bold ${fs}px Arial`; while (c.measureText(name).width > w - 12 && fs > 16) { fs -= 2; c.font = `bold ${fs}px Arial`; } c.fillText(name, w / 2, h / 2); }) }));
+  lb.rotation.x = -Math.PI / 2.6; lb.position.set(0, .008, .036); g.add(lb);
+  lab.shadow(g);
+  return { g, name, strip, paper: true };
+}
+
 /** Đèn cồn */
 export function burner(lab, pos) {
   const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);

@@ -1,6 +1,6 @@
 // Bàn thí nghiệm hoá học: giá ống nghiệm + lọ hoá chất + đèn cồn; phản ứng do từng bài định nghĩa
 import { THREE, MAT, roundBox, clamp } from './lab3d.js';
-import { vessel, rack, bottle, burner } from './chem.js';
+import { vessel, rack, bottle, burner, paperPack } from './chem.js';
 import { $, toast } from './ui.js';
 import { sfx, mix } from './sfx.js';
 const V3 = (...a) => new THREE.Vector3(...a);
@@ -20,7 +20,8 @@ export function chemBench(lab, opt) {
   });
   // lọ hoá chất xếp hàng phía sau
   const nb = R.length, gap = Math.min(.075, .6 / nb);
-  const B = R.map((r, i) => { const b = bottle(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, color: r.c, liquid: r.k != 'sol', solidColor: r.solid ? r.solid.c : r.c, tag: r.tag || '#fffdf5' }); b.r = r; b.home = b.g.position.clone(); return b; });
+  const isPaper = r => r.paper || (r.solid && r.solid.kind == 'strip');
+  const B = R.map((r, i) => { const b = isPaper(r) ? paperPack(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, color: r.solid ? r.solid.c : r.c }) : bottle(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, color: r.c, liquid: r.k != 'sol', solidColor: r.solid ? r.solid.c : r.c, tag: r.tag || '#fffdf5' }); b.r = r; b.home = b.g.position.clone(); return b; });
   // đèn cồn + kẹp gỗ
   const lamp = opt.heat !== false ? burner(lab, [.3, 0, .06]) : null;
   if (lamp) lab.label(lamp.g, 'Đèn cồn', [0, .12, 0]);
@@ -79,6 +80,14 @@ export function chemBench(lab, opt) {
     T.forEach((t, i) => { if (t.items.length && t.age < 40) { t.age += dt; if (((t.age * 8) | 0) != ((t.age - dt) * 8 | 0)) draw(i); } });
     if (anim) {
       const { b, t } = anim; anim.k += dt / anim.dur; const k = Math.min(1, anim.k), r = b.r;
+      if (b.paper) {   // giấy chỉ thị: lấy một mẩu giấy từ đĩa, nhúng vào ống nghiệm
+        const s = b.strip, mouth = t.v.mouth(), from = b.home.clone().add(V3(0, .025, 0)), over = mouth.clone().add(V3(0, .04, 0)), inT = mouth.clone().add(V3(0, -.03, 0));
+        s.visible = k < .7; if (!anim.s0) { anim.s0 = 1; sfx('paper'); }
+        if (k < .35) s.position.lerpVectors(from, over, k / .35); else s.position.lerpVectors(over, inT, Math.min(1, (k - .35) / .3));
+        if (k >= .68 && !anim.done) { anim.done = true; commit(t, r); sfx('drip', { vol: .4 }); }
+        if (k >= 1) { s.visible = false; anim = null; busy = false; }
+        return;
+      }
       const mouth = t.v.mouth(), side = b.home.x <= mouth.x ? -1 : 1;
       const over = V3(mouth.x + side * .035, mouth.y + .045, mouth.z);
       const e = x => x < .5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2;

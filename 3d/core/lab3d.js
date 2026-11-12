@@ -143,8 +143,10 @@ export function createLab(host, o = {}) {
   const fitPos = (p, t) => V(...t).add(V(...p).sub(V(...t)).multiplyScalar(fitK()));
   camera.position.copy(fitPos(opt.cam, opt.target)); controls.update();
   renderer.setAnimationLoop(() => frame());
+  let tOff = 0;   // thời gian cộng thêm khi chạy nhanh bằng pump() (kiểm thử)
   function frame(fdt) {
-    const dt = fdt ?? Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+    if (fdt != null) tOff += fdt;
+    const dt = fdt ?? Math.min(clock.getDelta(), .05), t = clock.elapsedTime + tOff;
     if (tween) {
       tween.k = Math.min(1, tween.k + dt / tween.dur); const e = tween.k < .5 ? 2 * tween.k * tween.k : 1 - (-2 * tween.k + 2) ** 2 / 2;
       camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.t0, tween.t1, e);

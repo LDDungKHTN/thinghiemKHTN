@@ -28,8 +28,8 @@ export function scope(lab, pos, { label = 'Máy dao động kí', tb = .005 } = 
   const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);
   const box = roundBox(.22, .15, .16, .008, MAT.plastic(0xd8c99a, .5)); box.position.y = .075; g.add(box);
   const tex = canvasTex(512, 384, () => { });
-  const scr = new THREE.Mesh(new THREE.PlaneGeometry(.13, .1), new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: .9 })); scr.position.set(-.025, .085, .0805); g.add(scr);
-  const bezel = roundBox(.14, .11, .006, .003, MAT.plastic(0x2a2a2a, .5)); bezel.position.set(-.025, .085, .078); g.add(bezel);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(.13, .1), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })); scr.position.set(-.025, .085, .0832); scr.renderOrder = 2; g.add(scr);
+  const bezel = roundBox(.14, .11, .006, .003, MAT.plastic(0x2a2a2a, .5)); bezel.position.set(-.025, .085, .0775); g.add(bezel);
   for (let i = 0; i < 6; i++) { const k = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .008, 16), MAT.plastic(0x222222, .4)); k.rotation.x = Math.PI / 2; k.position.set(.068 + (i % 2) * .022, .04 + Math.floor(i / 2) * .035, .082); g.add(k); }
   lab.shadow(g); if (label) lab.label(g, label, [0, .18, 0]);
   const st = { f: 0, A: 0, tau: 1, t0: 0, on: true };
