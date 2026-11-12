@@ -1,13 +1,10 @@
 // Âm thanh thật (Web Audio) + máy dao động kí 3D
 import { THREE, MAT, roundBox, canvasTex } from './lab3d.js';
+import { ctx as sctx, out, isMuted } from './sfx.js';
 
-let ctx = null, master = null;
-export function audio() {
-  if (!ctx) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; ctx = new A(); master = ctx.createGain(); master.gain.value = .5; master.connect(ctx.destination); }
-  if (ctx.state == 'suspended') ctx.resume();
-  return ctx;
-}
-export const muted = { v: false };
+let master = null;
+export function audio() { const c = sctx(); master = out(); return c; }
+export const muted = { get v() { return isMuted(); } };
 /** Phát âm có tần số f (Hz), biên độ amp (0..1), tắt dần trong tau giây. Trả về {stop} */
 export function tone(f, amp = .5, tau = 1.5, { type = 'sine', dur } = {}) {
   const c = audio(); if (!c || muted.v) return { stop() { } };

@@ -3,6 +3,7 @@ import { THREE, MAT, canvasTex, lerp } from './lab3d.js';
 import { vessel } from './chem.js';
 import { microscope, scopeUI } from './microscope.js';
 import { toast } from './ui.js';
+import { sfx } from './sfx.js';
 
 /**
  * src: 'cup' (cốc nước ao/mẫu lỏng) | 'bread' (bánh mì mốc – gắp bằng panh)
@@ -52,11 +53,11 @@ export function wetMount(lab, stage, { sample, stain, src = 'cup', liquid = 0xcf
   const moveTo = (o, to, dur, done) => { const p0 = o.position.clone(), p1 = new THREE.Vector3(...to); tween(dur, e => o.position.lerpVectors(p0, p1, e), done); };
   const P0 = { tw: tw.position.clone(), drp: drp.position.clone(), lamen: lamen.position.clone(), slide: slide.position.clone(), paper: paper.position.clone() };
   const sp = slide.position, SX = sp.x, SZ = sp.z;
-  const dropperTo = (from, then) => { moveTo(drp, from, .6, () => { drp.rotation.z = 0; drp.position.y = from[1]; tween(.4, e => drp.position.y = lerp(from[1], from[1] - .03, Math.sin(e * Math.PI)), () => { moveTo(drp, [SX, .05, SZ], .6, () => { drop.visible = true; drp.rotation.z = Math.PI / 2; moveTo(drp, P0.drp.toArray(), .5); then(); }); }); }); };
+  const dropperTo = (from, then) => { moveTo(drp, from, .6, () => { drp.rotation.z = 0; drp.position.y = from[1]; tween(.4, e => drp.position.y = lerp(from[1], from[1] - .03, Math.sin(e * Math.PI)), () => { moveTo(drp, [SX, .05, SZ], .6, () => { drop.visible = true; sfx('drip'); drp.rotation.z = Math.PI / 2; moveTo(drp, P0.drp.toArray(), .5); then(); }); }); }); };
   const S = { step: 0, busy: false, onStage: false, seen: [false, false, false] };
   const STEPS = src == 'bread' ? [
-    () => { lab.view([-.22, .2, .22], [-.22, .0, .05]); moveTo(tw, [-.25, .03, .0], .8, () => { twBit.visible = true; moveTo(tw, [SX + .056, .01, SZ], .8, () => { twBit.visible = false; bit.visible = true; moveTo(tw, P0.tw.toArray(), .6, end); }); }); },
-    () => { lab.view([-.1, .16, .2], [-.12, 0, .08]); moveTo(drp, [SX, .05, SZ], .7, () => { drp.rotation.z = 0; drop.visible = true; drop.scale.set(1, .3, 1); drp.rotation.z = Math.PI / 2; moveTo(drp, P0.drp.toArray(), .5, end); }); },
+    () => { lab.view([-.22, .2, .22], [-.22, .0, .05]); moveTo(tw, [-.25, .03, .0], .8, () => { twBit.visible = true; moveTo(tw, [SX + .056, .01, SZ], .8, () => { twBit.visible = false; bit.visible = true; sfx('drop', { vol: .4 }); moveTo(tw, P0.tw.toArray(), .6, end); }); }); },
+    () => { lab.view([-.1, .16, .2], [-.12, 0, .08]); moveTo(drp, [SX, .05, SZ], .7, () => { drp.rotation.z = 0; drop.visible = true; sfx('drip'); drop.scale.set(1, .3, 1); drp.rotation.z = Math.PI / 2; moveTo(drp, P0.drp.toArray(), .5, end); }); },
     () => coverAndBlot(),
     () => toStage(),
   ] : [
@@ -66,10 +67,10 @@ export function wetMount(lab, stage, { sample, stain, src = 'cup', liquid = 0xcf
   ];
   function coverAndBlot(blotOnly) {
     lamen.rotation.z = .5; lab.view([-.1, .16, .2], [-.12, 0, .08]);
-    moveTo(lamen, [SX + .004, .008, SZ], .7, () => { tween(.6, e => { lamen.rotation.z = .5 * (1 - e); lamen.position.y = lerp(.008, .0028, e); }, () => { lamen.visible = false; cover.visible = true; cover.position.y = .0012; drop.scale.set(1.6, .2, 1.6);
+    moveTo(lamen, [SX + .004, .008, SZ], .7, () => { tween(.6, e => { lamen.rotation.z = .5 * (1 - e); lamen.position.y = lerp(.008, .0028, e); }, () => { lamen.visible = false; cover.visible = true; sfx('clink', { vol: .5 }); sfx('paper', { delay: .5 }); cover.position.y = .0012; drop.scale.set(1.6, .2, 1.6);
       moveTo(paper, [SX + .045, .003, SZ], .6, () => { drop.scale.set(1.1, .12, 1.1); toast('Đã thấm bớt nước thừa'); moveTo(paper, P0.paper.toArray(), .5, end); }); }); });
   }
-  function toStage() { moveTo(slide, [M.g.position.x + .006, .12, M.g.position.z + .03], .8, () => { slide.visible = false; S.onStage = true; M.slide(true); lab.view([.45, .3, .3], [.2, .13, -.05]); toast('Bật đèn, chọn vật kính 10x, lấy nét rồi chuyển sang 40x.'); end(); }); }
+  function toStage() { moveTo(slide, [M.g.position.x + .006, .12, M.g.position.z + .03], .8, () => { sfx('clink', { vol: .6 }); slide.visible = false; S.onStage = true; M.slide(true); lab.view([.45, .3, .3], [.2, .13, -.05]); toast('Bật đèn, chọn vật kính 10x, lấy nét rồi chuyển sang 40x.'); end(); }); }
   function end() { S.busy = false; S.step++; onStep && onStep(S.step); check(); }
   const origSlide = M.slide; M.slide = v => { if (!S.onStage && (v ?? !M.S.slide)) return toast('Hãy làm tiêu bản trước (bấm “Làm bước tiếp theo”).'); origSlide(v); };
   function check() { const s = M.S; if (s.view && s.sharp && S.onStage && !S.seen[s.obj]) { S.seen[s.obj] = true; onSeen && onSeen(s.obj); } }

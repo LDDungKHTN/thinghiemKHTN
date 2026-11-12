@@ -1,8 +1,9 @@
 // Thư viện 3D dùng chung cho các thí nghiệm ảo (Three.js r160)
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import * as THREE from '../lib/three.module.js';
+import { OrbitControls } from '../lib/OrbitControls.js';
+import { RoomEnvironment } from '../lib/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from '../lib/CSS2DRenderer.js';
+import { sfx } from './sfx.js';
 export { THREE, CSS2DObject };
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -76,8 +77,10 @@ export const MAT = {
 /* ---------- Khởi tạo phòng thí nghiệm ---------- */
 export function createLab(host, o = {}) {
   const opt = { cam: [0, .45, .9], target: [0, .12, 0], fov: 38, minDist: .15, maxDist: 2.6, table: 'wood', tableSize: [2.4, 1.2], ...o };
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  // điện thoại / máy tính bảng: giảm độ phân giải và bóng đổ cho mượt, đỡ tốn bộ nhớ
+  const mobile = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+  const renderer = new THREE.WebGLRenderer({ antialias: !mobile || devicePixelRatio < 2, powerPreference: mobile ? 'default' : 'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.5 : 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = opt.exposure || 1;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -100,7 +103,7 @@ export function createLab(host, o = {}) {
   const hemi = new THREE.HemisphereLight(0xffffff, 0x8a7a66, .45); scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff6ea, 1.5);
   sun.position.set(1.2, 2.6, 1.6); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -.0003; sun.shadow.normalBias = .01; sun.shadow.radius = 4;
+  sun.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048); sun.shadow.bias = -.0003; sun.shadow.normalBias = .01; sun.shadow.radius = 4;
   Object.assign(sun.shadow.camera, { left: -1.4, right: 1.4, top: 1.4, bottom: -1.4, near: .5, far: 7 });
   scene.add(sun, sun.target);
   const fill = new THREE.DirectionalLight(0xeef4ff, .55); fill.position.set(-1.6, 1.4, 1.4); scene.add(fill);
@@ -180,7 +183,7 @@ export function createLab(host, o = {}) {
       const d = p.d, pt = p.h.point.clone(), pl = axisPlane(d, pt);
       active = { d, pl, start: d.get(), hit0: pt, id: e.pointerId };
       controls.enabled = false; el.setPointerCapture(e.pointerId); el.style.cursor = 'grabbing';
-      d.onStart && d.onStart();
+      d.onStart && d.onStart(); d.quiet || sfx('grab');
     }
   }, { capture: true });
   el.addEventListener('pointermove', e => {
@@ -195,8 +198,8 @@ export function createLab(host, o = {}) {
     if (e.pointerType === 'mouse') { const p = pick(); el.style.cursor = p ? (drags.includes(p.d) ? 'grab' : 'pointer') : ''; }
   });
   const up = e => {
-    if (active) { active.d.onEnd && active.d.onEnd(); active = null; controls.enabled = true; el.style.cursor = ''; try { el.releasePointerCapture(e.pointerId) } catch (_) { } }
-    if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8 && performance.now() - down.t < 600 && down.p && clicks.includes(down.p.d)) down.p.d.fn(down.p.h);
+    if (active) { active.d.onEnd && active.d.onEnd(); active.d.quiet || sfx('drop', { vol: .5 }); active = null; controls.enabled = true; el.style.cursor = ''; try { el.releasePointerCapture(e.pointerId) } catch (_) { } }
+    if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8 && performance.now() - down.t < 600 && down.p && clicks.includes(down.p.d)) { sfx('tap'); down.p.d.fn(down.p.h); }
     down = null;
   };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
@@ -204,7 +207,7 @@ export function createLab(host, o = {}) {
   const lab = {
     THREE, scene, camera, renderer, controls, room, sun, host, lights: { hemi, sun, fill },
     /** độ sáng phòng 0..1 (tắt đèn phòng cho thí nghiệm quang học) */
-    roomLight(k) { hemi.intensity = .45 * k; sun.intensity = 1.5 * k; fill.intensity = .55 * k; scene.background.setHex(0xd9dee3).multiplyScalar(.15 + .85 * k); scene.fog.color.copy(scene.background); scene.traverse(o => { const m = o.material; if (m && m.envMapIntensity !== undefined && !o.userData.keepEnv) { m.userData.env0 ??= m.envMapIntensity; m.envMapIntensity = m.userData.env0 * k; } }); },
+    roomLight(k) { hemi.intensity = .45 * k; sun.intensity = 1.5 * k; fill.intensity = .55 * k; scene.background.setHex(0xd9dee3).multiplyScalar(.15 + .85 * k); scene.fog.color.copy(scene.background); scene.traverse(o => { const m = o.material; if (m && m.envMapIntensity !== undefined && !o.userData.keepEnv) { if (m.userData.env0 == null) m.userData.env0 = m.envMapIntensity; m.envMapIntensity = m.userData.env0 * k; } }); },
     onTick: f => (ticks.push(f), f),
     offTick: f => { const i = ticks.indexOf(f); if (i >= 0) ticks.splice(i, 1); },
     /** kéo vật theo trục: {obj, axis:Vector3, min, max, get(), set(v), handles?} */

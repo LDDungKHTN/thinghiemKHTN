@@ -1,5 +1,7 @@
 // Dụng cụ thuỷ tinh & hiện tượng hoá học 3D
 import { THREE, MAT, lathe, canvasTex, roundBox, clamp } from './lab3d.js';
+import { sfx, mix } from './sfx.js';
+let VID = 0;
 const V3 = (...a) => new THREE.Vector3(...a);
 const glassM = () => { const m = MAT.glassLite({ color: 0xf2fbff, opacity: .2 }); return m; };
 let _seed = 1; const rnd = () => (_seed = (_seed * 16807) % 2147483647) / 2147483647;
@@ -80,6 +82,7 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
       Object.assign(st, s);
       const L = st.level * H * (kind == 'flask' ? .55 : .85) + (st.level > 0 ? wt : 0);
       if (Math.abs(L - (P.L ?? -1)) > 1e-5) buildLiq(L); P.L = L;
+      mix('fizz', P.id || (P.id = 'v' + (++VID)), L > .002 ? st.bubbles * .7 : 0);
       const c = new THREE.Color(st.color); liqM.color.copy(c); surfM.color.copy(c);
       liqM.opacity = st.op; surfM.opacity = Math.min(1, st.op + .1);
       // lớp trên
@@ -182,9 +185,10 @@ export function burner(lab, pos) {
   fl.add(outer, inner);
   const pl = new THREE.PointLight(0xffa860, 0, .5, 2); pl.position.y = .085; g.add(pl);
   lab.shadow(g);
-  const api = { g, lit: false, set(v) { api.lit = v; fl.visible = v; pl.intensity = v ? .15 : 0; } };
+  const bid = 'b' + (++VID);
+  const api = { g, lit: false, set(v) { if (v != api.lit && api.ready) sfx(v ? 'match' : 'puff'); api.lit = v; fl.visible = v; pl.intensity = v ? .15 : 0; mix('burner', bid, v ? 1 : 0); } };
   lab.onTick((dt, t) => { if (!api.lit) return; const k = 1 + Math.sin(t * 15) * .05 + Math.sin(t * 27) * .03; fl.scale.set(1, k, 1); });
-  api.set(false); return api;
+  api.set(false); api.ready = true; return api;
 }
 
 /** Nhiệt kế (thuỷ tinh, cột chất lỏng đỏ); set(t °C) với thang 0–100 */

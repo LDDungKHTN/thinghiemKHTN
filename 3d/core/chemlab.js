@@ -2,6 +2,7 @@
 import { THREE, MAT, roundBox, clamp } from './lab3d.js';
 import { vessel, rack, bottle, burner } from './chem.js';
 import { $, toast } from './ui.js';
+import { sfx, mix } from './sfx.js';
 const V3 = (...a) => new THREE.Vector3(...a);
 
 /**
@@ -85,19 +86,23 @@ export function chemBench(lab, opt) {
       else if (k < .7) { b.g.position.copy(over); b.g.rotation.z = side * -1 * Math.sin(Math.min(1, (k - .3) / .12) * Math.PI / 2) * 1.75; }
       else { b.g.rotation.z = side * -1.75 * (1 - e((k - .7) / .3)); b.g.position.lerpVectors(over, b.home, e((k - .7) / .3)); }
       const pouring = k > .38 && k < .68;
+      if (!anim.s0) { anim.s0 = 1; sfx('clink', { vol: .4 }); }
+      if (r.k == 'liq') mix('pour', 'bench', pouring ? .9 : 0);
+      else if (r.k == 'drop') { if (pouring && (anim.dn = (anim.dn || 0) + dt) > .22) { anim.dn = 0; sfx('drip'); } }
+      else if (pouring && !anim.spr) { anim.spr = 1; sfx('sprinkle'); }
       if (r.k != 'sol') {
         stream.visible = pouring; if (pouring) { const lip = b.g.localToWorld(V3(0, .078, 0)), end = mouth.clone().add(V3(0, -.02, 0)), L = lip.distanceTo(end); stream.position.copy(lip).lerp(end, .5); stream.scale.set(r.k == 'drop' ? .6 : 1, L, r.k == 'drop' ? .6 : 1); stream.quaternion.setFromUnitVectors(V3(0, 1, 0), lip.clone().sub(end).normalize()); stream.material.color.set(r.c); }
       } else {
         grains.visible = pouring; if (pouring) { grains.material.color.set(r.solid ? r.solid.c : r.c); const lip = b.g.localToWorld(V3(0, .078, 0)); for (let j = 0; j < 14; j++) { const f = ((performance.now() / 600 + j / 14) % 1); dummy.position.copy(lip).lerp(mouth.clone().add(V3(0, -.03, 0)), f); dummy.position.x += Math.sin(j * 7) * .002; dummy.updateMatrix(); grains.setMatrixAt(j, dummy.matrix); } grains.instanceMatrix.needsUpdate = true; }
       }
       if (k >= .68 && !anim.done) { anim.done = true; commit(t, r); }
-      if (k >= 1) { b.g.position.copy(b.home); b.g.rotation.z = 0; stream.visible = grains.visible = false; anim = null; busy = false; }
+      if (k >= 1) { b.g.position.copy(b.home); b.g.rotation.z = 0; stream.visible = grains.visible = false; anim = null; busy = false; mix('pour', 'bench', 0); sfx('clink', { vol: .5 }); }
     }
   });
   const api = {
     T, B, lamp, select, get sel() { return sel; },
     add: (id, i) => add(B.find(b => b.r.id == id), i),
-    clean() { const t = T[sel]; t.items = []; t.age = 0; if (t.heat) api.heat(); draw(sel); },
+    clean() { sfx('splash'); const t = T[sel]; t.items = []; t.age = 0; if (t.heat) api.heat(); draw(sel); },
     heat() {
       if (!lamp) return; const t = T[sel];
       if (!t.heat && T.some(x => x.heat)) { toast('Đèn cồn đang đun ống khác.'); return; }

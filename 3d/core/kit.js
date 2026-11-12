@@ -1,5 +1,7 @@
 // Dụng cụ dùng chung: nguồn điện, giá đỡ, ...
 import { THREE, MAT, canvasTex, roundBox, cable } from './lab3d.js';
+import { sfx, mix } from './sfx.js';
+let KID = 0;
 
 /** Hộp nguồn điện (biến áp nguồn) có công tắc bấm được. */
 export function powerSupply(lab, pos = [0, 0, 0], { title = 'NGUỒN ĐIỆN 12 V', label = 'Nguồn điện', onToggle } = {}) {
@@ -11,7 +13,8 @@ export function powerSupply(lab, pos = [0, 0, 0], { title = 'NGUỒN ĐIỆN 12 
   const led = new THREE.Mesh(new THREE.SphereGeometry(.004, 16, 12), new THREE.MeshStandardMaterial({ color: 0x331111, emissive: 0xff2200, emissiveIntensity: 0 })); led.position.set(-.06, .03, .068); g.add(led);
   for (const [x, c] of [[-.02, 0xc0392b], [0, 0x222222]]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .012, 16), MAT.plastic(c, .4)); t.rotation.x = Math.PI / 2; t.position.set(x, .02, .07); g.add(t); }
   lab.shadow(g); if (label) lab.label(g, label, [0, .11, 0]);
-  const api = { g, on: false, set(v) { api.on = v; led.material.emissiveIntensity = v ? 3 : 0; sw.rotation.x = v ? -.25 : .25; } };
+  const kid = 'k' + (++KID);
+  const api = { g, on: false, set(v) { if (v != api.on) sfx('toggle'); api.on = v; led.material.emissiveIntensity = v ? 3 : 0; sw.rotation.x = v ? -.25 : .25; mix('hum', kid, v ? .7 : 0); } };
   lab.clickable(sw, () => { api.set(!api.on); onToggle && onToggle(api.on); });
   api.set(false);
   /** điểm cọc nối (toạ độ thế giới) */
@@ -43,7 +46,7 @@ export function stopwatch(lab, pos, { label = 'Đồng hồ bấm giây', onChan
   const bS = mkB(-.016, 0x2f9e44), bR = mkB(.016, 0xc92a2a); bS.rotation.z = .5; bR.rotation.z = -.5; bS.position.set(-.017, .027, 0); bR.position.set(.017, .027, 0);
   lab.shadow(g); if (label) lab.label(g, label, [0, .07, 0]);
   const api = { g, t: 0, run: false,
-    start() { api.run = true; }, stop() { api.run = false; onChange && onChange(api.t); }, reset() { api.run = false; api.t = 0; draw(); },
+    start() { if (!api.run) sfx('beep'); api.run = true; }, stop() { if (api.run) sfx('beep'); api.run = false; onChange && onChange(api.t); }, reset() { sfx('beep2'); api.run = false; api.t = 0; draw(); },
     toggle() { api.run ? api.stop() : api.start(); } };
   function draw() { const x = c.getContext('2d'); x.fillStyle = '#e9eee4'; x.beginPath(); x.arc(128, 128, 128, 0, 7); x.fill(); x.fillStyle = '#1b2a1b'; x.font = 'bold 54px "Courier New",monospace'; x.textAlign = 'center'; x.fillText(api.t.toFixed(2).replace('.', ','), 128, 145); x.font = '22px Arial'; x.fillText('giây', 128, 185); x.fillText(api.run ? '● CHẠY' : '', 128, 80); tex.needsUpdate = true; }
   lab.clickable(bS, () => api.toggle()); lab.clickable(bR, () => api.reset());
@@ -57,8 +60,8 @@ export function balance(lab, pos, { label = 'Cân điện tử', dec = 1 } = {})
   const pan = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .005, 48), MAT.metal(0xd0d4d8, .2)); pan.position.set(0, .0375, -.01); g.add(pan);
   const disp = canvasTex(320, 96, () => { }); const dm = new THREE.Mesh(new THREE.PlaneGeometry(.09, .027), new THREE.MeshStandardMaterial({ map: disp, emissive: 0xffffff, emissiveMap: disp, emissiveIntensity: .9 })); dm.position.set(0, .019, .0905); g.add(dm);
   lab.shadow(g); if (label) lab.label(g, label, [0, .02, .12]);
-  const api = { g, top: pos[1] + .04, m: 0, set(m) { api.m = m; const c = disp.image.getContext('2d'); c.fillStyle = '#0d1a10'; c.fillRect(0, 0, 320, 96); c.fillStyle = '#8cff8a'; c.font = 'bold 58px "Courier New",monospace'; c.textAlign = 'right'; c.fillText(m.toFixed(dec).replace('.', ',') + ' g', 305, 70); disp.needsUpdate = true; } };
-  api.set(0); return api;
+  const api = { g, top: pos[1] + .04, m: 0, set(m) { if (api.ready && m == 0 && api.m != 0) sfx('beep'); api.m = m; const c = disp.image.getContext('2d'); c.fillStyle = '#0d1a10'; c.fillRect(0, 0, 320, 96); c.fillStyle = '#8cff8a'; c.font = 'bold 58px "Courier New",monospace'; c.textAlign = 'right'; c.fillText(m.toFixed(dec).replace('.', ',') + ' g', 305, 70); disp.needsUpdate = true; } };
+  api.set(0); api.ready = true; return api;
 }
 /** Ống đong có vạch chia (mL); set(V) mực nước; nhóm gốc ở đáy */
 export function cylinder(lab, { R = .016, H = .2, max = 250, color = 0xcfe8f3 } = {}) {

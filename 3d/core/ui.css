@@ -8,6 +8,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14.5px
 .hd a.bk{color:var(--ac);text-decoration:none;font-weight:600;white-space:nowrap}
 .hd h1{font-size:16px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .hd .sub{color:var(--mut);font-size:12.5px;white-space:nowrap}
+.hd .snd{border:1px solid var(--ln);background:transparent;border-radius:8px;font-size:17px;line-height:1;cursor:pointer;padding:4px 7px;flex:none}
+.hd .snd.off{opacity:.55}
 .main{display:grid;grid-template-columns:1fr 360px;min-height:0}
 .stage{position:relative;min-height:0;overflow:hidden;background:#d9dee3;touch-action:none}
 .stage canvas{display:block;width:100%;height:100%}

@@ -1,5 +1,7 @@
 // Ngọn nến 3D có lửa lung linh
 import { THREE, lathe } from './lab3d.js';
+import { sfx, mix } from './sfx.js';
+let CID = 0;
 
 export function candle(lab, { h = .06, r = .011, light = true } = {}) {
   const g = new THREE.Group();
@@ -18,7 +20,8 @@ export function candle(lab, { h = .06, r = .011, light = true } = {}) {
   if (light) { pl = new THREE.PointLight(0xffa040, .25, 1.2, 2); pl.position.y = h + .015; g.add(pl); }
   wax.castShadow = true; wax.receiveShadow = true;
   const api = { g, flame: fl, parts: [wax, top, wick, dish, outer, inner, blue], lit: true, light: pl,
-    setLit(v) { api.lit = v; fl.visible = v; if (pl) pl.visible = v; } };
+    setLit(v) { if (v != api.lit && api.ready) sfx(v ? 'match' : 'puff'); api.lit = v; fl.visible = v; if (pl) pl.visible = v; mix('flame', cid, v ? .25 : 0); } };
+  const cid = 'c' + (++CID); mix('flame', cid, .25); setTimeout(() => api.ready = true, 0);
   lab.onTick((dt, t) => {
     if (!api.lit) return;
     const k = 1 + Math.sin(t * 13) * .04 + Math.sin(t * 23.7) * .03;

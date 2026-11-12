@@ -1,5 +1,7 @@
 // Linh kiện điện 3D: nguồn, đồng hồ đo, bóng đèn, điện trở, công tắc, biến trở, dây nối
 import { THREE, MAT, canvasTex, roundBox, lathe, clamp } from './lab3d.js';
+import { sfx, mix } from './sfx.js';
+let EID = 0;
 const V3 = (...a) => new THREE.Vector3(...a);
 
 function post(g, x, z, red, y = 0) {          // cọc đấu dây
@@ -28,11 +30,11 @@ export function supply(lab, pos, { V = 12, label = 'Nguồn điện', onToggle }
   lbl.position.set(0, .07, .0605); g.add(lbl);
   lab.shadow(g); if (label) lab.label(g, label, [0, .11, 0]);
   const api = { g, on: false, V, term: i => world(g, t[i]),
-    set(on) { api.on = on; sw.rotation.x = on ? -.3 : .3; draw(); },
+    set(on) { if (api.ready && on != api.on) sfx('toggle'); api.on = on; sw.rotation.x = on ? -.3 : .3; draw(); mix('hum', api.sid || (api.sid = 'e' + (++EID)), on ? .7 : 0); },
     setV(v) { api.V = v; draw(); } };
   function draw() { const c = disp.image.getContext('2d'); c.fillStyle = '#0b1a0b'; c.fillRect(0, 0, 256, 96); c.fillStyle = api.on ? '#7dff7a' : '#1f3a1f'; c.font = 'bold 64px "Courier New",monospace'; c.textAlign = 'right'; c.fillText((api.on ? api.V : 0).toFixed(1).replace('.', ',') + 'V', 246, 72); disp.needsUpdate = true; }
   lab.clickable(sw, () => { api.set(!api.on); onToggle && onToggle(api.on); });
-  api.set(false); return api;
+  api.set(false); api.ready = true; return api;
 }
 
 /** Đồng hồ đo kim (ampe kế 'A' / vôn kế 'V') */
@@ -148,7 +150,7 @@ export function knife(lab, pos, { onToggle, rotY = 0, label = 'Khoá K' } = {}) 
   const hd = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .018, 16), MAT.plastic(0x111111, .4)); hd.position.set(.05, .008, 0); hinge.add(hd);
   const t = [post(g, -.032, .014, true, h), post(g, .034, .014, false, h)];
   lab.shadow(g); if (label) lab.label(g, label, [0, .06, 0]);
-  const api = { g, closed: false, term: i => world(g, t[i]), set(c) { api.closed = c; tgt = c ? 0 : .85; } };
+  const api = { g, closed: false, term: i => world(g, t[i]), set(c) { if (c != api.closed) sfx('clack'); api.closed = c; tgt = c ? 0 : .85; } };
   let tgt = .85, cur = .85;
   lab.onTick(dt => { cur += (tgt - cur) * Math.min(1, dt * 10); hinge.rotation.z = cur; });
   lab.clickable(g, () => { api.set(!api.closed); onToggle && onToggle(api.closed); });

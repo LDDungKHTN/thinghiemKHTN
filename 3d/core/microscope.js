@@ -1,5 +1,6 @@
 // Kính hiển vi quang học 3D + thị trường (nhìn qua thị kính) với mẫu vật vẽ theo tỉ lệ thật (µm)
 import { THREE, MAT, roundBox, lathe, canvasTex, clamp } from './lab3d.js';
+import { sfx } from './sfx.js';
 const V3 = (...a) => new THREE.Vector3(...a);
 let _s = 1; const rnd = () => (_s = (_s * 16807) % 2147483647) / 2147483647; const seed = n => { _s = n; };
 
@@ -151,8 +152,8 @@ export function microscope(lab, stage, pos = [0, 0, 0], { sample = 'onion', stai
   const cls = document.createElement('button'); cls.className = 'btn'; cls.textContent = '✕ Rời mắt khỏi thị kính'; cls.style.cssText = 'position:absolute;right:10px;top:10px'; cls.onclick = () => api.view(false); ov.appendChild(cls);
   lab.onTick((dt, t) => { if (S.view) render(t); });
   const api = { g, S, OBJ, ZF, place, render,
-    setObj(i) { S.obj = i; place(); api.changed(); }, focus(dz) { S.z = clamp(S.z + dz, 0, 1); place(); api.changed(); },
-    light(v) { S.light = v ?? !S.light; place(); api.changed(); }, slide(v) { S.slide = v ?? !S.slide; place(); api.changed(); },
+    setObj(i) { if (i != S.obj) sfx('ratchet'); S.obj = i; place(); api.changed(); }, focus(dz) { sfx('tick', { vol: .6 }); S.z = clamp(S.z + dz, 0, 1); place(); api.changed(); },
+    light(v) { const n = v ?? !S.light; if (n != S.light) sfx('toggle'); S.light = n; place(); api.changed(); }, slide(v) { const n = v ?? !S.slide; if (n != S.slide) sfx('clink', { vol: .6 }); S.slide = n; place(); api.changed(); },
     setSample(k, st) { S.sample = k; if (st) S.stain = st; api.changed(); },
     view(v) { S.view = v ?? !S.view; ov.style.display = S.view ? 'flex' : 'none'; if (S.view) fit(), render(performance.now() / 1000); api.changed(); },
     changed() { onChange && onChange(S); } };
@@ -175,7 +176,7 @@ export function scopeUI(api, host) {
     C.value = S.z - fine; };
   host.querySelectorAll('[data-a]').forEach(b => b.onclick = () => api[b.dataset.a]());
   host.querySelectorAll('[data-o]').forEach(b => b.onclick = () => api.setObj(+b.dataset.o));
-  const apply = () => { api.S.z = clamp(+C.value + fine, 0, 1); api.place(); api.changed(); };
+  const apply = () => { sfx('tick', { vol: .5 }); api.S.z = clamp(+C.value + fine, 0, 1); api.place(); api.changed(); };
   C.oninput = apply; F.oninput = () => { fine = +F.value; apply(); };
   const prev = api.changed; api.changed = () => { prev(); sync(); };
   sync(); return { sync };

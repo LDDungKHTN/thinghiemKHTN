@@ -1,15 +1,18 @@
 // Giao diện chung: khung trang, thẻ, câu hỏi, thông báo
+import { sfx, setMuted, isMuted, onMute } from './sfx.js';
 export const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 export const fmt = (n, d = 1) => Number(n).toLocaleString('vi-VN', { maximumFractionDigits: d, minimumFractionDigits: 0 });
 
 /** Dựng khung trang. panes: [{id, title, html}] */
 export function shell({ title, sub = '', back = '../index.html', panes = [] }) {
   document.title = title.replace(/<[^>]+>/g, '');
-  document.body.innerHTML = `<div class="app"><header class="hd"><a class="bk" href="${back}">← Danh sách</a><h1>${title}</h1><span class="sub">${sub}</span></header>
+  document.body.innerHTML = `<div class="app"><header class="hd"><a class="bk" href="${back}">← Danh sách</a><h1>${title}</h1><span class="sub">${sub}</span><button class="snd" id="snd" title="Bật/tắt âm thanh" aria-label="Bật/tắt âm thanh">🔊</button></header>
   <div class="main"><div class="stage" id="stage"><div class="ld" id="ld">Đang dựng phòng thí nghiệm 3D…</div><div class="toast" id="toast"></div></div>
   <aside class="side"><nav class="tabs">${panes.map((p, i) => `<button class="${i ? '' : 'on'}" data-i="${i}">${p.title}</button>`).join('')}</nav>
   ${panes.map((p, i) => `<section class="pane" id="${p.id}" ${i ? 'hidden' : ''}>${p.html || ''}</section>`).join('')}</aside></div></div>`;
   $$('.tabs button').forEach(b => b.onclick = () => showPane(+b.dataset.i));
+  const sb = $('#snd'); sb.onclick = () => setMuted(!isMuted()); onMute(m => { sb.textContent = m ? '🔇' : '🔊'; sb.classList.toggle('off', m); });
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button, .btn, label'); if (b && b.id != 'snd') sfx('click'); }, true);
   return $('#stage');
 }
 export function showPane(i) {
@@ -31,7 +34,7 @@ export function quiz(host, Q) {
     else { const s = $('#' + id + 'n' + i).value.replace(/\s/g, '').replace(',', '.'); has = s !== ''; ok = has && Math.abs(parseFloat(s) - q.n) <= Math.max(Math.abs(q.n) * (q.tol ?? .02), .011); }
     const s = $('#' + id + 's' + i);
     if (!has) { s.innerHTML = '<span class="sm">Hãy chọn hoặc nhập đáp án.</span>'; return; }
-    $('#' + id + 'q' + i).className = 'q ' + (ok ? 'good' : 'bad');
+    $('#' + id + 'q' + i).className = 'q ' + (ok ? 'good' : 'bad'); sfx(ok ? 'chime' : 'error');
     s.innerHTML = `<span class="${ok ? 'ok' : 'er'}">${ok ? 'Chính xác!' : 'Chưa đúng.'}</span> <span class="sm">${ok || q.showE ? q.e || '' : 'Thử lại nhé.'}</span>`;
   });
 }
