@@ -3,13 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 6. Đo khối lượng</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, lathe, clamp, lerp } from '../core/lab3d.js';
 import { balance } from '../core/kit.js';
 import { vessel } from '../core/chem.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 6. Đo khối lượng', sub: 'KHTN 6 – Kết nối tri thức',
@@ -54,7 +55,7 @@ const ITEMS = [
 const SHELF = [[-.42, 0, .08], [-.42, 0, -.12], [-.4, 0, .25]];
 ITEMS.forEach((it, i) => { it.g = it.make(); it.g.position.set(...SHELF[i]); it.home = SHELF[i]; scene.add(it.g); lab.shadow(it.g); lab.label(it.g, it.n, [0, .15, 0]); lab.clickable(it.g, () => toggleItem(i)); });
 const S = { off: 60, on: null, shown: 60, eye: false, rows: [] };
-function toggleItem(i) { const it = ITEMS[i]; if (S.on == i) { it.g.position.set(...it.home); S.on = null; } else { if (S.on != null) ITEMS[S.on].g.position.set(...ITEMS[S.on].home); it.g.position.set(SC.position.x, .149, 0); S.on = i; } upd(); }
+function toggleItem(i) { const it = ITEMS[i]; sfx(S.on == i ? 'drop' : 'thud'); if (S.on == i) { it.g.position.set(...it.home); S.on = null; } else { if (S.on != null) ITEMS[S.on].g.position.set(...ITEMS[S.on].home); it.g.position.set(SC.position.x, .149, 0); S.on = i; } upd(); }
 function target() { return S.off + (S.on != null ? ITEMS[S.on].m : 0); }
 // ---- cân điện tử ----
 const BAL = balance(lab, [.2, 0, 0], { dec: 1 });
@@ -63,14 +64,14 @@ const egg = new THREE.Mesh(new THREE.SphereGeometry(.022, 24, 18), new THREE.Mes
 const E = { cup: false, egg: false, water: 0, tare: 0 };
 function balMass() { return (E.cup ? 52.3 + E.water : 0) + (E.egg ? 58.6 : 0); }
 function placeE() { cup.g.position.set(E.cup ? .2 : .42, E.cup ? .04 : 0, E.cup ? -.01 : .1); egg.position.set(E.egg ? (E.cup ? .25 : .2) : .42, E.egg ? (E.cup ? .068 : .068) : .028, E.egg ? (E.cup ? .03 : -.01) : -.08); if (E.egg && E.cup) egg.position.set(.2, .04 + .018 + .004, -.01); cup.set({ level: E.water / 220, color: 0xcfe8f3, op: .45 }); BAL.set(Math.round((balMass() - E.tare) * 10) / 10); upd(); }
-$('#cup').onclick = () => { if (E.cup && E.water) { E.water = 0; } E.cup = !E.cup; placeE(); lab.view([.2, .25, .3], [.2, .05, 0]); };
+$('#cup').onclick = () => { if (E.cup && E.water) { E.water = 0; } E.cup = !E.cup; sfx('clink'); placeE(); lab.view([.2, .25, .3], [.2, .05, 0]); };
 $('#tare').onclick = () => { E.tare = balMass(); placeE(); toast('TARE: cân trừ đi khối lượng đang đặt trên đĩa, hiện 0,0 g'); };
-$('#pour').onclick = () => { if (!E.cup) return toast('Đặt cốc lên cân trước'); if (E.water >= 150) return toast('Cốc gần đầy'); E.water += 50; placeE(); toast(`Đã rót thêm 50 mL nước (≈ 50 g)`); if (Math.abs(E.tare - 52.3) < .01 && !E.egg) rec('Nước ' + E.water + ' mL', 'Cân điện tử (đã TARE cốc)', fmt(E.water, 1) + ' g', '✔ Khối lượng nước = ' + fmt(E.water, 1) + ' g'); };
-$('#egg').onclick = () => { E.egg = !E.egg; placeE(); if (E.egg) rec('Quả trứng', 'Cân điện tử', fmt(Math.round((balMass() - E.tare) * 10) / 10, 1) + ' g', E.cup && E.tare < 1 ? '✘ chưa TARE cốc – số chỉ gồm cả cốc' : '✔'); };
+$('#pour').onclick = () => { if (!E.cup) return toast('Đặt cốc lên cân trước'); if (E.water >= 150) return toast('Cốc gần đầy'); E.water += 50; sfx('splash', { vol: .6 }); placeE(); toast(`Đã rót thêm 50 mL nước (≈ 50 g)`); if (Math.abs(E.tare - 52.3) < .01 && !E.egg) rec('Nước ' + E.water + ' mL', 'Cân điện tử (đã TARE cốc)', fmt(E.water, 1) + ' g', '✔ Khối lượng nước = ' + fmt(E.water, 1) + ' g'); };
+$('#egg').onclick = () => { E.egg = !E.egg; sfx('drop'); placeE(); if (E.egg) rec('Quả trứng', 'Cân điện tử', fmt(Math.round((balMass() - E.tare) * 10) / 10, 1) + ' g', E.cup && E.tare < 1 ? '✘ chưa TARE cốc – số chỉ gồm cả cốc' : '✔'); };
 // ---- điều chỉnh vạch 0 ----
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn" id="zl">◀ Vặn ốc</button><button class="btn" id="zr">Vặn ốc ▶</button><button class="btn p" id="eye">Nhìn vuông góc mặt đồng hồ</button><button class="btn" id="home">Toàn cảnh</button>`;
-let hold = 0; for (const [id, k] of [['zl', -1], ['zr', 1]]) { const b = $('#' + id); const f = () => { S.off = clamp(S.off + k * 4, -200, 200); knob.rotation.y += k * .3; upd(); }; b.onpointerdown = () => { f(); clearInterval(hold); hold = setInterval(f, 90); }; b.onpointerup = b.onpointerleave = () => clearInterval(hold); }
+let hold = 0; for (const [id, k] of [['zl', -1], ['zr', 1]]) { const b = $('#' + id); const f = () => { sfx('tick', { vol: .5 }); S.off = clamp(S.off + k * 4, -200, 200); knob.rotation.y += k * .3; upd(); }; b.onpointerdown = () => { f(); clearInterval(hold); hold = setInterval(f, 90); }; b.onpointerup = b.onpointerleave = () => clearInterval(hold); }
 $('#eye').onclick = () => lab.view([SC.position.x, .085, .2], [SC.position.x, .075, 0]);
 $('#home').onclick = () => lab.view(...HOME);
 lab.onTick(dt => { const T = target(); S.shown += (T - S.shown) * Math.min(1, dt * 6) + Math.sin(performance.now() / 90) * (Math.abs(T - S.shown) > 5 ? 2 : 0); needle.rotation.z = -S.shown / 5000 * Math.PI * 1.8; const k = Math.round(camera.position.x * 100) + ',' + Math.round(camera.position.y * 100); if (k != upd.k) { upd.k = k; upd(); } });

@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 8. Đo nhiệt độ</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, lathe, canvasTex, clamp } from '../core/lab3d.js';
 import { vessel, thermometer } from '../core/chem.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 8. Đo nhiệt độ', sub: 'KHTN 6 – Kết nối tri thức',
@@ -49,7 +50,7 @@ const FL = [];
 });
 function setCol(f) { const h = .03 + (f.T - 25) * .0012; f.col.scale.y = Math.max(.005, h + .007); f.col.position.y = .074 + (h + .007) / 2; }
 FL.forEach(setCol);
-$('#fl').onclick = () => { FL.forEach(f => f.in = true); lab.view([-.35, .25, .25], [-.35, .1, -.12]); toast('Quan sát mực nước màu trong ống so với vạch đánh dấu ban đầu.'); };
+$('#fl').onclick = () => { FL.forEach(f => f.in = true); sfx('splash', { delay: .3 }); lab.view([-.35, .25, .25], [-.35, .1, -.12]); toast('Quan sát mực nước màu trong ống so với vạch đánh dấu ban đầu.'); };
 $('#fl0').onclick = () => FL.forEach(f => f.in = false);
 // ---- 2. cốc nước + nhiệt kế ----
 const CUPS = [{ n: 'Nước đá', T: 0, c: 0xe7f5ff, est: '0' }, { n: 'Nước máy', T: 28, c: 0xd9eef7, est: '25 – 30' }, { n: 'Nước ấm', T: 45, c: 0xf0e8de, est: '40 – 50' }, { n: 'Nước nóng', T: 82, c: 0xf6e4dc, est: '80 – 90' }];
@@ -59,7 +60,7 @@ CUPS.forEach((c, i) => { c.v = vessel(lab, { kind: 'beaker', R: .032, H: .085 })
 const TH = new THREE.Group(); scene.add(TH); const th = thermometer(lab, TH, [0, 0, 0], { L: .2 });
 const T = { at: null, T: 26, home: [.38, .005, .1] };
 TH.position.set(...T.home); TH.rotation.z = Math.PI / 2; lab.label(th.g, 'Nhiệt kế (0 – 100 °C)', [0, .21, 0]);
-function dip(i) { T.at = i; const c = CUPS[i]; TH.rotation.z = 0; TH.position.set(c.v.g.position.x, .018, .08); lab.view([c.v.g.position.x, .14, .25], [c.v.g.position.x, .1, .08]); toast('Chờ cột chất lỏng đứng yên rồi đọc.'); }
+function dip(i) { sfx('clink'); sfx('plop', { delay: .15 }); T.at = i; const c = CUPS[i]; TH.rotation.z = 0; TH.position.set(c.v.g.position.x, .018, .08); lab.view([c.v.g.position.x, .14, .25], [c.v.g.position.x, .1, .08]); toast('Chờ cột chất lỏng đứng yên rồi đọc.'); }
 // ---- 3. nhiệt kế y tế ----
 const MED = new THREE.Group(); MED.position.set(.3, .004, -.15); scene.add(MED);
 const mc = document.createElement('canvas'); mc.width = 1024; mc.height = 64; const mt = new THREE.CanvasTexture(mc); mt.colorSpace = THREE.SRGBColorSpace;
@@ -73,7 +74,7 @@ const MS = { T: 37.4, step: 0, clean: false };
 function setHg() { const xa = -.062, xe = -.06 + (80 + (clamp(MS.T, 34.3, 42) - 35) / 7 * 880) / 1024 * .12; hg.scale.x = xe - xa; hg.position.x = (xa + xe) / 2; }
 setHg();
 $('#m1').onclick = () => { MS.clean = true; MS.step = Math.max(MS.step, 1); medMark(); toast('Đã lau sạch thân và bầu nhiệt kế bằng bông y tế.'); };
-$('#m2').onclick = () => { if (!MS.clean) return toast('Lau sạch trước.'); let k = 0; const f = () => { MED.rotation.z = Math.sin(k) * .6; if ((k += .5) < 12) requestAnimationFrame(f); else MED.rotation.z = 0; }; f(); MS.T = 34.5; setHg(); MS.step = 2; medMark(); toast('Thuỷ ngân đã tụt xuống dưới 35 °C.'); };
+$('#m2').onclick = () => { if (!MS.clean) return toast('Lau sạch trước.'); sfx('rattle'); let k = 0; const f = () => { MED.rotation.z = Math.sin(k) * .6; if ((k += .5) < 12) requestAnimationFrame(f); else MED.rotation.z = 0; }; f(); MS.T = 34.5; setHg(); MS.step = 2; medMark(); toast('Thuỷ ngân đã tụt xuống dưới 35 °C.'); };
 $('#m3').onclick = () => { if (MS.step < 2) return toast('Phải vẩy cho thuỷ ngân tụt xuống trước.'); MS.step = 3; MED.visible = false; medMark(); toast('Đã kẹp nhiệt kế vào nách.'); };
 $('#m4').onclick = () => { if (MS.step < 3) return toast('Chưa kẹp nhiệt kế vào nách.'); MS.T = 36.8; setHg(); MED.visible = true; MS.step = 4; medMark(); lab.view([.3, .1, -.06], [.3, 0, -.15]); $('#medr').innerHTML = 'Nhiệt kế y tế chỉ <b>36,8 °C</b> – thân nhiệt bình thường (36 – 37,5 °C).'; toast('Nhiệt kế y tế chỉ 36,8 °C'); };
 function medMark() { document.querySelectorAll('#med li').forEach((li, i) => li.style.color = i < MS.step ? '#2f9e44' : ''); }

@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 16. Hỗn hợp các chất</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, clamp } from '../core/lab3d.js';
 import { chemBench, benchUI } from '../core/chemlab.js';
 import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 16. Hỗn hợp các chất – Sự hoà tan của một số chất rắn', sub: 'KHTN 6 – Kết nối tri thức',
@@ -53,7 +54,7 @@ function rec(i, s, t) { const it = t.items, w = has(it, 'w'); if (!w || shakeAt[
   const k = has(it, 'ca') ? 'Huyền phù' : has(it, 'oil') ? 'Nhũ tương' : 'Dung dịch'; RES[i] = `<tr><td>${tubes[i].slice(0, 3)}</td><td>${sub} + nước</td><td>${n}</td><td><b>${k}</b></td></tr>`; $('#tb').innerHTML = Object.values(RES).join(''); }
 $('#prep').onclick = () => { [['su'], ['sa'], ['ca'], ['oil']].forEach(([id], i) => { bench.T[i].items = [{ id: 'w', amt: 5 }, { id, amt: id == 'oil' ? 2 : 1 }]; bench.T[i].age = 0; shakeAt[i] = 0; }); bench.redraw(); toast('Đã cho nước và chất vào 4 ống. Chọn từng ống rồi bấm “Lắc”.'); };
 let shk = null;
-$('#shake').onclick = () => { const i = bench.sel, t = bench.T[i]; if (!t.items.length) return toast('Ống trống'); shakeAt[i] = performance.now(); t.age = 0; shk = { t, k: 0 }; };
+$('#shake').onclick = () => { const i = bench.sel, t = bench.T[i]; if (!t.items.length) return toast('Ống trống'); shakeAt[i] = performance.now(); t.age = 0; sfx('rattle'); sfx('rattle', { delay: 1 }); shk = { t, k: 0 }; };
 lab.onTick(dt => { if (shk) { shk.k += dt; shk.t.v.g.rotation.z = Math.sin(shk.k * 30) * .25 * Math.max(0, 1 - shk.k / 1.5); if (shk.k > 1.5) { shk.t.v.g.rotation.z = 0; shk = null; } } });
 quiz($('#qz'), [
   { q: 'Hỗn hợp nào là dung dịch?', o: ['Nước + bột đá vôi', 'Nước + đường (đã tan hết)', 'Nước + dầu ăn', 'Nước + cát'], a: 1 },

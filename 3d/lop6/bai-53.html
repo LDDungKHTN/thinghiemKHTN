@@ -3,11 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 53. Mặt Trăng</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, canvasTex, clamp } from '../core/lab3d.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 53. Mặt Trăng – Các pha của Mặt Trăng', sub: 'KHTN 6 – Kết nối tri thức',
@@ -68,7 +69,7 @@ function setDay(d) { S.d = ((d % 29.53) + 29.53) % 29.53; moon.position.copy(pos
   if (S.earthView) earthCam(); }
 DAYS.forEach((d, i) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = i + 1; b.onclick = () => { S.run = false; setDay(d); }; $('#pos').appendChild(b); });
 $('#day').oninput = e => { S.run = false; setDay(+e.target.value); };
-$('#run').onclick = () => { S.run = !S.run; $('#run').textContent = S.run ? 'Dừng' : 'Chạy 1 tháng'; };
+$('#run').onclick = () => { S.run = !S.run; sfx('swish'); $('#run').textContent = S.run ? 'Dừng' : 'Chạy 1 tháng'; };
 function earthCam() { const m = moon.position.clone(); lab.view(m.clone().normalize().multiplyScalar(.075).setY(.02).toArray(), m.toArray(), .01); }
 $('#earth').onclick = () => { S.earthView = true; lab.controls.minDistance = .01; earthCam(); toast('Đang nhìn Mặt Trăng từ Trái Đất'); };
 $('#top').onclick = () => { S.earthView = false; lab.view(...TOP); };

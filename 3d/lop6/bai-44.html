@@ -3,11 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 44. Lực ma sát</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, lathe, canvasTex, clamp } from '../core/lab3d.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 44. Lực ma sát', sub: 'KHTN 6 – Kết nối tri thức',
@@ -59,8 +60,8 @@ let pull = 0;
 lab.onTick(dt => {
   if (pull) S.xh += pull * dt * .02;
   const f = F();
-  if (!S.slide) { if (f > Fs()) { S.slide = true; S.peak = Math.max(S.peak, Fs()); toast('Khối gỗ bắt đầu trượt!'); } else S.peak = Math.max(S.peak, f); }
-  if (S.slide) { const need = S.xh - .198 - .054 - Fk() / KS; if (need > S.xb + 1e-5) { S.xb += Math.min(need - S.xb, .3 * dt); S.kin.push(F()); if (S.kin.length > 60) S.kin.shift(); } else S.slide = false; }
+  if (!S.slide) { level('scrape', 0); if (f > Fs()) { S.slide = true; sfx('slide'); S.peak = Math.max(S.peak, Fs()); toast('Khối gỗ bắt đầu trượt!'); } else S.peak = Math.max(S.peak, f); }
+  if (S.slide) { const need = S.xh - .198 - .054 - Fk() / KS; if (need > S.xb + 1e-5) { const dx = Math.min(need - S.xb, .3 * dt); S.xb += dx; level('scrape', Math.min(1, dx / dt * 8) * [.7, .35, .5][S.s], [1, 1.4, .7][S.s]); S.kin.push(F()); if (S.kin.length > 60) S.kin.shift(); } else { S.slide = false; level('scrape', 0); } }
   if (S.xb > .25) { S.xb = .25; }
   place();
   const h = `Lực kế chỉ: <b>${fmt(Math.round(F() * 10) / 10, 1)} N</b><br>Khối gỗ: <b>${S.slide ? 'đang trượt' : 'đứng yên'}</b> trên ${SURF[S.s].n.toLowerCase()}${S.w ? ' (có quả nặng)' : ''}<br>${S.slide ? 'Lực ma sát trượt ≈ ' + fmt(Fk(), 1) + ' N' : F() > .05 ? 'Lực ma sát nghỉ = ' + fmt(Math.round(F() * 10) / 10, 1) + ' N (cân bằng lực kéo)' : ''}`; if (h != hud.innerHTML) hud.innerHTML = h;
@@ -73,7 +74,7 @@ $('#near').onclick = () => lab.view([FM.position.x, .12, .1], [FM.position.x, .0
 $('#home').onclick = () => lab.view(...HOME);
 function reset() { S.xb = -.25; S.xh = S.xb + .252; S.slide = false; S.peak = 0; S.kin = []; place(); }
 document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { S.s = +b.dataset.s; document.querySelectorAll('[data-s]').forEach(x => x.classList.toggle('on', x == b)); surfM.forEach((m, i) => m && (m.visible = i == S.s)); reset(); });
-$('#w').onclick = () => { S.w = !S.w; wt.visible = S.w; lab.label; reset(); toast(S.w ? 'Khối lượng tổng: 400 g' : 'Khối lượng: 200 g'); };
+$('#w').onclick = () => { S.w = !S.w; sfx(S.w ? 'thud' : 'drop'); wt.visible = S.w; lab.label; reset(); toast(S.w ? 'Khối lượng tổng: 400 g' : 'Khối lượng: 200 g'); };
 $('#rs').onclick = reset;
 $('#rec').onclick = () => { if (!S.peak) return toast('Hãy kéo lực kế trước'); if (!S.kin.length) return toast('Kéo tiếp cho khối gỗ trượt đều rồi ghi'); const fk = S.kin.reduce((a, b) => a + b, 0) / S.kin.length;
   S.rows.push(`<tr><td>${SURF[S.s].n}</td><td>${S.w ? 400 : 200} g</td><td>${fmt(Math.round(S.peak * 10) / 10, 1)}</td><td>${fmt(Math.round(fk * 10) / 10, 1)}</td></tr>`); $('#tb').innerHTML = S.rows.join(''); showPane(1); };

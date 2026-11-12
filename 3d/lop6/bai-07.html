@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 7. Đo thời gian</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, TEX, clamp } from '../core/lab3d.js';
 import { stopwatch } from '../core/kit.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 7. Đo thời gian', sub: 'KHTN 6 – Kết nối tri thức',
@@ -44,11 +45,11 @@ const S = { ang: 6, run: false, s: 0, v: 0, t: 0, done: false, rows: [], swStart
 function setAng() { const a = S.ang * Math.PI / 180; tilt.rotation.z = a; const h = Math.sin(a) * LEN; block.scale.y = (h + .002) / .1; block.position.set(.5 - .03, (h + .002) / 2, 0); ramp.position.y = h; $('#angv').textContent = S.ang + '°'; reset(); }
 const ACC = () => 5 / 7 * 9.81 * Math.sin(S.ang * Math.PI / 180);
 const Ttrue = () => Math.sqrt(2 * (LEN - .03) / ACC());
-function reset() { S.run = false; S.s = 0; S.v = 0; S.t = 0; S.done = false; place(); }
+function reset() { level('roll', 0); S.run = false; S.s = 0; S.v = 0; S.t = 0; S.done = false; place(); }
 function place() { ball.position.set(-.03 - S.s, .013 + R, 0); ball.rotation.z = S.s / R; }
 $('#ang').oninput = e => { S.ang = +e.target.value; setAng(); };
 lab.onTick(dt => {
-  if (S.run && !S.done) { S.t += dt; S.v += ACC() * dt; S.s += S.v * dt; if (S.s >= LEN - .03 - R) { S.s = LEN - .03 - R; S.done = true; S.run = false; toast('Bi đã chạm chặn cuối máng!'); } place(); }
+  if (S.run && !S.done) { S.t += dt; S.v += ACC() * dt; S.s += S.v * dt; level('roll', Math.min(1, S.v * 1.2), .7 + S.v * .4); if (S.s >= LEN - .03 - R) { S.s = LEN - .03 - R; S.done = true; S.run = false; level('roll', 0); sfx('clack'); toast('Bi đã chạm chặn cuối máng!'); } place(); }
   const h = `Thời gian thật bi lăn: <b>${S.done ? fmt(Ttrue(), 2) + ' s' : S.run ? 'đang lăn…' : '—'}</b><br>Đồng hồ bấm giây: <b>${fmt(SW.t, 2)} s</b> ${SW.run ? '(đang chạy)' : ''}`; if (h != hud.innerHTML) hud.innerHTML = h;
 });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);

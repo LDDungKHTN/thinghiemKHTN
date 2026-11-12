@@ -3,11 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 5. Đo chiều dài</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, canvasTex, roundBox, clamp } from '../core/lab3d.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 5. Đo chiều dài', sub: 'KHTN 6 – Kết nối tri thức',
@@ -77,7 +78,7 @@ function placeRuler() { const r = RULERS[S.r]; S.rx = x0() - .012 - Math.random(
 OBJ.forEach((o, i) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = o.n; b.onclick = () => selObj(i); $('#objs').appendChild(b); });
 RULERS.forEach((r, i) => { const b = document.createElement('button'); b.className = 'btn'; b.style.textAlign = 'left'; b.innerHTML = `${r.n}: GHĐ ${r.L / 10} cm – ĐCNN ${r.d == 1 ? '1 mm' : '1 cm'}`; b.onclick = () => selRuler(i); $('#rls').appendChild(b); });
 // kéo thước dọc theo vật
-RULERS.forEach(r => lab.draggable({ obj: r.g, axis: new THREE.Vector3(1, 0, 0), min: -1, max: 1, get: () => S.rx, set(v) { if (Math.abs(v - x0()) < .0012) v = x0(); S.rx = v; r.g.position.x = v; upd(); } }));
+RULERS.forEach(r => lab.draggable({ obj: r.g, axis: new THREE.Vector3(1, 0, 0), min: -1, max: 1, get: () => S.rx, set(v) { if (Math.abs(v - x0()) < .0012) { if (v != x0() && S.rx != x0()) sfx('tick'); v = x0(); } S.rx = v; r.g.position.x = v; upd(); } }));
 function eyeOK() { const p = new THREE.Vector3(x1(), 0, RULERS[S.r ?? 0].zOff ?? ZR), c = camera.position; return Math.abs(c.x - p.x) / Math.max(.01, c.y) < .25; }
 function reading() { const r = RULERS[S.r]; const mm = (x1() - S.rx) * 1000; return Math.round(mm / r.d) * r.d / 10; }  // cm
 function upd() {

@@ -3,13 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 11. Oxygen. Không khí</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, lathe, canvasTex, clamp, lerp } from '../core/lab3d.js';
 import { vessel } from '../core/chem.js';
 import { candle } from '../core/candle.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 11. Oxygen. Không khí', sub: 'KHTN 6 – Kết nối tri thức',
@@ -60,12 +61,12 @@ lab.shadow(P);
 // ---- trạng thái ----
 const S = { ice: false, t1: 0, lit: false, cov: false, k: 0, O2: 1, lev: 0, out: false, tc: 0 };
 const W0 = .033;       // mực nước chậu
-$('#ice').onclick = () => { if (S.ice) return; S.ice = true; iceG.visible = true; TB[0].set({ color: 0x74c0fc }); toast('Theo dõi thành ngoài hai ống nghiệm…'); };
+$('#ice').onclick = () => { if (S.ice) return; S.ice = true; sfx('clink'); sfx('clink', { delay: .15 }); sfx('plop', { delay: .3 }); iceG.visible = true; TB[0].set({ color: 0x74c0fc }); toast('Theo dõi thành ngoài hai ống nghiệm…'); };
 $('#v1').onclick = () => lab.view([-.24, .12, .17], [-.28, .07, 0]);
 $('#v2').onclick = () => lab.view([.18, .16, .32], [.12, .09, 0]);
 $('#lit').onclick = () => { if (S.cov) return toast('Bấm “Làm lại” để làm lần mới'); S.lit = true; C.setLit(true); mark(1); };
 $('#cov').onclick = () => { if (!S.lit) return toast('Châm lửa nến trước'); if (S.cov) return; S.cov = true; S.tc = 0; mark(2); };
-$('#rs').onclick = () => { Object.assign(S, { lit: false, cov: false, k: 0, O2: 1, lev: 0, out: false, tc: 0 }); C.setLit(false); cupG.position.set(.2, 0, .02); inW.visible = inS.visible = false; smoke.material.opacity = 0; mark(0); S.done = false; $('#r3').textContent = $('#r4').textContent = '?'; };
+$('#rs').onclick = () => { level('pour', 0); S.landed = 0; Object.assign(S, { lit: false, cov: false, k: 0, O2: 1, lev: 0, out: false, tc: 0 }); C.setLit(false); cupG.position.set(.2, 0, .02); inW.visible = inS.visible = false; smoke.material.opacity = 0; mark(0); S.done = false; $('#r3').textContent = $('#r4').textContent = '?'; };
 function mark(n) { document.querySelectorAll('#st li').forEach((li, i) => li.style.color = i < n ? '#2f9e44' : ''); }
 lab.onTick((dt, t) => {
   // hơi nước ngưng tụ
@@ -73,9 +74,9 @@ lab.onTick((dt, t) => {
     for (let i = 0; i < n; i++) { const d = D[i], r = d.r * Math.min(1, .3 + (S.t1 - i / 25) * .25); m.makeScale(r, r * 1.2, r).setPosition(Math.cos(d.a) * .0125, d.y, Math.sin(d.a) * .0125); drops.setMatrixAt(i, m); } drops.instanceMatrix.needsUpdate = true;
     if (S.t1 > 3) { $('#r1').textContent = 'Xuất hiện nhiều giọt nước nhỏ bám bên ngoài'; $('#r2').textContent = 'Khô, không có giọt nước'; } }
   // úp cốc
-  if (S.cov) { S.tc += dt; const k = clamp(S.tc / .8, 0, 1); const e = k * k * (3 - 2 * k); cupG.position.set(lerp(.2, 0, Math.min(1, e * 1.25)), .003 + Math.sin(e * Math.PI) * .17, lerp(.02, 0, e));
+  if (S.cov) { S.tc += dt; const k = clamp(S.tc / .8, 0, 1); if (k >= 1 && !S.landed) { S.landed = 1; sfx('clink'); sfx('splash', { vol: .4 }); } const e = k * k * (3 - 2 * k); cupG.position.set(lerp(.2, 0, Math.min(1, e * 1.25)), .003 + Math.sin(e * Math.PI) * .17, lerp(.02, 0, e));
     if (k >= 1) { if (S.lit) { S.O2 = Math.max(0, S.O2 - dt / 6); const f = .25 + .75 * S.O2; C.flame.scale.multiplyScalar(f); if (S.O2 <= 0) { S.lit = false; C.setLit(false); S.out = true; toast('Nến đã tắt – oxygen trong cốc đã hết.'); $('#r3').textContent = 'Cháy một lúc rồi tắt'; smoke.material.opacity = .25; } }
-      const target = S.out ? .2 : (1 - S.O2) * .1; S.lev += (target - S.lev) * Math.min(1, dt * (S.out ? .6 : 1.5));
+      const target = S.out ? .2 : (1 - S.O2) * .1; level('pour', Math.min(.5, Math.abs(target - S.lev) * 6)); S.lev += (target - S.lev) * Math.min(1, dt * (S.out ? .6 : 1.5));
       const h = W0 + S.lev * (CH - W0); inW.visible = inS.visible = true; inS.position.y = h; inW.scale.y = Math.max(.001, h - .003); inW.position.y = .003 + inW.scale.y / 2; inW.material.color.setHex(S.out ? 0xc3d3d8 : 0xc9dfe6);
       smoke.material.opacity = Math.max(0, smoke.material.opacity - dt * .03); smoke.scale.y = CH - h; smoke.position.y = h + (CH - h) / 2;
       if (S.out && S.lev > .19 && !S.done) { S.done = true; $('#r4').textContent = 'Dâng lên khoảng 1/5 chiều cao cốc (vạch 1)'; toast('Nước dâng lên khoảng 1/5 cốc ⇒ oxygen chiếm khoảng 1/5 (≈ 21%) thể tích không khí.', 4500); } } }

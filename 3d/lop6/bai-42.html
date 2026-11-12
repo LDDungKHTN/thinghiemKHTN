@@ -3,11 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 42. Biến dạng của lò xo</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, TEX, roundBox, lathe, clamp } from '../core/lab3d.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 42. Biến dạng của lò xo', sub: 'KHTN 6 – Kết nối tri thức',
@@ -77,8 +78,8 @@ lab.onTick(dt => { const m = .02 + S.n * .05, k = .05 * 9.81 / (K * 50 * 1000) *
   const st = Math.abs(S.v) < .002 && Math.abs(S.y - target()) < .0004; const h = `Số quả nặng: <b>${S.n}</b> (${S.n * 50} g)<br>Lò xo: ${st ? '<b style="color:#8ce99a">đã đứng yên</b> – đọc chiều dài' : 'đang dao động…'}`; if (h != hud.innerHTML) hud.innerHTML = h; S.st = st; });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn p" id="add">+ Treo thêm quả nặng</button><button class="btn" id="rem">− Bỏ bớt</button><button class="btn o" id="near">Nhìn gần thước</button><button class="btn" id="home">Toàn cảnh</button>`;
-$('#add').onclick = () => { if (S.n >= 4) return toast('Đã treo 4 quả nặng'); S.n++; S.v -= .05; };
-$('#rem').onclick = () => { if (S.n <= 0) return; S.n--; S.v += .05; };
+$('#add').onclick = () => { if (S.n >= 4) return toast('Đã treo 4 quả nặng'); S.n++; sfx('metal'); sfx('boing', { delay: .05 }); S.v -= .05; };
+$('#rem').onclick = () => { if (S.n <= 0) return; S.n--; sfx('metal', { vol: .6 }); sfx('boing', { vol: .7 }); S.v += .05; };
 $('#near').onclick = () => { const y = TOP - S.y; lab.view([.03, y, .1], [.03, y, 0]); };
 $('#home').onclick = () => lab.view(...HOME);
 $('#rec').onclick = () => {

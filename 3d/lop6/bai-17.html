@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 17. Tách chất khỏi hỗn hợp</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, lathe, clamp, lerp } from '../core/lab3d.js';
 import { vessel, burner } from '../core/chem.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 17. Tách chất khỏi hỗn hợp', sub: 'KHTN 6 – Kết nối tri thức',
@@ -44,9 +45,9 @@ const bB = vessel(lab, { kind: 'beaker', R: .035, H: .09 }); bB.g.position.set(X
 const bA = vessel(lab, { kind: 'beaker', R: .035, H: .09 }); bA.g.position.set(X1 + .13, 0, .08); scene.add(bA.g); bA.set({ level: .7, color: 0xd8eef8, op: .4 });
 lab.label(bA.g, 'Cốc nước + đất', [0, .12, 0]); lab.label(bB.g, 'Cốc hứng nước lọc', [-.05, .06, .04]); lab.label(funnel, 'Phễu + giấy lọc', [-.06, .03, 0]);
 const F = { step: 0, settle: 0, pour: 0, mixed: false, settling: false, pouring: false, filt: 0 };
-$('#a1').onclick = () => { F.mixed = true; F.settle = 0; F.step = Math.max(F.step, 1); bA.set({ cloud: .9, cloudC: 0x9c7a4c, color: 0xb5946a, op: .6, ppt: { c: 0x6e5132, amt: .05, settle: 1 } }); mark1(); toast('Hỗn hợp nước – đất bị đục.'); };
+$('#a1').onclick = () => { sfx('swish'); sfx('swish', { delay: .3 }); sfx('swish', { delay: .6 }); F.mixed = true; F.settle = 0; F.step = Math.max(F.step, 1); bA.set({ cloud: .9, cloudC: 0x9c7a4c, color: 0xb5946a, op: .6, ppt: { c: 0x6e5132, amt: .05, settle: 1 } }); mark1(); toast('Hỗn hợp nước – đất bị đục.'); };
 $('#a2').onclick = () => { if (!F.mixed) return toast('Khuấy đất với nước trước'); F.settling = true; F.step = Math.max(F.step, 2); mark1(); toast('Để yên: đất lắng dần xuống đáy cốc…'); };
-$('#a3').onclick = () => { paper.visible = true; F.paper = true; F.step = Math.max(F.step, 3); mark1(); toast('Đã gấp giấy lọc (gấp đôi, gấp tư, mở thành hình nón) và đặt vào phễu.'); };
+$('#a3').onclick = () => { sfx('paper'); paper.visible = true; F.paper = true; F.step = Math.max(F.step, 3); mark1(); toast('Đã gấp giấy lọc (gấp đôi, gấp tư, mở thành hình nón) và đặt vào phễu.'); };
 $('#a4').onclick = () => { if (!F.mixed) return toast('Chưa có hỗn hợp'); if (!F.paper) return toast('Hãy đặt giấy lọc vào phễu trước'); if (F.pouring || F.pour >= 1) return; F.pouring = true; lab.view([X1 + .05, .25, .3], [X1 + .05, .12, 0]); };
 function mark1() { document.querySelectorAll('#s1 li').forEach((li, i) => li.style.color = i < F.step ? '#2f9e44' : ''); }
 // ===== 2. Cô cạn =====
@@ -100,16 +101,16 @@ lab.onTick((dt, t) => {
     if (k >= 1) { bA.g.rotation.z = 0; bA.g.position.set(X1 + .13, 0, .08); }
     bA.set({ level: .7 - .45 * k }); inF.visible = k > .1 && k < 1; mudOnPaper.visible = k > .2;
     F.filt = Math.min(1, F.filt + dt / 9); bB.set({ level: .45 * F.filt, color: 0xdcecf3, op: .4 });
-    drip.visible = true; const ph = (t * 3) % 1; drip.position.set(X1, .12 - ph * (.12 - .45 * F.filt * .09 * .85), funnel.position.z);
-    if (k >= 1) { F.pouring = false; drip.visible = false; inF.visible = false; F.step = 4; mark1(); $('#r1').textContent = 'Nước gạn còn hơi đục; nước lọc trong suốt, đất được giữ lại trên giấy lọc'; toast('Nước lọc thu được trong suốt; đất bị giữ lại trên giấy lọc.'); } }
+    drip.visible = true; const ph = (t * 3) % 1; if (ph < (F.lph ?? 1)) sfx('drip', { vol: .5 }); F.lph = ph; level('pour', k > .05 && k < .9 ? .5 : 0); drip.position.set(X1, .12 - ph * (.12 - .45 * F.filt * .09 * .85), funnel.position.z);
+    if (k >= 1) { F.pouring = false; level('pour', 0); drip.visible = false; inF.visible = false; F.step = 4; mark1(); $('#r1').textContent = 'Nước gạn còn hơi đục; nước lọc trong suốt, đất được giữ lại trên giấy lọc'; toast('Nước lọc thu được trong suốt; đất bị giữ lại trên giấy lọc.'); } }
   // cô cạn
   if (E.on && E.w > 0) { E.T = Math.min(100, E.T + dt * 20); if (E.T >= 100) E.w = Math.max(0, E.w - dt / 14); drawBrine(); if (E.w <= 0) { E.on = false; lamp.set(false); $('#r2').textContent = 'Nước bay hơi hết, còn lại muối ăn (tinh thể màu trắng) trong bát sứ'; toast('Nước đã bay hơi hết, thu được muối ăn.'); } }
   else if (!E.on) E.T = Math.max(25, E.T - dt * 5);
-  stM.opacity = E.T > 60 && E.w > 0 ? .2 : 0; steam.children.forEach(p => { const k = (t * .4 + p.userData.ph) % 1; p.position.set(Math.sin(p.userData.ph * 17 + t) * .015 * k, .14 + k * .1, Math.cos(p.userData.ph * 9) * .015 * k); p.scale.setScalar(.5 + k * 1.5); });
+  stM.opacity = E.T > 60 && E.w > 0 ? .2 : 0; level('boil', E.w > 0 ? Math.max(0, (E.T - 70) / 30) * .8 : 0); level('steam', E.w > 0 && E.T > 90 ? .6 : 0); if (E.on && E.w > 0 && E.w < .4 && Math.random() < dt * 6) sfx('pop'); steam.children.forEach(p => { const k = (t * .4 + p.userData.ph) % 1; p.position.set(Math.sin(p.userData.ph * 17 + t) * .015 * k, .14 + k * .1, Math.cos(p.userData.ph * 9) * .015 * k); p.scale.setScalar(.5 + k * 1.5); });
   // chiết
-  if (C.open) { const flow = dt * 6e-6; if (C.w > 0) { const d = Math.min(C.w, flow); C.w -= d; C.out += d; } else if (C.o > 0) { const d = Math.min(C.o, flow); C.o -= d; C.oilOut += d; } stream.visible = C.w + C.o > 0; const top = SF.position.y - .08, bot = .006 + bC.st.level * .08 * .85; stream.scale.y = top - bot; stream.position.set(X3, (top + bot) / 2, SF.position.z); stream.material.color.setHex(C.w > 0 ? 0xcfe6f5 : 0xe8c547); drawSF();
+  if (C.open) { const flow = dt * 6e-6; if (C.w > 0) { const d = Math.min(C.w, flow); C.w -= d; C.out += d; } else if (C.o > 0) { const d = Math.min(C.o, flow); C.o -= d; C.oilOut += d; } stream.visible = C.w + C.o > 0; const top = SF.position.y - .08, bot = .006 + bC.st.level * .08 * .85; stream.scale.y = top - bot; stream.position.set(X3, (top + bot) / 2, SF.position.z); stream.material.color.setHex(C.w > 0 ? 0xcfe6f5 : 0xe8c547); level('stream', stream.visible ? .8 : 0); drawSF();
     if (C.w <= 0 && !C.warned) { C.warned = true; toast('Lớp dầu đã chạm khoá – đóng khoá ngay!'); } }
-  else stream.visible = false;
+  else { stream.visible = false; level('stream', 0); }
   const h = `Lọc: ${F.pour >= 1 ? '<b>đã có nước lọc</b>' : F.pouring ? 'đang lọc…' : F.settling ? 'đang lắng…' : F.mixed ? 'hỗn hợp đục' : 'chưa làm'} · Cô cạn: ${E.w <= 0 ? '<b>thu được muối</b>' : E.on ? 'đang đun (' + Math.round(E.T) + ' °C)' : 'chưa đun'}<br>Chiết: nước còn trong phễu ${fmt(C.w / V0w * 100, 0)}% · ${C.open ? '<b>khoá đang mở</b>' : 'khoá đóng'}`; if (h != hud.innerHTML) hud.innerHTML = h;
 });
 $('#v1').onclick = () => lab.view([X1 + .06, .26, .32], [X1 + .06, .11, 0]); $('#v2').onclick = () => lab.view([X2, .3, .25], [X2, .12, 0]); $('#v3').onclick = () => lab.view([X3 - .04, .22, .3], [X3, .14, 0]);

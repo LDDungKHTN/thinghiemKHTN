@@ -3,13 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 10. Các thể của chất và sự chuyển thể</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, lathe, canvasTex, clamp } from '../core/lab3d.js';
 import { vessel } from '../core/chem.js';
 import { tripod } from '../core/kit.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 10. Theo dõi nhiệt độ của nước đá trong quá trình nóng chảy', sub: 'KHTN 6 – Kết nối tri thức',
@@ -84,7 +85,7 @@ function rec(m) { S.rows.push({ m, T: Math.round(S.T * 10) / 10, s: S.f <= 0 ? '
 function graph() { const X = m => 34 + m * 28, Y = t => 170 - (t + 10) * 3.2; const g = $('#gr'); g.style.color = getComputedStyle(document.body).color;
   g.innerHTML = `<g stroke="currentColor" stroke-opacity=".35"><line x1="34" y1="170" x2="325" y2="170"/><line x1="34" y1="10" x2="34" y2="175"/><line x1="34" y1="${Y(0)}" x2="325" y2="${Y(0)}" stroke-dasharray="3 3"/></g><g fill="currentColor" font-size="10">${[0, 2, 4, 6, 8, 10].map(m => `<text x="${X(m)}" y="184" text-anchor="middle">${m}</text>`).join('')}${[-10, 0, 10, 20, 30, 40].map(t => `<text x="30" y="${Y(t) + 3}" text-anchor="end">${t}</text>`).join('')}<text x="325" y="196" text-anchor="end">phút</text><text x="38" y="14">°C</text></g>
   <polyline fill="none" stroke="#1c7ed6" stroke-width="2" points="${S.rows.map(r => X(r.m) + ',' + Y(r.T)).join(' ')}"/>${S.rows.map(r => `<circle cx="${X(r.m)}" cy="${Y(r.T)}" r="3" fill="#1c7ed6"/>`).join('')}`; }
-$('#go').onclick = () => { if (S.in) return; S.in = true; placeTube(); if (S.last < 0) { S.last = 0; rec(0); } toast('Theo dõi nhiệt kế: nhiệt độ tăng đến 0 °C rồi đứng yên khi đá đang tan.'); };
+$('#go').onclick = () => { if (S.in) return; S.in = true; sfx('splash', { vol: .6 }); placeTube(); if (S.last < 0) { S.last = 0; rec(0); } toast('Theo dõi nhiệt kế: nhiệt độ tăng đến 0 °C rồi đứng yên khi đá đang tan.'); };
 $('#rs').onclick = () => { Object.assign(S, { min: 0, T: -5, Tb: 70, f: 0, in: false, rows: [], last: -1 }); $('#tb').innerHTML = ''; graph(); placeTube(); draw(); };
 $('#sp').oninput = e => { S.sp = +e.target.value; $('#spv').textContent = '×' + S.sp; }; $('#spv').textContent = '×6';
 const tbar = document.createElement('div'); tbar.className = 'tb'; stage.appendChild(tbar);

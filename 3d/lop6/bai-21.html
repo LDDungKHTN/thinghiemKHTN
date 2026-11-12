@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 21. Thực hành: Quan sát và phân biệt một số loại tế bào</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, clamp, lerp } from '../core/lab3d.js';
 import { microscope, scopeUI } from '../core/microscope.js';
 import { shell, ready, toast, quiz, $, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 21. Thực hành: Quan sát và phân biệt một số loại tế bào', sub: 'KHTN 6 – Kết nối tri thức',
@@ -93,11 +94,11 @@ let step = 0, busy = false, onStage = false;
 const TW0 = tw.position.clone(), DR0 = drp.position.clone(), LM0 = lamen.position.clone(), SL0 = slide.position.clone(), PP0 = paper.position.clone();
 function mark(n) { document.querySelectorAll('#st1 li').forEach((li, i) => li.style.color = i < n ? '#2f9e44' : ''); }
 const STEPS = [
-  () => { lab.view([-.25, .2, .2], [-.25, .0, .05]); moveTo(tw, [-.3, .03, .02], .8, () => { twFilm.visible = true; toast('Đã lột được lớp biểu bì mỏng, trong suốt'); moveTo(tw, TW0.toArray(), .7, end); }); },
-  () => { lab.view([-.1, .16, .2], [-.12, 0, .08]); moveTo(drp, [-.12, .05, .08], .7, () => { drp.rotation.z = 0; drop.visible = true; drp.rotation.z = Math.PI / 2; moveTo(drp, DR0.toArray(), .5); moveTo(tw, [-.064, .006, .1], .7, () => { twFilm.visible = false; film.visible = true; moveTo(tw, TW0.toArray(), .6, end); }); }); },
-  () => { lamen.rotation.z = .5; moveTo(lamen, [-.12 + .004, .008, .08], .7, () => { tween(.6, e => { lamen.rotation.z = .5 * (1 - e); lamen.position.y = lerp(.008, .0028, e); }, () => { lamen.visible = false; cover.visible = true; cover.position.y = .0012; drop.scale.set(1.6, .2, 1.6);
+  () => { lab.view([-.25, .2, .2], [-.25, .0, .05]); moveTo(tw, [-.3, .03, .02], .8, () => { twFilm.visible = true; sfx('paper'); toast('Đã lột được lớp biểu bì mỏng, trong suốt'); moveTo(tw, TW0.toArray(), .7, end); }); },
+  () => { lab.view([-.1, .16, .2], [-.12, 0, .08]); moveTo(drp, [-.12, .05, .08], .7, () => { drp.rotation.z = 0; drop.visible = true; sfx('drip'); drp.rotation.z = Math.PI / 2; moveTo(drp, DR0.toArray(), .5); moveTo(tw, [-.064, .006, .1], .7, () => { twFilm.visible = false; film.visible = true; sfx('drop', { vol: .4 }); moveTo(tw, TW0.toArray(), .6, end); }); }); },
+  () => { lamen.rotation.z = .5; moveTo(lamen, [-.12 + .004, .008, .08], .7, () => { tween(.6, e => { lamen.rotation.z = .5 * (1 - e); lamen.position.y = lerp(.008, .0028, e); }, () => { lamen.visible = false; cover.visible = true; sfx('clink', { vol: .5 }); sfx('paper', { delay: .5 }); cover.position.y = .0012; drop.scale.set(1.6, .2, 1.6);
     moveTo(paper, [-.12 + .045, .003, .08], .6, () => { drop.scale.set(1.1, .12, 1.1); toast('Đã thấm bớt nước thừa'); moveTo(paper, PP0.toArray(), .5, end); }); }); }); },
-  () => { moveTo(slide, [M.g.position.x + .006, .12, M.g.position.z + .03], .8, () => { slide.visible = false; onStage = true; M.slide(true); lab.view([.45, .3, .3], [.2, .13, -.05]); toast('Bật đèn, chọn vật kính 10x rồi lấy nét. Sau đó chuyển sang 40x.'); end(); }); },
+  () => { moveTo(slide, [M.g.position.x + .006, .12, M.g.position.z + .03], .8, () => { slide.visible = false; onStage = true; sfx('clink', { vol: .6 }); M.slide(true); lab.view([.45, .3, .3], [.2, .13, -.05]); toast('Bật đèn, chọn vật kính 10x rồi lấy nét. Sau đó chuyển sang 40x.'); end(); }); },
 ];
 function end() { busy = false; step++; mark(step); check(); }
 $('#next').onclick = () => { if (busy) return; if (step >= STEPS.length) return toast('Tiêu bản đã ở trên kính hiển vi.'); busy = true; STEPS[step](); };
@@ -106,9 +107,9 @@ const origSlide = M.slide; M.slide = v => { if (!onStage && (v ?? !M.S.slide)) r
 // trứng cá
 let eggStep = 0;
 $('#egg').onclick = () => { if (busy) return; lab.view([-.27, .17, .07], [-.27, 0, -.12]); busy = true;
-  if (eggStep == 0) { eggs.visible = nuc.visible = true; spread = 0; placeEggs(); toast('Bước 1: Cho trứng cá vào đĩa petri'); eggStep = 1; busy = false; }
-  else if (eggStep == 1) { water.visible = true; toast('Bước 2: Nhỏ một ít nước vào đĩa'); eggStep = 2; busy = false; }
-  else if (eggStep == 2) { needle.visible = true; tween(2.2, e => { spread = e; placeEggs(); needle.position.set(-.27 + Math.sin(e * 12) * .02, .012, -.12 + Math.cos(e * 9) * .02); }, () => { needle.visible = false; busy = false; eggStep = 3; toast('Bước 3: Trứng đã tách rời nhau. Hãy xem qua kính lúp.'); check(); }); }
+  if (eggStep == 0) { eggs.visible = nuc.visible = true; sfx('sprinkle'); spread = 0; placeEggs(); toast('Bước 1: Cho trứng cá vào đĩa petri'); eggStep = 1; busy = false; }
+  else if (eggStep == 1) { water.visible = true; sfx('splash', { vol: .5 }); toast('Bước 2: Nhỏ một ít nước vào đĩa'); eggStep = 2; busy = false; }
+  else if (eggStep == 2) { needle.visible = true; sfx('swish'); sfx('swish', { delay: .7 }); sfx('swish', { delay: 1.4 }); tween(2.2, e => { spread = e; placeEggs(); needle.position.set(-.27 + Math.sin(e * 12) * .02, .012, -.12 + Math.cos(e * 9) * .02); }, () => { needle.visible = false; busy = false; eggStep = 3; toast('Bước 3: Trứng đã tách rời nhau. Hãy xem qua kính lúp.'); check(); }); }
   else { busy = false; toast('Bấm “Xem qua kính lúp”.'); } };
 let seenEgg = false;
 $('#lup').onclick = () => { if (eggStep < 3) return toast('Làm thí nghiệm trứng cá trước.'); lab.view([-.27, .065, -.07], [-.27, 0, -.12]); seenEgg = true; check(); toast('Mỗi quả trứng cá là một tế bào: thấy màng, tế bào chất trong suốt và nhân (chấm đậm).'); };
