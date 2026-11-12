@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 8. Đo nhiệt độ</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, lathe, canvasTex, clamp } from '../core/lab3d.js';
+import { vessel, thermometer } from '../core/chem.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 8. Đo nhiệt độ', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>1. Sự nở vì nhiệt của chất lỏng (Hình 8.4)</h3><p>Hai bình cầu chứa nước màu, nút có ống thuỷ tinh nhỏ. Đặt một bình vào chậu nước nóng, một bình vào chậu nước đá.</p>
+<div class="row"><button class="btn p" id="fl">Đặt hai bình vào chậu</button><button class="btn" id="fl0">Lấy ra</button></div>
+<h3>2. Đo nhiệt độ bằng nhiệt kế phòng thí nghiệm</h3><ol><li>Ước lượng nhiệt độ của nước trong cốc.</li><li>Bấm vào cốc để nhúng bầu nhiệt kế ngập trong nước (không chạm đáy, thành cốc).</li><li>Chờ cột chất lỏng đứng yên, mắt nhìn ngang mực chất lỏng, đọc kết quả.</li></ol>
+<div class="row">Nhiệt độ đọc được: <input id="val" type="number" step="1" style="width:70px"> °C <button class="btn o" id="rec">Ghi</button></div>
+<h3>3. Nhiệt kế y tế (thuỷ ngân)</h3><ol id="med"><li>Dùng bông y tế lau sạch thân và bầu nhiệt kế.</li><li>Vẩy mạnh cho thuỷ ngân tụt xuống dưới 35 °C.</li><li>Kẹp nhiệt kế vào nách, bầu nhiệt kế sát da.</li><li>Chờ 2 – 3 phút rồi lấy ra đọc nhiệt độ.</li></ol>
+<div class="row"><button class="btn" id="m1">Lau</button><button class="btn" id="m2">Vẩy</button><button class="btn" id="m3">Kẹp nách</button><button class="btn" id="m4">Chờ 3 phút, lấy ra</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Mẫu</th><th>Ước lượng</th><th>Đo được</th><th>Nhận xét</th></tr></thead><tbody id="tb"></tbody></table><p id="medr"></p>
+<div class="note">Chất lỏng nở ra khi nóng lên, co lại khi lạnh đi – đây là cơ sở chế tạo nhiệt kế. Đơn vị đo nhiệt độ thường dùng là <b>°C</b>; nước đá đang tan ở 0 °C, nước đang sôi ở 100 °C. Thân nhiệt người bình thường khoảng 37 °C.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .42, .62], [0, .08, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.5, .8], minDist: .06 });
+const { scene, camera } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+// ---- 1. hai bình cầu ----
+const FL = [];
+[[-.45, 'nóng', 0xff6b6b, 80], [-.25, 'đá', 0x74c0fc, 2]].forEach(([x, nm, , Tb]) => {
+  const g = new THREE.Group(); g.position.set(x, 0, -.12); scene.add(g);
+  const basin = new THREE.Mesh(lathe([[0, 0], [.07, 0], [.075, .07], [.073, .07], [.068, .003], [0, .003]], 40), MAT.glassLite({ opacity: .25 })); g.add(basin);
+  const wat = new THREE.Mesh(new THREE.CylinderGeometry(.068, .067, .05, 40), new THREE.MeshPhysicalMaterial({ color: Tb > 50 ? 0xffe3d6 : 0xd6eeff, transparent: true, opacity: .4, depthWrite: false })); wat.position.y = .028; g.add(wat);
+  if (Tb < 10) for (let i = 0; i < 9; i++) { const c = new THREE.Mesh(new THREE.BoxGeometry(.018, .016, .018), MAT.glassLite({ opacity: .55, color: 0xeaf8ff })); c.position.set(Math.cos(i * .7) * .05, .05, Math.sin(i * .7) * .05); c.rotation.set(i, i * 2, 0); g.add(c); }
+  const fg = new THREE.Group(); g.add(fg);
+  const fl = new THREE.Mesh(lathe([[0, 0], [.02, .002], [.03, .02], [.03, .035], [.02, .055], [.008, .062], [.008, .075], [0, .075]], 32), MAT.glassLite({ opacity: .3 })); fg.add(fl);
+  const liq = new THREE.Mesh(new THREE.SphereGeometry(.029, 24, 18), new THREE.MeshPhysicalMaterial({ color: 0xe03131, transparent: true, opacity: .75 })); liq.position.y = .03; liq.scale.y = 1.05; fg.add(liq);
+  const stop = new THREE.Mesh(new THREE.CylinderGeometry(.009, .008, .014, 16), MAT.rubber(0x333333)); stop.position.y = .074; fg.add(stop);
+  const tube = new THREE.Mesh(new THREE.CylinderGeometry(.0022, .0022, .16, 12), MAT.glassLite({ opacity: .35 })); tube.position.y = .081 + .08; fg.add(tube);
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(.0013, .0013, 1, 8), new THREE.MeshStandardMaterial({ color: 0xe03131 })); fg.add(col);
+  const mark = new THREE.Mesh(new THREE.TorusGeometry(.004, .0008, 6, 16), MAT.plastic(0x111111)); mark.rotation.x = Math.PI / 2; mark.position.y = .081 + .03; fg.add(mark);
+  fg.position.set(0, .25, .0); // ban đầu ở trên chậu
+  lab.label(g, 'Chậu nước ' + nm, [0, .1, .07]); lab.shadow(g);
+  FL.push({ g, fg, col, Tb, T: 25, h: .03, mark, nm, in: false });
+});
+function setCol(f) { const h = .03 + (f.T - 25) * .0012; f.col.scale.y = Math.max(.005, h + .007); f.col.position.y = .074 + (h + .007) / 2; }
+FL.forEach(setCol);
+$('#fl').onclick = () => { FL.forEach(f => f.in = true); lab.view([-.35, .25, .25], [-.35, .1, -.12]); toast('Quan sát mực nước màu trong ống so với vạch đánh dấu ban đầu.'); };
+$('#fl0').onclick = () => FL.forEach(f => f.in = false);
+// ---- 2. cốc nước + nhiệt kế ----
+const CUPS = [{ n: 'Nước đá', T: 0, c: 0xe7f5ff, est: '0' }, { n: 'Nước máy', T: 28, c: 0xd9eef7, est: '25 – 30' }, { n: 'Nước ấm', T: 45, c: 0xf0e8de, est: '40 – 50' }, { n: 'Nước nóng', T: 82, c: 0xf6e4dc, est: '80 – 90' }];
+CUPS.forEach((c, i) => { c.v = vessel(lab, { kind: 'beaker', R: .032, H: .085 }); c.v.g.position.set(-.02 + i * .1, 0, .08); scene.add(c.v.g); c.v.set({ level: .6, color: c.c, op: .45 });
+  if (c.T == 0) for (let k = 0; k < 5; k++) { const ic = new THREE.Mesh(new THREE.BoxGeometry(.014, .012, .014), MAT.glassLite({ opacity: .6, color: 0xf0fbff })); ic.position.set(Math.cos(k * 1.3) * .015, .045, Math.sin(k * 1.3) * .015); ic.rotation.set(k, k, 0); c.v.g.add(ic); }
+  lab.label(c.v.g, c.n, [0, .1, .03]); lab.clickable(c.v.g, () => dip(i)); });
+const TH = new THREE.Group(); scene.add(TH); const th = thermometer(lab, TH, [0, 0, 0], { L: .2 });
+const T = { at: null, T: 26, home: [.38, .005, .1] };
+TH.position.set(...T.home); TH.rotation.z = Math.PI / 2; lab.label(th.g, 'Nhiệt kế (0 – 100 °C)', [0, .21, 0]);
+function dip(i) { T.at = i; const c = CUPS[i]; TH.rotation.z = 0; TH.position.set(c.v.g.position.x, .018, .08); lab.view([c.v.g.position.x, .14, .25], [c.v.g.position.x, .1, .08]); toast('Chờ cột chất lỏng đứng yên rồi đọc.'); }
+// ---- 3. nhiệt kế y tế ----
+const MED = new THREE.Group(); MED.position.set(.3, .004, -.15); scene.add(MED);
+const mc = document.createElement('canvas'); mc.width = 1024; mc.height = 64; const mt = new THREE.CanvasTexture(mc); mt.colorSpace = THREE.SRGBColorSpace;
+(function () { const g = mc.getContext('2d'); g.fillStyle = '#fbfbf7'; g.fillRect(0, 0, 1024, 64); g.fillStyle = '#111'; g.font = 'bold 26px Arial'; g.textAlign = 'center'; for (let t = 35; t <= 42.001; t += .1) { const x = 80 + (t - 35) / 7 * 880, i = Math.round(t * 10); g.fillRect(x - 1, 0, 2, i % 10 == 0 ? 26 : i % 5 == 0 ? 18 : 11); if (i % 10 == 0) g.fillText(String(Math.round(t)), x, 56); } g.fillStyle = '#c92a2a'; g.fillRect(80 + 2 / 7 * 880 - 2, 0, 4, 30); mt.needsUpdate = true; })();
+const mbody = new THREE.Mesh(new THREE.CylinderGeometry(.0042, .0042, .12, 16), MAT.glassLite({ opacity: .35 })); mbody.rotation.z = Math.PI / 2; MED.add(mbody);
+const mscale = new THREE.Mesh(new THREE.PlaneGeometry(.12 * 1024 / 1024, .0055), new THREE.MeshStandardMaterial({ map: mt, roughness: .4 })); mscale.rotation.x = -Math.PI / 2; mscale.position.set(.0, .0, -.0012); MED.add(mscale);
+const mbulb = new THREE.Mesh(new THREE.CapsuleGeometry(.002, .008, 6, 12), MAT.metal(0xd5d9de, .1)); mbulb.rotation.z = Math.PI / 2; mbulb.position.x = -.066; MED.add(mbulb);
+const hg = new THREE.Mesh(new THREE.BoxGeometry(1, .0009, .0009), MAT.metal(0xdde1e6, .1)); hg.position.y = .0035; MED.add(hg);
+lab.label(MED, 'Nhiệt kế y tế', [0, .02, 0]); lab.shadow(MED);
+const MS = { T: 37.4, step: 0, clean: false };
+function setHg() { const xa = -.062, xe = -.06 + (80 + (clamp(MS.T, 34.3, 42) - 35) / 7 * 880) / 1024 * .12; hg.scale.x = xe - xa; hg.position.x = (xa + xe) / 2; }
+setHg();
+$('#m1').onclick = () => { MS.clean = true; MS.step = Math.max(MS.step, 1); medMark(); toast('Đã lau sạch thân và bầu nhiệt kế bằng bông y tế.'); };
+$('#m2').onclick = () => { if (!MS.clean) return toast('Lau sạch trước.'); let k = 0; const f = () => { MED.rotation.z = Math.sin(k) * .6; if ((k += .5) < 12) requestAnimationFrame(f); else MED.rotation.z = 0; }; f(); MS.T = 34.5; setHg(); MS.step = 2; medMark(); toast('Thuỷ ngân đã tụt xuống dưới 35 °C.'); };
+$('#m3').onclick = () => { if (MS.step < 2) return toast('Phải vẩy cho thuỷ ngân tụt xuống trước.'); MS.step = 3; MED.visible = false; medMark(); toast('Đã kẹp nhiệt kế vào nách.'); };
+$('#m4').onclick = () => { if (MS.step < 3) return toast('Chưa kẹp nhiệt kế vào nách.'); MS.T = 36.8; setHg(); MED.visible = true; MS.step = 4; medMark(); lab.view([.3, .1, -.06], [.3, 0, -.15]); $('#medr').innerHTML = 'Nhiệt kế y tế chỉ <b>36,8 °C</b> – thân nhiệt bình thường (36 – 37,5 °C).'; toast('Nhiệt kế y tế chỉ 36,8 °C'); };
+function medMark() { document.querySelectorAll('#med li').forEach((li, i) => li.style.color = i < MS.step ? '#2f9e44' : ''); }
+// ---- vòng lặp ----
+lab.onTick(dt => {
+  FL.forEach(f => { f.fg.position.y += ((f.in ? .012 : .25) - f.fg.position.y) * Math.min(1, dt * 4); const Tt = f.in ? f.Tb : 25; f.T += (Tt - f.T) * Math.min(1, dt * .25); setCol(f); });
+  const Tt = T.at == null ? 26 : CUPS[T.at].T; T.T += (Tt - T.T) * Math.min(1, dt * .45); th.set(T.T);
+  const h = `${T.at == null ? 'Bấm vào một cốc nước để đo' : 'Đang đo: <b>' + CUPS[T.at].n + '</b>'}<br>Bình trong chậu nóng: cột nước ${FL[0].T > 30 ? '<b>dâng lên</b>' : '—'} · trong chậu đá: ${FL[1].T < 20 ? '<b>tụt xuống</b>' : '—'}`; if (h != hud.innerHTML) hud.innerHTML = h;
+});
+const rows = [];
+$('#rec').onclick = () => { if (T.at == null) return toast('Nhúng nhiệt kế vào một cốc trước'); const v = parseFloat($('#val').value); if (isNaN(v)) return toast('Nhập nhiệt độ đọc được');
+  const c = CUPS[T.at], stable = Math.abs(T.T - c.T) < .6, ok = Math.abs(v - T.T) <= 1.1;
+  rows.push(`<tr><td>${c.n}</td><td>${c.est} °C</td><td>${fmt(v, 0)} °C</td><td>${!stable ? '✘ đọc khi cột chất lỏng chưa đứng yên' : ok ? '✔ Đúng' : '✘ đọc sai (≈ ' + fmt(T.T, 0) + ' °C)'}</td></tr>`); $('#tb').innerHTML = rows.join(''); showPane(1); };
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" id="eye">Nhìn ngang mực chất lỏng</button><button class="btn" id="home">Toàn cảnh</button>`;
+$('#eye').onclick = () => { if (T.at == null) return toast('Nhúng nhiệt kế vào cốc trước'); const y = .018 + .02 + T.T / 100 * .16 * .97; lab.view([TH.position.x + .002, y, .2], [TH.position.x, y, .08]); };
+$('#home').onclick = () => lab.view(...HOME);
+quiz($('#qz'), [
+  { q: 'Nhiệt kế hoạt động dựa trên hiện tượng', o: ['sự nở vì nhiệt của chất lỏng', 'sự bay hơi', 'sự đông đặc', 'sự phản xạ ánh sáng'], a: 0 },
+  { q: 'Nhiệt độ của nước đá đang tan là', o: ['100 °C', '37 °C', '0 °C', '−10 °C'], a: 2 },
+  { q: 'Nhiệt kế y tế thường có giới hạn đo', o: ['0 – 100 °C', '35 – 42 °C', '−30 – 50 °C', '100 – 300 °C'], a: 1 },
+  { q: 'Thao tác SAI khi dùng nhiệt kế y tế là', o: ['Vẩy mạnh trước khi đo', 'Lấy nhiệt kế ra khỏi nách rồi đọc ngay', 'Dùng tay nắm chặt bầu nhiệt kế khi đo', 'Lau sạch trước khi đo'], a: 2 },
+  { q: 'Đổi 37 °C sang độ F (t(°F) = t(°C) × 1,8 + 32)', n: 98.6, u: '°F', tol: .1 },
+]);
+ready(); window.dbg = { lab, T, FL, MS, dip };
+</script></body></html>

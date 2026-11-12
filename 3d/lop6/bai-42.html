@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 42. Biến dạng của lò xo</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, TEX, roundBox, lathe, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 42. Biến dạng của lò xo', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p><b>Dụng cụ:</b> giá đỡ, thước thẳng (mm), lò xo xoắn, các quả nặng giống nhau (mỗi quả 50 g).</p>
+<ol><li>Treo lò xo thẳng đứng trên giá. Đo <b>chiều dài ban đầu l₀</b> của lò xo.</li><li>Treo lần lượt 1, 2, 3, 4 quả nặng; đo <b>chiều dài l</b> của lò xo khi đã đứng yên.</li><li>Tính <b>độ dãn Δl = l − l₀</b>. Tìm mối liên hệ giữa Δl và khối lượng vật treo.</li></ol>
+<div class="note sm">Đọc chiều dài lò xo trên thước: từ vạch 0 (ngang đầu trên lò xo) đến kim chỉ ở đầu dưới lò xo. Bấm “Nhìn gần thước” để đọc chính xác.</div>
+<div class="row">Chiều dài lò xo đọc được: <input id="val" type="number" step="1" style="width:80px"> mm <button class="btn o" id="rec">Ghi</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Số quả nặng</th><th>m (g)</th><th>l₀ (mm)</th><th>l (mm)</th><th>Δl (mm)</th></tr></thead><tbody id="tb"></tbody></table>
+<svg id="gr" viewBox="0 0 320 200" style="width:100%;max-width:380px"></svg>
+<div class="note">Độ dãn của lò xo treo thẳng đứng <b>tỉ lệ với khối lượng</b> của vật treo: khối lượng tăng 2, 3, 4 lần thì Δl cũng tăng 2, 3, 4 lần.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[.12, .32, .55], [0, .22, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1, .7], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const metal = MAT.metal(0x9aa3ab, .3);
+// giá
+const base = roundBox(.22, .015, .14, .004, MAT.plastic(0x2b2f33, .5)); base.position.set(-.05, .0075, 0); scene.add(base);
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .5, 16), metal); rod.position.set(-.12, .25, 0); scene.add(rod);
+const arm = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .16, 12), metal); arm.rotation.z = Math.PI / 2; arm.position.set(-.05, .45, 0); scene.add(arm);
+const hook0 = new THREE.Mesh(new THREE.TorusGeometry(.005, .0012, 8, 16), metal); hook0.position.set(0, .443, 0); scene.add(hook0);
+lab.shadow(base); lab.shadow(rod);
+// thước dọc (vạch 0 ngang đầu trên lò xo)
+const TOP = .438, RL = 300;
+const ruler = new THREE.Mesh(new THREE.BoxGeometry(.03, RL / 1000 + .02, .004), [MAT.plastic(0xf1d36b), MAT.plastic(0xf1d36b), MAT.plastic(0xf1d36b), MAT.plastic(0xf1d36b), new THREE.MeshStandardMaterial({ map: (() => { const t = TEX.ruler(RL, { px: 8, h: 96, bg: '#f4d76a' }); t.center.set(.5, .5); t.rotation = -Math.PI / 2; return t; })(), roughness: .5 }), MAT.plastic(0xf1d36b)]);
+ruler.position.set(.04, TOP - RL / 2000, .0); scene.add(ruler);
+// gắn: texture có vạch 0 ở bên trái → sau khi xoay -90° vạch 0 ở trên; chỉnh cho vạch 0 trùng TOP
+ruler.geometry.dispose(); ruler.geometry = new THREE.BoxGeometry(.03, RL / 1000, .004); ruler.position.y = TOP - RL / 2000;
+lab.label(ruler, 'Thước (mm)', [.03, .12, 0]);
+// lò xo
+const L0 = .08, K = .02 / 50; // độ dãn: 20 mm cho mỗi 50 g
+const springM = MAT.metal(0xc8ccd2, .25);
+let spring = null;
+function buildSpring(L) {
+  const N = 22, R = .009, pts = [];
+  pts.push(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -.004, 0));
+  for (let i = 0; i <= N * 24; i++) { const a = i / 24 * Math.PI * 2, y = -.006 - (L - .012) * i / (N * 24); pts.push(new THREE.Vector3(Math.cos(a) * R, y, Math.sin(a) * R)); }
+  pts.push(new THREE.Vector3(0, -L + .002, 0), new THREE.Vector3(0, -L, 0));
+  const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), N * 24, .0009, 6);
+  if (!spring) { spring = new THREE.Mesh(g, springM); spring.position.set(0, TOP, 0); spring.castShadow = true; scene.add(spring); } else { spring.geometry.dispose(); spring.geometry = g; }
+}
+// kim chỉ + móc + quả nặng
+const pointer = new THREE.Mesh(new THREE.BoxGeometry(.03, .0012, .002), MAT.plastic(0xd61f1f, .4)); scene.add(pointer);
+const hanger = new THREE.Group(); scene.add(hanger);
+const hk = new THREE.Mesh(new THREE.TorusGeometry(.004, .001, 8, 16, Math.PI * 1.5), metal); hk.position.y = -.004; hanger.add(hk);
+const hrod = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0012, .02, 8), metal); hrod.position.y = -.016; hanger.add(hrod);
+const masses = [];
+for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(lathe([[0, 0], [.014, 0], [.015, .002], [.015, .016], [.014, .018], [.002, .018], [.002, .019], [0, .019]], 32), MAT.metal(0x1c7ed6, .35)); m.castShadow = true; masses.push(m); }
+const lbl = lab.label(hanger, '', [.04, -.03, 0]);
+// quả nặng để sẵn trên bàn
+const spare = masses.map((m, i) => { const p = new THREE.Vector3(.14 + (i % 2) * .04, 0, .06 + Math.floor(i / 2) * .04); m.position.copy(p); scene.add(m); return p; });
+lab.label(masses[3], 'Quả nặng 50 g', [0, .04, 0]);
+const S = { n: 0, y: L0, v: 0, rows: [], l0rec: null };
+function target() { return L0 + K * S.n * 50; }
+function place() {
+  buildSpring(S.y); const yb = TOP - S.y;
+  pointer.position.set(.012, yb, .0); hanger.position.set(0, yb, 0);
+  masses.forEach((m, i) => { if (i < S.n) { if (m.parent != hanger) { hanger.add(m); } m.position.set(0, -.027 - i * .019, 0); } else { if (m.parent != scene) scene.add(m); m.position.copy(spare[i]); } });
+  lbl.element.textContent = S.n ? `${S.n} quả nặng – ${S.n * 50} g` : ''; lbl.element.style.display = S.n ? '' : 'none';
+}
+lab.onTick(dt => { const m = .02 + S.n * .05, k = .05 * 9.81 / (K * 50 * 1000) * 1000 / 1000; // k (N/m) ≈ 24.5
+  const kk = 9.81 * .05 / (K * 50); const F = -kk * (S.y - target()) - 1.6 * S.v; for (let i = 0; i < 4; i++) { S.v += F / m * dt / 4; S.y += S.v * dt / 4; } place();
+  const st = Math.abs(S.v) < .002 && Math.abs(S.y - target()) < .0004; const h = `Số quả nặng: <b>${S.n}</b> (${S.n * 50} g)<br>Lò xo: ${st ? '<b style="color:#8ce99a">đã đứng yên</b> – đọc chiều dài' : 'đang dao động…'}`; if (h != hud.innerHTML) hud.innerHTML = h; S.st = st; });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="add">+ Treo thêm quả nặng</button><button class="btn" id="rem">− Bỏ bớt</button><button class="btn o" id="near">Nhìn gần thước</button><button class="btn" id="home">Toàn cảnh</button>`;
+$('#add').onclick = () => { if (S.n >= 4) return toast('Đã treo 4 quả nặng'); S.n++; S.v -= .05; };
+$('#rem').onclick = () => { if (S.n <= 0) return; S.n--; S.v += .05; };
+$('#near').onclick = () => { const y = TOP - S.y; lab.view([.03, y, .1], [.03, y, 0]); };
+$('#home').onclick = () => lab.view(...HOME);
+$('#rec').onclick = () => {
+  const v = parseFloat($('#val').value); if (isNaN(v)) return toast('Nhập chiều dài lò xo (mm)');
+  if (!S.st) return toast('Chờ lò xo đứng yên rồi mới đọc');
+  const real = Math.round(S.y * 1000); if (Math.abs(v - real) > 1) return toast(`Đọc chưa đúng. Hãy nhìn gần thước và đọc lại (kim chỉ ở vạch gần nhất).`);
+  if (S.n == 0) { S.l0rec = v; toast(`l₀ = ${v} mm`); }
+  else { if (S.l0rec == null) return toast('Hãy đo chiều dài ban đầu l₀ (chưa treo quả nặng) trước'); S.rows = S.rows.filter(r => r.n != S.n); S.rows.push({ n: S.n, l: v }); S.rows.sort((a, b) => a.n - b.n); }
+  $('#tb').innerHTML = S.rows.map(r => `<tr><td>${r.n}</td><td>${r.n * 50}</td><td>${S.l0rec}</td><td>${r.l}</td><td><b>${r.l - S.l0rec}</b></td></tr>`).join(''); graph(); if (S.n) showPane(1);
+};
+function graph() { const X = m => 40 + m * 1.3, Y = d => 175 - d * 1.8; const g = $('#gr'); g.style.color = getComputedStyle(document.body).color;
+  g.innerHTML = `<g stroke="currentColor" stroke-opacity=".35"><line x1="40" y1="175" x2="315" y2="175"/><line x1="40" y1="175" x2="40" y2="10"/></g><g fill="currentColor" font-size="10">${[0, 50, 100, 150, 200].map(m => `<text x="${X(m)}" y="188" text-anchor="middle">${m}</text>`).join('')}${[0, 20, 40, 60, 80].map(d => `<text x="36" y="${Y(d) + 3}" text-anchor="end">${d}</text>`).join('')}<text x="315" y="198" text-anchor="end">m (g)</text><text x="44" y="14">Δl (mm)</text></g>
+  <polyline fill="none" stroke="#e8590c" stroke-width="2" points="${[{ n: 0, l: S.l0rec ?? 0 }, ...S.rows].map(r => X(r.n * 50) + ',' + Y(r.l - (S.l0rec ?? 0))).join(' ')}"/>${S.rows.map(r => `<circle cx="${X(r.n * 50)}" cy="${Y(r.l - S.l0rec)}" r="3" fill="#e8590c"/>`).join('')}`; }
+quiz($('#qz'), [
+  { q: 'Độ dãn của lò xo được tính bằng', o: ['Δl = l + l₀', 'Δl = l − l₀', 'Δl = l × l₀', 'Δl = l₀ − l'], a: 1 },
+  { q: 'Treo 1 quả nặng lò xo dãn 20 mm. Treo 3 quả nặng như thế thì lò xo dãn', o: ['20 mm', '40 mm', '60 mm', '80 mm'], a: 2 },
+  { q: 'Độ dãn của lò xo treo thẳng đứng', o: ['tỉ lệ với khối lượng vật treo', 'không phụ thuộc khối lượng vật treo', 'giảm khi khối lượng tăng', 'luôn bằng chiều dài ban đầu'], a: 0 },
+  { q: 'Lò xo có chiều dài ban đầu 10 cm, khi treo vật dài 13 cm. Độ dãn của lò xo là', n: 3, u: 'cm', tol: 0 },
+  { q: 'Biến dạng của lò xo là biến dạng đàn hồi vì', o: ['khi bỏ vật treo, lò xo trở lại hình dạng ban đầu', 'lò xo bị gãy', 'lò xo dài mãi', 'lò xo nóng lên'], a: 0 },
+]);
+place(); graph(); ready(); window.dbg = { lab, S };
+</script></body></html>

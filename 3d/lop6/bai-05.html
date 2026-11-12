@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 5. Đo chiều dài</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, canvasTex, roundBox, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 5. Đo chiều dài', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Các bước đo chiều dài</h3><ol><li><b>Ước lượng</b> chiều dài cần đo để chọn thước đo thích hợp (GHĐ, ĐCNN).</li><li><b>Đặt thước</b> dọc theo chiều dài cần đo, <b>vạch số 0</b> ngang với một đầu của vật (kéo thước).</li><li><b>Mắt nhìn vuông góc</b> với cạnh thước ở đầu kia của vật.</li><li><b>Đọc kết quả</b> theo vạch chia gần nhất với đầu kia của vật.</li><li><b>Ghi kết quả</b> theo ĐCNN của thước.</li></ol>
+<div class="note sm"><b>GHĐ</b> (giới hạn đo): độ dài lớn nhất ghi trên thước. <b>ĐCNN</b> (độ chia nhỏ nhất): độ dài giữa hai vạch chia liên tiếp.</div>
+<h3>1. Chọn vật cần đo</h3><div class="row" id="objs"></div>
+<h3>2. Chọn thước</h3><div class="row" id="rls" style="flex-direction:column;align-items:stretch"></div>
+<h3>3. Đọc và ghi kết quả</h3><div class="row">Chiều dài = <input id="val" type="number" step="0.1" style="width:90px"> cm <button class="btn o" id="rec">Ghi kết quả</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Vật</th><th>Thước (GHĐ – ĐCNN)</th><th>Kết quả</th><th>Nhận xét</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="note">Kết quả đo được ghi theo ĐCNN của thước: thước ĐCNN 1 mm → ghi đến 0,1 cm (ví dụ 17,6 cm); thước dây ĐCNN 1 cm → ghi đến 1 cm.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .35, .32], [0, 0, .02]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.4, .8], minDist: .06 });
+const { scene, camera } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+
+// ---- thước ----
+function rulerTex(Lmm, d, { px, mar = 6, bg = '#f5f1e2', tape = false }) {
+  return canvasTex(Math.round((Lmm + 2 * mar) * px), 96, (g, w, h) => {
+    g.fillStyle = bg; g.fillRect(0, 0, w, h); g.fillStyle = '#151515'; g.textAlign = 'center'; g.font = `600 ${tape ? 30 : 26}px Arial`;
+    const n = Lmm / d;
+    for (let i = 0; i <= n; i++) { const x = (mar + i * d) * px, mm = i * d; const big = tape ? mm % 100 == 0 : mm % 10 == 0, mid = tape ? mm % 50 == 0 : mm % 5 == 0;
+      g.fillRect(x - 1.5, 0, 3, big ? h * .45 : mid ? h * .33 : h * .22);
+      if (big) g.fillText(String(mm / 10), x + (i == 0 ? 6 : 0), h * .82); }
+    if (tape) { g.fillStyle = 'rgba(200,30,30,.9)'; for (let i = 10; i < n; i += 10) g.fillText('', 0, 0); }
+  }, { aniso: 16 });
+}
+const RULERS = [
+  { n: 'Thước kẻ', L: 200, d: 1, px: 16, col: 0xf5f1e2, w: .03 },
+  { n: 'Thước thẳng', L: 500, d: 1, px: 10, col: 0xf5f1e2, w: .035 },
+  { n: 'Thước dây', L: 1500, d: 10, px: 5, col: 0xf6d330, w: .016, tape: true },
+];
+const MAR = 6;
+RULERS.forEach(r => { const len = (r.L + 2 * MAR) / 1000; const g = new THREE.Group(); const tex = rulerTex(r.L, r.d, { px: r.px, mar: MAR, bg: r.tape ? '#f6d330' : '#f5f1e2', tape: r.tape });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(len, r.tape ? .0006 : .0025, r.w), [MAT.plastic(r.col, .5), MAT.plastic(r.col, .5), new THREE.MeshStandardMaterial({ map: tex, roughness: .5 }), MAT.plastic(r.col, .5), MAT.plastic(r.col, .5), MAT.plastic(r.col, .5)]);
+  body.position.x = len / 2 - MAR / 1000; g.add(body); // gốc toạ độ của nhóm = vạch số 0
+  if (!r.tape) { const bevel = new THREE.Mesh(new THREE.BoxGeometry(len, .0008, .006), MAT.plastic(0xe9e2c8, .4)); bevel.position.set(len / 2 - MAR / 1000, .0012, -r.w / 2 + .003); g.add(bevel); }
+  r.g = g; r.h = r.tape ? .0006 : .0025; g.visible = false; scene.add(g); lab.shadow(g); });
+// ---- vật ----
+const OBJ = [
+  { n: 'Bút chì', L: 17.6, make() { const g = new THREE.Group(); const L = .176, tip = .018; const b = new THREE.Mesh(new THREE.CylinderGeometry(.0042, .0042, L - tip, 6), MAT.plastic(0xf2b705, .45)); b.rotation.z = Math.PI / 2; b.position.set((L - tip) / 2, .0042, 0); g.add(b);
+      const wd = new THREE.Mesh(new THREE.ConeGeometry(.0042, tip, 6), new THREE.MeshStandardMaterial({ color: 0xe0b98a, roughness: .8 })); wd.rotation.z = -Math.PI / 2; wd.position.set(L - tip / 2, .0042, 0); g.add(wd);
+      const lead = new THREE.Mesh(new THREE.ConeGeometry(.0012, .005, 8), MAT.plastic(0x222222, .4)); lead.rotation.z = -Math.PI / 2; lead.position.set(L - .0025, .0042, 0); g.add(lead);
+      const er = new THREE.Mesh(new THREE.CylinderGeometry(.0042, .0042, .006, 12), MAT.plastic(0xe86f8a, .7)); er.rotation.z = Math.PI / 2; er.position.set(-.0, .0042, 0); er.scale.set(1, 1, 1); g.add(er); er.position.x = .003; b.position.x += .003; b.scale.y = (L - tip - .006) / (L - tip); b.position.x = .006 + (L - tip - .006) / 2;
+      return g; } },
+  { n: 'Chiếc lá', L: 6.3, make() { const g = new THREE.Group(); const s = new THREE.Shape(); const L = .063; s.moveTo(0, 0); s.bezierCurveTo(.012, .016, .04, .018, L, 0); s.bezierCurveTo(.04, -.018, .012, -.016, 0, 0);
+      const m = new THREE.Mesh(new THREE.ShapeGeometry(s, 24), new THREE.MeshStandardMaterial({ color: 0x3f8f2f, roughness: .6, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2; m.position.y = .0012; g.add(m);
+      const v = new THREE.Mesh(new THREE.BoxGeometry(L * .95, .0004, .0008), new THREE.MeshStandardMaterial({ color: 0x9cc77a })); v.position.set(L * .5, .0016, 0); g.add(v); return g; } },
+  { n: 'Quyển sách', L: 26.5, make() { const g = new THREE.Group(); const L = .265, W = .19, H = .012;
+      const cov = canvasTex(512, 380, (c, w, h) => { const gr = c.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#2a9d8f'); gr.addColorStop(1, '#1d6f8c'); c.fillStyle = gr; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = 'bold 54px Arial'; c.fillText('KHOA HỌC', 40, 120); c.fillText('TỰ NHIÊN 6', 40, 190); c.font = '28px Arial'; c.fillText('Kết nối tri thức với cuộc sống', 40, 250); });
+      const side = new THREE.MeshStandardMaterial({ color: 0xf2efe6, roughness: .9 }), cm = new THREE.MeshStandardMaterial({ map: cov, roughness: .5 });
+      const b = new THREE.Mesh(new THREE.BoxGeometry(L, H, W), [side, side, cm, side, side, side]); b.position.set(L / 2, H / 2, -W / 2 + .004); g.add(b); return g; } },
+  { n: 'Thanh gỗ', L: 75.0, make() { const g = new THREE.Group(); const L = .75; const b = new THREE.Mesh(new THREE.BoxGeometry(L, .015, .03), new THREE.MeshStandardMaterial({ color: 0xb98a5a, roughness: .7 })); b.position.set(L / 2, .0075, -.012); g.add(b); return g; } },
+];
+OBJ.forEach(o => { o.g = o.make(); o.g.visible = false; scene.add(o.g); lab.shadow(o.g); });
+const S = { o: 0, r: null, rx: 0, rows: [] };
+const ZR = .0055;   // thước đặt sát phía trước vật
+function x0() { return -OBJ[S.o].L / 200; }  // đầu trái của vật (m)
+function x1() { return OBJ[S.o].L / 200; }
+function selObj(i) { OBJ.forEach((o, k) => o.g.visible = k == i); S.o = i; OBJ[i].g.position.set(x0(), 0, 0); if (S.r != null) placeRuler(); document.querySelectorAll('#objs .btn').forEach((b, k) => b.classList.toggle('on', k == i)); const L = OBJ[i].L / 100; lab.view([0, Math.max(.22, L * 1.1), Math.max(.2, L * .8)], [0, 0, .02]); upd(); }
+function selRuler(i) { RULERS.forEach((r, k) => r.g.visible = k == i); S.r = i; placeRuler(); document.querySelectorAll('#rls .btn').forEach((b, k) => b.classList.toggle('on', k == i)); upd(); }
+function placeRuler() { const r = RULERS[S.r]; S.rx = x0() - .012 - Math.random() * .01; const zOff = OBJ[S.o].n == 'Quyển sách' ? .008 : ZR; r.g.position.set(S.rx, r.n == 'Thước dây' ? .0003 : .00125, zOff + r.w / 2 - .004); r.zOff = zOff; }
+OBJ.forEach((o, i) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = o.n; b.onclick = () => selObj(i); $('#objs').appendChild(b); });
+RULERS.forEach((r, i) => { const b = document.createElement('button'); b.className = 'btn'; b.style.textAlign = 'left'; b.innerHTML = `${r.n}: GHĐ ${r.L / 10} cm – ĐCNN ${r.d == 1 ? '1 mm' : '1 cm'}`; b.onclick = () => selRuler(i); $('#rls').appendChild(b); });
+// kéo thước dọc theo vật
+RULERS.forEach(r => lab.draggable({ obj: r.g, axis: new THREE.Vector3(1, 0, 0), min: -1, max: 1, get: () => S.rx, set(v) { if (Math.abs(v - x0()) < .0012) v = x0(); S.rx = v; r.g.position.x = v; upd(); } }));
+function eyeOK() { const p = new THREE.Vector3(x1(), 0, RULERS[S.r ?? 0].zOff ?? ZR), c = camera.position; return Math.abs(c.x - p.x) / Math.max(.01, c.y) < .25; }
+function reading() { const r = RULERS[S.r]; const mm = (x1() - S.rx) * 1000; return Math.round(mm / r.d) * r.d / 10; }  // cm
+function upd() {
+  if (S.r == null) { hud.innerHTML = `Vật: <b>${OBJ[S.o].n}</b><br>Hãy ước lượng chiều dài rồi chọn thước phù hợp.`; return; }
+  const r = RULERS[S.r], off = (S.rx - x0()) * 1000;
+  hud.innerHTML = `Vật: <b>${OBJ[S.o].n}</b> · thước GHĐ ${r.L / 10} cm, ĐCNN ${r.d == 1 ? '1 mm' : '1 cm'}<br>Vạch 0 ${Math.abs(off) < .01 ? '<b style="color:#8ce99a">ngang với đầu vật ✔</b>' : 'lệch đầu vật ' + fmt(Math.abs(off), 1) + ' mm – kéo thước'}<br>Mắt: ${eyeOK() ? '<b style="color:#8ce99a">nhìn vuông góc ✔</b>' : 'đang nhìn xiên – bấm “Đặt mắt vuông góc”'}`;
+}
+lab.onTick(() => { const k = Math.round(camera.position.x * 200); if (k != upd.k) { upd.k = k; upd(); } });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" id="al">Đặt vạch 0 ngang đầu vật</button><button class="btn p" id="eye">Đặt mắt vuông góc</button><button class="btn" id="home">Toàn cảnh</button>`;
+$('#al').onclick = () => { if (S.r == null) return toast('Chọn thước trước'); S.rx = x0(); RULERS[S.r].g.position.x = S.rx; upd(); };
+$('#eye').onclick = () => { if (S.r == null) return toast('Chọn thước trước'); lab.view([x1(), .09, (RULERS[S.r].zOff) + .03], [x1(), 0, RULERS[S.r].zOff]); };
+$('#home').onclick = () => selObj(S.o);
+$('#rec').onclick = () => {
+  if (S.r == null) return toast('Chọn thước trước');
+  const o = OBJ[S.o], r = RULERS[S.r], v = parseFloat($('#val').value);
+  if (r.L / 10 < o.L) return toast(`GHĐ của ${r.n.toLowerCase()} (${r.L / 10} cm) nhỏ hơn chiều dài ${o.n.toLowerCase()} – phải đo nhiều lần, sai số lớn. Hãy chọn thước có GHĐ lớn hơn.`, 4000);
+  if (isNaN(v)) return toast('Nhập kết quả đọc được (cm)');
+  const notes = [];
+  if (Math.abs(S.rx - x0()) > 1e-4) notes.push('vạch 0 chưa ngang đầu vật');
+  if (!eyeOK()) notes.push('mắt nhìn xiên');
+  const rd = reading(), ok = Math.abs(v - rd) <= (r.d == 1 ? .051 : .51);
+  if (!ok) notes.push(`đọc sai (vạch gần nhất: ${fmt(rd, 1)} cm)`);
+  if (r.d == 10 && o.L < 30) notes.push('nên dùng thước ĐCNN 1 mm để chính xác hơn');
+  const good = !notes.length || (notes.length == 1 && notes[0].startsWith('nên'));
+  S.rows.push({ o: o.n, r: `${r.n} ${r.L / 10} cm – ${r.d == 1 ? '1 mm' : '1 cm'}`, v: fmt(v, r.d == 1 ? 1 : 0) + ' cm', n: good ? '✔ Đúng' + (notes.length ? '; ' + notes[0] : '') : '✘ ' + notes.join('; ') });
+  $('#tb').innerHTML = S.rows.map(x => `<tr><td>${x.o}</td><td>${x.r}</td><td>${x.v}</td><td>${x.n}</td></tr>`).join(''); showPane(1);
+  toast(good ? `Kết quả đúng: ${o.n} dài ${fmt(v, 1)} cm` : 'Chưa đúng: ' + notes.join('; '), 3500);
+};
+quiz($('#qz'), [
+  { q: 'Đơn vị đo chiều dài trong hệ đơn vị đo lường hợp pháp của nước ta là', o: ['mét (m)', 'kilôgam (kg)', 'giây (s)', 'lít (l)'], a: 0 },
+  { q: 'Thước có GHĐ 30 cm, ĐCNN 1 mm. Kết quả đo nào được ghi đúng?', o: ['17 cm', '17,6 cm', '17,65 cm', '176 cm'], a: 1, e: 'Ghi theo ĐCNN 1 mm = 0,1 cm.' },
+  { q: 'Đo chiều dài lớp học nên dùng', o: ['thước kẻ 20 cm', 'thước cuộn (thước dây) GHĐ 10 m', 'thước kẹp', 'thước đo góc'], a: 1 },
+  { q: 'Khi đọc kết quả đo, mắt phải', o: ['nhìn xiên về bên trái', 'nhìn vuông góc với cạnh thước ở đầu kia của vật', 'nhìn từ xa', 'nhắm một mắt'], a: 1 },
+  { q: 'Vì sao cần ước lượng chiều dài trước khi đo?', o: ['Để chọn thước có GHĐ và ĐCNN thích hợp', 'Để không cần đo', 'Để đo nhanh hơn', 'Để kết quả lớn hơn'], a: 0 },
+]);
+selObj(0); ready(); window.dbg = { lab, S, reading, eyeOK, RULERS };
+</script></body></html>

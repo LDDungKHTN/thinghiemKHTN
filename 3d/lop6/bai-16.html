@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 16. Hỗn hợp các chất</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, clamp } from '../core/lab3d.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 16. Hỗn hợp các chất – Sự hoà tan của một số chất rắn', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Thí nghiệm', html: `
+<p><b>Chuẩn bị:</b> 3 ống nghiệm, thìa, muối ăn, đường, bột đá vôi, nước.</p>
+<ol><li>Rót cùng một thể tích nước (khoảng 5 mL) vào 3 ống nghiệm.</li><li>Thêm lần lượt vào mỗi ống 1 thìa (≈ 1 g) đường, muối ăn, bột đá vôi.</li><li>Lắc đều ống nghiệm khoảng 1 – 2 phút. Quan sát.</li></ol>
+<div class="row"><button class="btn p" id="prep">Chuẩn bị nhanh 3 ống</button><button class="btn o" id="shake">Lắc ống đang chọn</button></div>
+<p class="sm">Có thể tự làm: chọn ống, bấm lọ để rót/cho chất vào. Thêm ống (d): dầu ăn + nước.</p>
+<div id="ui"></div><div id="obs" class="note"></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Ống</th><th>Chất</th><th>Hiện tượng</th><th>Kết luận</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="note"><b>Đường, muối ăn</b> tan trong nước tạo thành <b>dung dịch</b> (hỗn hợp đồng nhất). <b>Bột đá vôi</b> không tan, tạo <b>huyền phù</b> (chất rắn lơ lửng, để lâu lắng xuống). <b>Dầu ăn</b> không tan trong nước, tạo <b>nhũ tương</b> khi lắc, để yên tách thành 2 lớp (dầu nổi trên).</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const lab = createLab(stage, { cam: [0, .26, .5], target: [0, .07, -.02], table: 'bench', tableSize: [1.2, .8], minDist: .06 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const REAG = [{ id: 'w', n: 'Nước', c: 0xdff1fa, k: 'liq' }, { id: 'su', n: 'Đường', c: 0xfbfbf6, k: 'sol', solid: { kind: 'powder', c: 0xfbfbf6 }, max: 2 }, { id: 'sa', n: 'Muối ăn', c: 0xf4f6f8, k: 'sol', solid: { kind: 'powder', c: 0xf4f6f8 }, max: 2 }, { id: 'ca', n: 'Bột đá vôi', c: 0xe9e4d6, k: 'sol', solid: { kind: 'powder', c: 0xe9e4d6 }, max: 2 }, { id: 'oil', n: 'Dầu ăn', c: 0xe8c547, k: 'liq' }];
+const has = (it, id) => it.find(x => x.id == id);
+const shakeAt = [0, 0, 0, 0];
+function react(it, heat, age, i) {
+  const s = { notes: [] }; if (!it.length) return s;
+  const W = has(it, 'w'), su = has(it, 'su'), sa = has(it, 'sa'), ca = has(it, 'ca'), oil = has(it, 'oil');
+  const sh = shakeAt[i]; const shaken = sh > 0, since = shaken ? (performance.now() - sh) / 1000 : 0;
+  s.color = 0xc7e2f3; s.op = .5;
+  const sol = [su, sa].filter(Boolean);
+  if (!W) { if (sol.length || ca) { s.solid = { kind: 'powder', c: 0xf5f5f0, amt: .6 }; s.notes.push('Chất rắn ở đáy ống, chưa có nước.'); } if (oil) { s.color = 0xe8c547; s.op = .7; } return s; }
+  if (sol.length) { const left = shaken ? clamp(1 - since / 4, 0, 1) : .9; if (left > .02) s.solid = { kind: 'powder', c: 0xfbfbf6, amt: left * .6 }; s.notes.push(left > .02 ? (shaken ? 'Đang tan dần…' : 'Chất rắn nằm ở đáy – hãy lắc đều.') : `<b>${su ? 'Đường' : 'Muối ăn'} tan hết</b>, chất lỏng trong suốt, đồng nhất → <b>dung dịch</b>.`); }
+  if (ca) { if (!shaken) { s.solid = { kind: 'powder', c: 0xe9e4d6, amt: .6 }; s.notes.push('Bột đá vôi nằm ở đáy – hãy lắc đều.'); }
+    else { const settle = clamp((since - 3) / 12, 0, 1); s.cloud = .85 * (1 - settle); s.cloudC = 0xeeeae0; s.ppt = { c: 0xe9e4d6, amt: .7 * settle + .1, settle }; s.notes.push(settle < .3 ? 'Bột đá vôi <b>không tan</b>, các hạt lơ lửng làm nước <b>đục</b> → <b>huyền phù</b>.' : 'Để yên: các hạt bột đá vôi <b>lắng dần</b> xuống đáy.'); } }
+  if (oil) { if (shaken && since < 6) { s.cloud = .6 * (1 - since / 6); s.cloudC = 0xf2e3a0; s.notes.push('Lắc mạnh: dầu phân tán thành giọt nhỏ trong nước → <b>nhũ tương</b>.'); }
+    s.layer = { h: .012, c: 0xe8c547, op: shaken ? clamp((since - 1) / 5, .15, .85) : .85 }; s.notes.push(!shaken || since > 5 ? 'Dầu ăn <b>không tan</b>, nổi thành lớp riêng trên mặt nước.' : ''); }
+  if (!sol.length && !ca && !oil) s.notes.push('Nước cất trong suốt.');
+  s.notes = s.notes.filter(Boolean); return s;
+}
+const tubes = ['(a) Đường', '(b) Muối ăn', '(c) Bột đá vôi', '(d) Dầu ăn'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 5, cap: 9, heat: false, obs: '#obs', onObs: h => hud.innerHTML = h, onChange: rec });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG, heat: false });
+const RES = {};
+function rec(i, s, t) { const it = t.items, w = has(it, 'w'); if (!w || shakeAt[i] == 0) return; const n = (s.notes || []).join(' ').replace(/<[^>]+>/g, '');
+  const sub = it.filter(x => x.id != 'w').map(x => REAG.find(r => r.id == x.id).n).join(', '); if (!sub) return;
+  const k = has(it, 'ca') ? 'Huyền phù' : has(it, 'oil') ? 'Nhũ tương' : 'Dung dịch'; RES[i] = `<tr><td>${tubes[i].slice(0, 3)}</td><td>${sub} + nước</td><td>${n}</td><td><b>${k}</b></td></tr>`; $('#tb').innerHTML = Object.values(RES).join(''); }
+$('#prep').onclick = () => { [['su'], ['sa'], ['ca'], ['oil']].forEach(([id], i) => { bench.T[i].items = [{ id: 'w', amt: 5 }, { id, amt: id == 'oil' ? 2 : 1 }]; bench.T[i].age = 0; shakeAt[i] = 0; }); bench.redraw(); toast('Đã cho nước và chất vào 4 ống. Chọn từng ống rồi bấm “Lắc”.'); };
+let shk = null;
+$('#shake').onclick = () => { const i = bench.sel, t = bench.T[i]; if (!t.items.length) return toast('Ống trống'); shakeAt[i] = performance.now(); t.age = 0; shk = { t, k: 0 }; };
+lab.onTick(dt => { if (shk) { shk.k += dt; shk.t.v.g.rotation.z = Math.sin(shk.k * 30) * .25 * Math.max(0, 1 - shk.k / 1.5); if (shk.k > 1.5) { shk.t.v.g.rotation.z = 0; shk = null; } } });
+quiz($('#qz'), [
+  { q: 'Hỗn hợp nào là dung dịch?', o: ['Nước + bột đá vôi', 'Nước + đường (đã tan hết)', 'Nước + dầu ăn', 'Nước + cát'], a: 1 },
+  { q: 'Trộn bột đá vôi vào nước, lắc đều thu được', o: ['dung dịch', 'huyền phù', 'nhũ tương', 'chất tinh khiết'], a: 1 },
+  { q: 'Dầu ăn lắc với nước tạo thành', o: ['dung dịch', 'huyền phù', 'nhũ tương', 'chất tinh khiết'], a: 2 },
+  { q: 'Chất nào KHÔNG tan trong nước?', o: ['Đường', 'Muối ăn', 'Bột đá vôi', 'Giấm'], a: 2 },
+  { q: 'Dung dịch là', o: ['hỗn hợp đồng nhất của dung môi và chất tan', 'hỗn hợp không đồng nhất', 'chất tinh khiết', 'chất rắn lơ lửng trong chất lỏng'], a: 0 },
+]);
+ready(); window.dbg = { lab, bench };
+</script></body></html>

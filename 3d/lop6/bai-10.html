@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 10. Các thể của chất và sự chuyển thể</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, lathe, canvasTex, clamp } from '../core/lab3d.js';
+import { vessel } from '../core/chem.js';
+import { tripod } from '../core/kit.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 10. Theo dõi nhiệt độ của nước đá trong quá trình nóng chảy', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p><b>Chuẩn bị:</b> nước đá viên, nước nóng, 1 ống nghiệm, 1 cốc thuỷ tinh, nhiệt kế (đo từ dưới −5 °C đến trên 50 °C).</p>
+<ol><li>Cho nước đá viên đập nhỏ vào ống nghiệm.</li><li>Cắm nhiệt kế vào giữa khối nước đá.</li><li>Đặt ống nghiệm vào cốc thuỷ tinh chứa nước nóng.</li><li>Cứ mỗi phút ghi lại nhiệt độ và thể của nước trong ống nghiệm (10 phút).</li></ol>
+<div class="row"><button class="btn p" id="go">Đặt ống nghiệm vào nước nóng</button><button class="btn" id="rs">Làm lại</button></div>
+<div class="sl">Tốc độ mô phỏng <input type="range" id="sp" min="1" max="20" step="1" value="6"><span id="spv"></span></div>
+<div class="note sm">1 phút thí nghiệm = vài giây trên màn hình. Kết quả tự ghi mỗi phút vào bảng (tab Kết quả).</div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Thời gian</th><th>Nhiệt độ</th><th>Thể của nước</th></tr></thead><tbody id="tb"></tbody></table>
+<svg id="gr" viewBox="0 0 330 200" style="width:100%;max-width:400px"></svg>
+<div class="note">Trong suốt thời gian nước đá nóng chảy, nhiệt độ của nước đá <b>không thay đổi (0 °C)</b>. Khi đá tan hết, nhiệt độ nước mới tăng lên. Sự chuyển từ thể rắn sang thể lỏng gọi là <b>sự nóng chảy</b>.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[.08, .3, .42], [0, .14, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1, .7], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+// giá thí nghiệm
+const stand = new THREE.Group(); stand.position.set(-.09, 0, -.03); scene.add(stand);
+const sb = new THREE.Mesh(new THREE.BoxGeometry(.16, .012, .12), MAT.plastic(0x2b2f33, .5)); sb.position.set(.05, .006, .0); stand.add(sb);
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .4, 16), MAT.metal(0xc0c5ca, .3)); rod.position.y = .2; stand.add(rod);
+const arm = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .1, 12), MAT.metal(0xc0c5ca, .3)); arm.rotation.z = Math.PI / 2; arm.position.set(.05, .165, 0); stand.add(arm);
+const clampG = new THREE.Mesh(new THREE.TorusGeometry(.012, .003, 8, 20), MAT.metal(0x9aa3ab, .3)); clampG.rotation.x = Math.PI / 2; clampG.position.set(.09, .165, 0); stand.add(clampG);
+lab.shadow(stand);
+// cốc nước nóng
+const beaker = vessel(lab, { kind: 'beaker', R: .045, H: .11 }); scene.add(beaker.g); beaker.g.position.set(0, 0, -.03); beaker.set({ level: .65, color: 0xdcecf3, op: .4 });
+lab.label(beaker.g, 'Nước nóng', [.06, .05, 0]);
+// ống nghiệm + đá
+const tube = new THREE.Group(); scene.add(tube);
+const tg = vessel(lab, { kind: 'tube', R: .011, H: .16 }); tube.add(tg.g);
+const ICE = new THREE.Group(); tube.add(ICE);
+const iceM = new THREE.MeshPhysicalMaterial({ color: 0xf3fbff, roughness: .15, transparent: true, opacity: .8, clearcoat: 1 });
+const ices = []; for (let i = 0; i < 22; i++) { const c = new THREE.Mesh(new THREE.IcosahedronGeometry(.0055, 0), iceM); c.position.set((Math.random() - .5) * .011, .006 + i * .0045, (Math.random() - .5) * .011); c.rotation.set(i, i * 1.7, i * .3); ICE.add(c); ices.push(c); }
+lab.label(tube, 'Ống nghiệm chứa nước đá', [-.06, .14, 0]);
+// nhiệt kế −10 … 60 °C
+const TH = new THREE.Group(); tube.add(TH); TH.position.set(.003, .012, 0);
+const TL = .26, tMin = -10, tMax = 60, y0 = .03, y1 = .03 + TL * .82;
+const thT = canvasTex(64, 1024, (c, w, h) => { c.fillStyle = 'rgba(255,255,255,.92)'; c.fillRect(0, 0, w, h); c.fillStyle = '#111'; c.font = 'bold 20px Arial'; for (let t = tMin; t <= tMax; t++) { const y = h - 8 - (t - tMin) / (tMax - tMin) * (h - 16); c.fillRect(0, y, t % 10 == 0 ? 26 : t % 5 == 0 ? 18 : 10, 2); if (t % 10 == 0) c.fillText(String(t), 30, y + 7); } });
+const tglass = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, TL, 16), MAT.glassLite({ opacity: .35 })); tglass.position.y = TL / 2; TH.add(tglass);
+const tsc = new THREE.Mesh(new THREE.PlaneGeometry(.0085, y1 - y0 + .0095), new THREE.MeshBasicMaterial({ map: thT, transparent: true })); tsc.position.set(0, (y0 + y1) / 2, .0035); TH.add(tsc);
+const tb0 = new THREE.Mesh(new THREE.SphereGeometry(.0035, 16, 12), new THREE.MeshStandardMaterial({ color: 0xd01818 })); TH.add(tb0);
+const tcol = new THREE.Mesh(new THREE.CylinderGeometry(.0009, .0009, 1, 8), new THREE.MeshStandardMaterial({ color: 0xd01818 })); TH.add(tcol);
+function setT(t) { const y = y0 + (clamp(t, tMin, tMax) - tMin) / (tMax - tMin) * (y1 - y0); tcol.scale.y = y; tcol.position.y = y / 2; }
+lab.label(TH, 'Nhiệt kế', [.02, TL, 0]);
+// nước tan trong ống
+const melt = new THREE.Mesh(new THREE.CylinderGeometry(.0105, .0105, 1, 24), new THREE.MeshPhysicalMaterial({ color: 0xdcefff, transparent: true, opacity: .5, depthWrite: false })); melt.renderOrder = 2; tube.add(melt);
+// mô hình nhiệt
+const S = { min: 0, T: -5, Tb: 70, f: 0, in: false, rows: [], last: -1, sp: 6 };
+const UP = .1, DOWN = .012;
+function placeTube() { tube.position.set(0, S.in ? DOWN : UP + .02, -.03); }
+function draw() {
+  setT(S.T); const left = 1 - S.f; ices.forEach((c, i) => { c.visible = i < Math.ceil(ices.length * left); c.scale.setScalar(.75 + .25 * left); });
+  const wh = .004 + S.f * .07; melt.scale.y = wh; melt.position.y = .0015 + wh / 2; melt.visible = S.f > .01;
+  const st = S.f <= 0 ? 'Rắn' : S.f < 1 ? 'Rắn và lỏng' : 'Lỏng';
+  hud.innerHTML = `Thời gian: <b>${fmt(S.min, 1)} phút</b><br>Nhiệt độ trong ống: <b>${fmt(Math.round(S.T * 10) / 10, 1)} °C</b><br>Thể của nước: <b>${st}</b>${S.f > 0 && S.f < 1 ? ' (đá đang tan ' + Math.round(S.f * 100) + '%)' : ''}`; S.st = st;
+}
+lab.onTick(dt => {
+  if (!S.in || S.min >= 10) return;
+  const dm = dt * S.sp / 6;  // phút mô phỏng
+  for (let k = 0; k < 10; k++) { const h = dm / 10; S.min += h; const q = (S.Tb - S.T) * .35 * h; S.Tb -= q * .05;
+    if (S.T < 0 && S.f == 0) S.T = Math.min(0, S.T + q * .15);
+    else if (S.f < 1) { S.T = 0; S.f = Math.min(1, S.f + q / 115); }
+    else S.T += q * .5; }
+  const m = Math.floor(S.min + 1e-6); if (m > S.last && m <= 10) { S.last = m; rec(m); }
+  if (S.min >= 10) toast('Đã theo dõi 10 phút. Xem bảng và đồ thị ở tab Kết quả.', 4000);
+  draw();
+});
+function rec(m) { S.rows.push({ m, T: Math.round(S.T * 10) / 10, s: S.f <= 0 ? 'Rắn' : S.f < 1 ? 'Rắn và lỏng' : 'Lỏng' }); $('#tb').innerHTML = S.rows.map(r => `<tr><td>${r.m == 0 ? 'Ban đầu' : r.m + ' phút'}</td><td>${fmt(r.T, 1)} °C</td><td>${r.s}</td></tr>`).join(''); graph(); }
+function graph() { const X = m => 34 + m * 28, Y = t => 170 - (t + 10) * 3.2; const g = $('#gr'); g.style.color = getComputedStyle(document.body).color;
+  g.innerHTML = `<g stroke="currentColor" stroke-opacity=".35"><line x1="34" y1="170" x2="325" y2="170"/><line x1="34" y1="10" x2="34" y2="175"/><line x1="34" y1="${Y(0)}" x2="325" y2="${Y(0)}" stroke-dasharray="3 3"/></g><g fill="currentColor" font-size="10">${[0, 2, 4, 6, 8, 10].map(m => `<text x="${X(m)}" y="184" text-anchor="middle">${m}</text>`).join('')}${[-10, 0, 10, 20, 30, 40].map(t => `<text x="30" y="${Y(t) + 3}" text-anchor="end">${t}</text>`).join('')}<text x="325" y="196" text-anchor="end">phút</text><text x="38" y="14">°C</text></g>
+  <polyline fill="none" stroke="#1c7ed6" stroke-width="2" points="${S.rows.map(r => X(r.m) + ',' + Y(r.T)).join(' ')}"/>${S.rows.map(r => `<circle cx="${X(r.m)}" cy="${Y(r.T)}" r="3" fill="#1c7ed6"/>`).join('')}`; }
+$('#go').onclick = () => { if (S.in) return; S.in = true; placeTube(); if (S.last < 0) { S.last = 0; rec(0); } toast('Theo dõi nhiệt kế: nhiệt độ tăng đến 0 °C rồi đứng yên khi đá đang tan.'); };
+$('#rs').onclick = () => { Object.assign(S, { min: 0, T: -5, Tb: 70, f: 0, in: false, rows: [], last: -1 }); $('#tb').innerHTML = ''; graph(); placeTube(); draw(); };
+$('#sp').oninput = e => { S.sp = +e.target.value; $('#spv').textContent = '×' + S.sp; }; $('#spv').textContent = '×6';
+const tbar = document.createElement('div'); tbar.className = 'tb'; stage.appendChild(tbar);
+tbar.innerHTML = `<button class="btn p" id="near">Nhìn gần nhiệt kế</button><button class="btn" id="home">Toàn cảnh</button><button class="btn" id="tab">Xem bảng kết quả</button>`;
+$('#near').onclick = () => { const y = (S.in ? DOWN : UP + .02) + .012 + y0 + (Math.max(S.T, -5) + 10) / 70 * (y1 - y0); lab.view([.003, y, .12], [.003, y, -.03]); };
+$('#home').onclick = () => lab.view(...HOME); $('#tab').onclick = () => showPane(1);
+quiz($('#qz'), [
+  { q: 'Trong suốt quá trình nước đá nóng chảy, nhiệt độ của nước đá', o: ['tăng dần', 'giảm dần', 'không thay đổi (0 °C)', 'lúc tăng lúc giảm'], a: 2 },
+  { q: 'Sự chuyển từ thể rắn sang thể lỏng gọi là', o: ['sự đông đặc', 'sự nóng chảy', 'sự bay hơi', 'sự ngưng tụ'], a: 1 },
+  { q: 'Nhiệt độ nóng chảy của nước đá là', o: ['100 °C', '0 °C', '37 °C', '−5 °C'], a: 1 },
+  { q: 'Khi đá đã tan hết, tiếp tục đặt ống nghiệm trong nước nóng thì nhiệt độ nước trong ống', o: ['tăng lên', 'giữ ở 0 °C', 'giảm xuống', 'bằng −5 °C'], a: 0 },
+]);
+placeTube(); draw(); graph(); ready(); window.dbg = { lab, S };
+</script></body></html>

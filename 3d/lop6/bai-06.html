@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 6. Đo khối lượng</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, clamp, lerp } from '../core/lab3d.js';
+import { balance } from '../core/kit.js';
+import { vessel } from '../core/chem.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 6. Đo khối lượng', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>1. Dùng cân đồng hồ (GHĐ 5 kg – ĐCNN 20 g)</h3><ol><li>Ước lượng khối lượng của vật để chọn cân thích hợp.</li><li>Vặn <b>ốc điều chỉnh</b> để kim cân chỉ đúng vạch số 0 (nút ◀ ▶).</li><li>Đặt vật cần cân lên đĩa cân (bấm vào vật).</li><li><b>Mắt nhìn vuông góc</b> với mặt đồng hồ ở đầu kim cân.</li><li>Đọc và ghi kết quả đo.</li></ol>
+<div class="row">Khối lượng đọc được: <input id="val" type="number" step="10" style="width:90px"> g <button class="btn o" id="rec">Ghi</button></div>
+<h3>2. Dùng cân điện tử</h3><ol><li>Bật cân. Đặt cốc rỗng lên đĩa cân rồi nhấn <b>TARE</b> để trừ khối lượng cốc (cân về 0).</li><li>Rót nước vào cốc: số chỉ là <b>khối lượng nước</b>.</li></ol>
+<div class="row"><button class="btn" id="cup">Đặt / lấy cốc</button><button class="btn p" id="tare">TARE</button><button class="btn" id="pour">Rót 50 mL nước</button><button class="btn" id="egg">Đặt / lấy quả trứng</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Vật</th><th>Cân</th><th>Kết quả</th><th>Nhận xét</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="note">Đơn vị cơ bản đo khối lượng là <b>kilôgam (kg)</b>. Khi dùng cân đồng hồ phải chỉnh kim về số 0 trước khi cân và đặt mắt vuông góc với mặt đồng hồ. Nút TARE của cân điện tử giúp trừ khối lượng vật chứa.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .45, .6], [0, .08, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.4, .8], minDist: .06 });
+const { scene, camera } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+
+// ---- cân đồng hồ ----
+const SC = new THREE.Group(); SC.position.set(-.16, 0, 0); scene.add(SC);
+const red = MAT.plastic(0x2e8b57, .45);
+const body = new THREE.Mesh(lathe([[0, 0], [.085, 0], [.09, .01], [.075, .1], [.06, .13], [.03, .14], [0, .14]], 48), red); SC.add(body); body.scale.z = .75;
+const dialC = document.createElement('canvas'); dialC.width = dialC.height = 512; const dialT = new THREE.CanvasTexture(dialC); dialT.colorSpace = THREE.SRGBColorSpace; dialT.anisotropy = 8;
+(function drawDial() { const g = dialC.getContext('2d'), c = 256; g.fillStyle = '#fbfbf6'; g.beginPath(); g.arc(c, c, 256, 0, 7); g.fill(); g.strokeStyle = '#222'; g.lineWidth = 6; g.stroke();
+  g.fillStyle = '#111'; g.textAlign = 'center'; for (let m = 0; m <= 5000; m += 20) { const a = -Math.PI / 2 + m / 5000 * Math.PI * 1.8, big = m % 500 == 0, mid = m % 100 == 0; const r1 = 230, r2 = big ? 192 : mid ? 205 : 216; g.lineWidth = big ? 4 : mid ? 2.5 : 1.4; g.strokeStyle = m >= 4000 ? '#c92a2a' : '#111'; g.beginPath(); g.moveTo(c + Math.cos(a) * r1, c + Math.sin(a) * r1); g.lineTo(c + Math.cos(a) * r2, c + Math.sin(a) * r2); g.stroke(); if (big) { g.font = 'bold 30px Arial'; g.fillText(String(m / 1000).replace('.', ','), c + Math.cos(a) * 160, c + Math.sin(a) * 160 + 10); } }
+  g.font = 'bold 26px Arial'; g.fillText('kg', c, c + 80); g.font = '18px Arial'; g.fillText('GHĐ 5 kg – ĐCNN 20 g', c, c + 110); dialT.needsUpdate = true; })();
+const dial = new THREE.Mesh(new THREE.CircleGeometry(.055, 64), new THREE.MeshStandardMaterial({ map: dialT, roughness: .35 })); dial.position.set(0, .075, .066); dial.rotation.x = -.12; SC.add(dial);
+const glassD = new THREE.Mesh(new THREE.CircleGeometry(.056, 48), MAT.glassLite({ opacity: .12 })); glassD.position.set(0, .0752, .0685); glassD.rotation.x = -.12; SC.add(glassD);
+const needle = new THREE.Group(); needle.position.set(0, .075, .067); needle.rotation.x = -.12; SC.add(needle);
+const nd = new THREE.Mesh(new THREE.BoxGeometry(.0018, .05, .0006), MAT.plastic(0xd61f1f, .4)); nd.position.y = .02; needle.add(nd);
+const hub = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .002, 20), MAT.metal(0x999999, .3)); hub.rotation.x = Math.PI / 2; needle.add(hub);
+const tray = new THREE.Mesh(lathe([[0, 0], [.1, 0], [.11, .02], [.105, .021], [.095, .004], [0, .004]], 48), MAT.metal(0xd8dde2, .25)); tray.position.y = .145; SC.add(tray);
+const knob = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, .012, 20), MAT.plastic(0x222222, .5)); knob.rotation.x = Math.PI / 2; knob.position.set(0, .018, .085); SC.add(knob);
+lab.shadow(SC); lab.label(dial, 'Mặt đồng hồ', [.07, .04, 0]); lab.label(knob, 'Ốc điều chỉnh', [0, -.02, .02]); lab.label(tray, 'Đĩa cân', [-.12, .02, 0]);
+// vật cân
+const ITEMS = [
+  { n: 'Chai nước', m: 520, make() { const g = new THREE.Group(); const b = new THREE.Mesh(lathe([[0, 0], [.032, 0], [.033, .01], [.033, .15], [.02, .18], [.012, .19], [.012, .2], [0, .2]], 32), MAT.glassLite({ opacity: .35, color: 0xd8f1ff })); g.add(b); const w = new THREE.Mesh(new THREE.CylinderGeometry(.031, .031, .16, 32), new THREE.MeshPhysicalMaterial({ color: 0x9fd3ef, transparent: true, opacity: .45 })); w.position.y = .082; g.add(w); const cp = new THREE.Mesh(new THREE.CylinderGeometry(.013, .013, .012, 20), MAT.plastic(0x1971c2)); cp.position.y = .205; g.add(cp); g.rotation.z = Math.PI / 2; g.position.y = .033; const o = new THREE.Group(); o.add(g); g.position.x = .1; return o; } },
+  { n: 'Quả bưởi', m: 1240, make() { const g = new THREE.Group(); const f = new THREE.Mesh(new THREE.SphereGeometry(.07, 32, 24), new THREE.MeshStandardMaterial({ color: 0x8fbf3a, roughness: .7 })); f.scale.y = .92; f.position.y = .064; g.add(f); const st = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .012), MAT.plastic(0x5c3d1e)); st.position.y = .133; g.add(st); return g; } },
+  { n: 'Túi gạo', m: 2000, make() { const g = new THREE.Group(); const b = roundBox(.16, .07, .1, .02, new THREE.MeshStandardMaterial({ color: 0xf2efe4, roughness: .9 })); b.position.y = .035; g.add(b); return g; } },
+];
+const SHELF = [[-.42, 0, .08], [-.42, 0, -.12], [-.4, 0, .25]];
+ITEMS.forEach((it, i) => { it.g = it.make(); it.g.position.set(...SHELF[i]); it.home = SHELF[i]; scene.add(it.g); lab.shadow(it.g); lab.label(it.g, it.n, [0, .15, 0]); lab.clickable(it.g, () => toggleItem(i)); });
+const S = { off: 60, on: null, shown: 60, eye: false, rows: [] };
+function toggleItem(i) { const it = ITEMS[i]; if (S.on == i) { it.g.position.set(...it.home); S.on = null; } else { if (S.on != null) ITEMS[S.on].g.position.set(...ITEMS[S.on].home); it.g.position.set(SC.position.x, .149, 0); S.on = i; } upd(); }
+function target() { return S.off + (S.on != null ? ITEMS[S.on].m : 0); }
+// ---- cân điện tử ----
+const BAL = balance(lab, [.2, 0, 0], { dec: 1 });
+const cup = vessel(lab, { kind: 'beaker', R: .03, H: .08 }); scene.add(cup.g); cup.g.position.set(.42, 0, .1); lab.label(cup.g, 'Cốc (52,3 g)', [0, .1, 0]);
+const egg = new THREE.Mesh(new THREE.SphereGeometry(.022, 24, 18), new THREE.MeshStandardMaterial({ color: 0xf1dcc0, roughness: .6 })); egg.scale.y = 1.3; egg.position.set(.42, .028, -.08); scene.add(egg); lab.shadow(egg); lab.label(egg, 'Quả trứng', [0, .05, 0]);
+const E = { cup: false, egg: false, water: 0, tare: 0 };
+function balMass() { return (E.cup ? 52.3 + E.water : 0) + (E.egg ? 58.6 : 0); }
+function placeE() { cup.g.position.set(E.cup ? .2 : .42, E.cup ? .04 : 0, E.cup ? -.01 : .1); egg.position.set(E.egg ? (E.cup ? .25 : .2) : .42, E.egg ? (E.cup ? .068 : .068) : .028, E.egg ? (E.cup ? .03 : -.01) : -.08); if (E.egg && E.cup) egg.position.set(.2, .04 + .018 + .004, -.01); cup.set({ level: E.water / 220, color: 0xcfe8f3, op: .45 }); BAL.set(Math.round((balMass() - E.tare) * 10) / 10); upd(); }
+$('#cup').onclick = () => { if (E.cup && E.water) { E.water = 0; } E.cup = !E.cup; placeE(); lab.view([.2, .25, .3], [.2, .05, 0]); };
+$('#tare').onclick = () => { E.tare = balMass(); placeE(); toast('TARE: cân trừ đi khối lượng đang đặt trên đĩa, hiện 0,0 g'); };
+$('#pour').onclick = () => { if (!E.cup) return toast('Đặt cốc lên cân trước'); if (E.water >= 150) return toast('Cốc gần đầy'); E.water += 50; placeE(); toast(`Đã rót thêm 50 mL nước (≈ 50 g)`); if (Math.abs(E.tare - 52.3) < .01 && !E.egg) rec('Nước ' + E.water + ' mL', 'Cân điện tử (đã TARE cốc)', fmt(E.water, 1) + ' g', '✔ Khối lượng nước = ' + fmt(E.water, 1) + ' g'); };
+$('#egg').onclick = () => { E.egg = !E.egg; placeE(); if (E.egg) rec('Quả trứng', 'Cân điện tử', fmt(Math.round((balMass() - E.tare) * 10) / 10, 1) + ' g', E.cup && E.tare < 1 ? '✘ chưa TARE cốc – số chỉ gồm cả cốc' : '✔'); };
+// ---- điều chỉnh vạch 0 ----
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" id="zl">◀ Vặn ốc</button><button class="btn" id="zr">Vặn ốc ▶</button><button class="btn p" id="eye">Nhìn vuông góc mặt đồng hồ</button><button class="btn" id="home">Toàn cảnh</button>`;
+let hold = 0; for (const [id, k] of [['zl', -1], ['zr', 1]]) { const b = $('#' + id); const f = () => { S.off = clamp(S.off + k * 4, -200, 200); knob.rotation.y += k * .3; upd(); }; b.onpointerdown = () => { f(); clearInterval(hold); hold = setInterval(f, 90); }; b.onpointerup = b.onpointerleave = () => clearInterval(hold); }
+$('#eye').onclick = () => lab.view([SC.position.x, .085, .2], [SC.position.x, .075, 0]);
+$('#home').onclick = () => lab.view(...HOME);
+lab.onTick(dt => { const T = target(); S.shown += (T - S.shown) * Math.min(1, dt * 6) + Math.sin(performance.now() / 90) * (Math.abs(T - S.shown) > 5 ? 2 : 0); needle.rotation.z = -S.shown / 5000 * Math.PI * 1.8; const k = Math.round(camera.position.x * 100) + ',' + Math.round(camera.position.y * 100); if (k != upd.k) { upd.k = k; upd(); } });
+function eyeOK() { const d = camera.position.clone().sub(new THREE.Vector3(SC.position.x, .075, .06)); return d.z > 0 && Math.abs(d.x) / d.z < .2 && Math.abs(d.y) / d.z < .3; }
+function upd() { hud.innerHTML = `<b>Cân đồng hồ</b>: kim ${Math.abs(S.off) < 2 ? '<b style="color:#8ce99a">chỉ đúng vạch 0 ✔</b>' : 'lệch vạch 0 – vặn ốc điều chỉnh'}${S.on != null ? ' · trên đĩa: ' + ITEMS[S.on].n : ''}<br>Mắt: ${eyeOK() ? '<b style="color:#8ce99a">vuông góc mặt đồng hồ ✔</b>' : 'chưa nhìn vuông góc'}<br><b>Cân điện tử</b>: ${BAL.m.toFixed(1).replace('.', ',')} g`; }
+function rec(o, c, v, n) { S.rows.push({ o, c, v, n }); $('#tb').innerHTML = S.rows.map(x => `<tr><td>${x.o}</td><td>${x.c}</td><td>${x.v}</td><td>${x.n}</td></tr>`).join(''); }
+$('#rec').onclick = () => {
+  if (S.on == null) return toast('Đặt một vật lên đĩa cân đồng hồ trước');
+  const v = parseFloat($('#val').value); if (isNaN(v)) return toast('Nhập số gam đọc được');
+  const it = ITEMS[S.on], shown = Math.round(target() / 20) * 20, notes = [];
+  if (Math.abs(S.off) >= 2) notes.push(`chưa chỉnh kim về 0 (lệch ${S.off > 0 ? '+' : ''}${S.off} g)`);
+  if (!eyeOK()) notes.push('mắt chưa nhìn vuông góc');
+  if (Math.abs(v - shown) > 10) notes.push('đọc sai vạch (kim chỉ ≈ ' + fmt(shown, 0) + ' g)');
+  rec(it.n, 'Cân đồng hồ', fmt(v, 0) + ' g', notes.length ? '✘ ' + notes.join('; ') : '✔ Đúng (' + fmt(v / 1000, 2) + ' kg)'); showPane(1);
+  toast(notes.length ? 'Chưa đúng: ' + notes.join('; ') : `Kết quả đúng: ${it.n} ≈ ${fmt(v, 0)} g`, 3500);
+};
+quiz($('#qz'), [
+  { q: 'Đơn vị cơ bản đo khối lượng trong hệ đơn vị đo lường hợp pháp của nước ta là', o: ['gam (g)', 'kilôgam (kg)', 'tấn', 'lạng'], a: 1 },
+  { q: 'Trước khi cân bằng cân đồng hồ phải', o: ['điều chỉnh để kim cân chỉ đúng vạch số 0', 'lau mặt đồng hồ', 'đặt vật lệch một bên', 'lắc cân'], a: 0 },
+  { q: 'Nút TARE trên cân điện tử dùng để', o: ['tắt cân', 'đưa số chỉ về 0, trừ khối lượng vật chứa', 'đổi đơn vị', 'tăng GHĐ'], a: 1 },
+  { q: 'Thao tác nào SAI khi cân?', o: ['Đặt cân trên bề mặt nằm ngang', 'Mắt nhìn vuông góc mặt đồng hồ', 'Để vật lệch một bên đĩa cân', 'Đọc kết quả khi cân ổn định'], a: 2 },
+  { q: 'Cân đồng hồ có GHĐ 5 kg, ĐCNN 20 g. Kết quả ghi đúng là', o: ['1,2 kg', '1 240 g', '1 245 g', '1 kg'], a: 1 },
+]);
+placeE(); upd(); ready(); window.dbg = { lab, S, E, eyeOK, ITEMS };
+</script></body></html>

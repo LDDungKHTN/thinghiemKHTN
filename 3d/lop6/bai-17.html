@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 17. Tách chất khỏi hỗn hợp</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, lathe, clamp, lerp } from '../core/lab3d.js';
+import { vessel, burner } from '../core/chem.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 17. Tách chất khỏi hỗn hợp', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>1. Lọc nước từ hỗn hợp nước lẫn đất</h3><ol id="s1"><li>Lấy một cốc nước, cho 1 thìa đất vào cốc, khuấy mạnh → hỗn hợp đục.</li><li>Để yên cho đất lắng xuống.</li><li>Gấp giấy lọc và đặt vào phễu.</li><li>Gạn lấy lớp nước phía trên, rót từ từ vào phễu có giấy lọc → thu <b>nước lọc</b>.</li></ol>
+<div class="row"><button class="btn" id="a1">Khuấy</button><button class="btn" id="a2">Để lắng</button><button class="btn" id="a3">Đặt giấy lọc</button><button class="btn p" id="a4">Gạn, rót vào phễu</button><button class="btn" id="v1">Nhìn</button></div>
+<h3>2. Cô cạn: tách muối từ nước muối</h3><p>Đun nước muối trong bát sứ cho nước bay hơi hết, còn lại muối.</p>
+<div class="row"><button class="btn p" id="b1">Châm đèn cồn / tắt</button><button class="btn" id="b0">Làm lại</button><button class="btn" id="v2">Nhìn</button></div>
+<h3>3. Chiết: tách dầu ăn khỏi nước</h3><ol><li>Rót hỗn hợp dầu ăn – nước vào phễu chiết, để yên vài phút cho tách lớp.</li><li>Mở từ từ khoá phễu cho chất lỏng phía dưới (nước) chảy xuống cốc.</li><li>Khi lớp dầu chạm vào mặt khoá thì <b>khoá lại</b>.</li></ol>
+<div class="row"><button class="btn p" id="c1">Mở / đóng khoá</button><button class="btn" id="c0">Làm lại</button><button class="btn" id="v3">Nhìn</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><tbody><tr><td>Nước gạn – nước lọc</td><td id="r1">?</td></tr><tr><td>Cô cạn nước muối</td><td id="r2">?</td></tr><tr><td>Chiết dầu – nước</td><td id="r3">?</td></tr></tbody></table>
+<div class="note"><b>Lắng, gạn, lọc</b>: tách chất rắn không tan khỏi chất lỏng (giấy lọc giữ lại hạt đất). <b>Cô cạn</b>: tách chất rắn tan trong chất lỏng (muối) bằng cách làm bay hơi dung môi. <b>Chiết</b>: tách hai chất lỏng không tan vào nhau (nước nặng hơn ở dưới, dầu ăn nhẹ hơn nổi trên).</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .5, .95], [0, .1, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.5, .8], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const metal = MAT.metal(0x9aa3ab, .35);
+function standAt(x, h) { const g = new THREE.Group(); g.position.set(x, 0, -.08); scene.add(g); const b = new THREE.Mesh(new THREE.BoxGeometry(.14, .01, .1), MAT.plastic(0x2b2f33, .5)); b.position.y = .005; g.add(b); const r = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, h, 14), metal); r.position.y = h / 2; g.add(r); lab.shadow(g); return g; }
+function ringArm(st, y, z, R) { const a = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, z, 10), metal); a.rotation.x = Math.PI / 2; a.position.set(0, y, z / 2); st.add(a); const ring = new THREE.Mesh(new THREE.TorusGeometry(R, .0025, 8, 32), metal); ring.rotation.x = Math.PI / 2; ring.position.set(0, y, z + R - .003); st.add(ring); return ring; }
+// ===== 1. Lọc =====
+const X1 = -.4;
+const st1 = standAt(X1 + .0, .32); ringArm(st1, .2, .06, .036);
+const funnel = new THREE.Mesh(lathe([[.0035, -.06], [.0035, 0], [.04, .045], [.042, .046], [.038, .045], [.0025, 0], [.0025, -.06]], 40), MAT.glassLite({ opacity: .3 })); funnel.position.set(X1, .185, -.08 + .093); funnel.renderOrder = 4; scene.add(funnel);
+const paper = new THREE.Mesh(new THREE.ConeGeometry(.035, .045, 32, 1, true), new THREE.MeshStandardMaterial({ color: 0xfbfbf7, roughness: 1, side: THREE.DoubleSide })); paper.rotation.x = Math.PI; paper.position.set(X1, .185 + .0255, funnel.position.z); paper.visible = false; scene.add(paper);
+const mudOnPaper = new THREE.Mesh(new THREE.ConeGeometry(.018, .022, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0x7a5a36, roughness: 1, side: THREE.DoubleSide })); mudOnPaper.rotation.x = Math.PI; mudOnPaper.position.set(X1, .185 + .012, funnel.position.z); mudOnPaper.visible = false; scene.add(mudOnPaper);
+const inF = new THREE.Mesh(new THREE.ConeGeometry(.03, .035, 32), new THREE.MeshPhysicalMaterial({ color: 0xc7a876, transparent: true, opacity: .6, depthWrite: false })); inF.rotation.x = Math.PI; inF.position.set(X1, .185 + .022, funnel.position.z); inF.visible = false; scene.add(inF);
+const drip = new THREE.Mesh(new THREE.SphereGeometry(.0018, 10, 8), new THREE.MeshPhysicalMaterial({ color: 0xd8eef8, transparent: true, opacity: .8 })); drip.visible = false; scene.add(drip);
+const bB = vessel(lab, { kind: 'beaker', R: .035, H: .09 }); bB.g.position.set(X1, 0, funnel.position.z); scene.add(bB.g);
+const bA = vessel(lab, { kind: 'beaker', R: .035, H: .09 }); bA.g.position.set(X1 + .13, 0, .08); scene.add(bA.g); bA.set({ level: .7, color: 0xd8eef8, op: .4 });
+lab.label(bA.g, 'Cốc nước + đất', [0, .12, 0]); lab.label(bB.g, 'Cốc hứng nước lọc', [-.05, .06, .04]); lab.label(funnel, 'Phễu + giấy lọc', [-.06, .03, 0]);
+const F = { step: 0, settle: 0, pour: 0, mixed: false, settling: false, pouring: false, filt: 0 };
+$('#a1').onclick = () => { F.mixed = true; F.settle = 0; F.step = Math.max(F.step, 1); bA.set({ cloud: .9, cloudC: 0x9c7a4c, color: 0xb5946a, op: .6, ppt: { c: 0x6e5132, amt: .05, settle: 1 } }); mark1(); toast('Hỗn hợp nước – đất bị đục.'); };
+$('#a2').onclick = () => { if (!F.mixed) return toast('Khuấy đất với nước trước'); F.settling = true; F.step = Math.max(F.step, 2); mark1(); toast('Để yên: đất lắng dần xuống đáy cốc…'); };
+$('#a3').onclick = () => { paper.visible = true; F.paper = true; F.step = Math.max(F.step, 3); mark1(); toast('Đã gấp giấy lọc (gấp đôi, gấp tư, mở thành hình nón) và đặt vào phễu.'); };
+$('#a4').onclick = () => { if (!F.mixed) return toast('Chưa có hỗn hợp'); if (!F.paper) return toast('Hãy đặt giấy lọc vào phễu trước'); if (F.pouring || F.pour >= 1) return; F.pouring = true; lab.view([X1 + .05, .25, .3], [X1 + .05, .12, 0]); };
+function mark1() { document.querySelectorAll('#s1 li').forEach((li, i) => li.style.color = i < F.step ? '#2f9e44' : ''); }
+// ===== 2. Cô cạn =====
+const X2 = 0;
+const ringS = new THREE.Group(); ringS.position.set(X2, 0, 0); scene.add(ringS);
+for (let k = 0; k < 3; k++) { const a = k * 2.094 + .3, l = new THREE.Mesh(new THREE.CylinderGeometry(.0025, .0025, .12, 8), MAT.metal(0x3a3f45, .5)); l.position.set(Math.cos(a) * .045, .06, Math.sin(a) * .045); ringS.add(l); }
+const ringT = new THREE.Mesh(new THREE.TorusGeometry(.045, .003, 8, 32), MAT.metal(0x3a3f45, .5)); ringT.rotation.x = Math.PI / 2; ringT.position.y = .12; ringS.add(ringT);
+const gauze = new THREE.Mesh(new THREE.BoxGeometry(.1, .002, .1), MAT.metal(0x777777, .6)); gauze.position.y = .121; ringS.add(gauze);
+const dish = new THREE.Mesh(lathe([[0, 0], [.02, .001], [.04, .012], [.045, .022], [.043, .022], [.038, .013], [.019, .003], [0, .002]], 40), new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: .35, side: THREE.DoubleSide })); dish.position.y = .122; ringS.add(dish);
+const brine = new THREE.Mesh(new THREE.CylinderGeometry(1, .5, 1, 40), new THREE.MeshPhysicalMaterial({ color: 0xdcecf3, transparent: true, opacity: .55, depthWrite: false })); brine.renderOrder = 2; ringS.add(brine);
+const NS = 90, salt = new THREE.InstancedMesh(new THREE.BoxGeometry(.0018, .0018, .0018), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .4 }), NS); salt.count = 0; ringS.add(salt);
+const SP = [...Array(NS)].map(() => { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * .03; return [Math.cos(a) * r, Math.sin(a) * r, Math.random() * 3]; });
+const lamp = burner(lab, [X2, 0, 0]); lab.label(lamp.g, 'Đèn cồn', [.05, .05, .04]); lab.label(dish, 'Bát sứ đựng nước muối', [0, .04, .05]);
+const steam = new THREE.Group(); ringS.add(steam); const stM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
+for (let i = 0; i < 10; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(.008, 8, 6), stM); p.userData.ph = i / 10; steam.add(p); }
+const E = { w: 1, on: false, T: 25 };
+function drawBrine() { const h = .012 * E.w; brine.visible = E.w > .01; const r1 = .019 + .021 * (h + .003) / .012 * .9, r0 = .019; brine.scale.set(Math.min(.04, r1), Math.max(.0005, h), Math.min(.04, r1)); brine.geometry; brine.position.y = .125 + h / 2; salt.count = E.w < .55 ? Math.floor(NS * clamp((.55 - E.w) / .5, 0, 1)) : 0; const m = new THREE.Matrix4(); for (let i = 0; i < salt.count; i++) { m.makeRotationY(SP[i][2]).setPosition(SP[i][0], .1245, SP[i][1]); salt.setMatrixAt(i, m); } salt.instanceMatrix.needsUpdate = true; }
+$('#b1').onclick = () => { E.on = !E.on; lamp.set(E.on); toast(E.on ? 'Đang đun nước muối…' : 'Đã tắt đèn cồn (đậy nắp).'); };
+$('#b0').onclick = () => { E.w = 1; E.T = 25; E.on = false; lamp.set(false); drawBrine(); $('#r2').textContent = '?'; };
+// ===== 3. Chiết =====
+const X3 = .4;
+const st3 = standAt(X3, .38); ringArm(st3, .2, .06, .03);
+const SF = new THREE.Group(); SF.position.set(X3, .15, -.08 + .087); scene.add(SF);
+// bán kính trong theo độ cao (m), gốc ở đầu ống khoá
+const rIn = y => y < 0 ? .0025 : y < .07 ? .0035 + (y / .07) * .029 : y < .115 ? Math.sqrt(Math.max(0, .0325 ** 2 - ((y - .07) * .694) ** 2)) : .009;
+const prof = []; for (let y = 0; y <= .13; y += .004) prof.push([rIn(y) + .0015, y]); prof.push([.0095, .16]);
+const sfG = new THREE.Mesh(lathe(prof, 40), MAT.glassLite({ opacity: .28 })); sfG.renderOrder = 4; SF.add(sfG);
+const stem = new THREE.Mesh(new THREE.CylinderGeometry(.0035, .0025, .07, 12), MAT.glassLite({ opacity: .35 })); stem.position.y = -.035 - .01; SF.add(stem);
+const tap = new THREE.Mesh(new THREE.BoxGeometry(.03, .006, .006), MAT.plastic(0x1971c2, .4)); tap.position.y = -.006; SF.add(tap);
+const tapBody = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .014, 14), MAT.glassLite({ opacity: .5 })); tapBody.rotation.z = Math.PI / 2; tapBody.position.y = -.006; SF.add(tapBody);
+const stopper = new THREE.Mesh(new THREE.CylinderGeometry(.0105, .009, .016, 16), MAT.plastic(0x333333, .5)); stopper.position.y = .165; SF.add(stopper);
+const cumV = []; { let v = 0; for (let i = 0; i <= 130; i++) { const y = i / 1000; cumV.push(v); v += Math.PI * rIn(y) ** 2 * .001; } }
+const yOfV = V => { for (let i = 1; i < cumV.length; i++) if (cumV[i] >= V) return (i - 1 + (V - cumV[i - 1]) / (cumV[i] - cumV[i - 1])) / 1000; return .13; };
+const liqMesh = (c, op) => { const m = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshPhysicalMaterial({ color: c, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide })); m.renderOrder = 2; SF.add(m); return m; };
+const wM = liqMesh(0xcfe6f5, .55), oM = liqMesh(0xe8c547, .75);
+function band(m, y0, y1) { m.visible = y1 - y0 > .0005; if (!m.visible) return; const p = [[0, y0]]; const n = 16; for (let i = 0; i <= n; i++) { const y = y0 + (y1 - y0) * i / n; p.push([rIn(y) * .97, y]); } p.push([0, y1]); m.geometry.dispose(); m.geometry = lathe(p, 32); }
+const stream = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0012, 1, 8), new THREE.MeshPhysicalMaterial({ color: 0xcfe6f5, transparent: true, opacity: .7 })); stream.visible = false; scene.add(stream);
+const bC = vessel(lab, { kind: 'beaker', R: .03, H: .08 }); bC.g.position.set(X3, 0, SF.position.z); scene.add(bC.g);
+lab.label(SF, 'Phễu chiết (dầu ăn + nước)', [-.07, .1, 0]); lab.label(bC.g, 'Cốc hứng', [.05, .05, .03]); lab.label(tap, 'Khoá phễu', [.03, 0, .01]);
+const V0w = cumV[50] * 1, V0o = (cumV[95] - cumV[50]);
+const C = { w: V0w, o: V0o, open: false, out: 0, oilOut: 0 };
+function drawSF() { const yw = yOfV(C.w), yo = yOfV(C.w + C.o); band(wM, .0005, yw); band(oM, Math.max(.0005, yw), yo); bC.set({ level: (C.out + C.oilOut) / (V0w * 1.3), color: C.oilOut > 1e-6 ? 0xe2d7a0 : 0xcfe6f5, op: .5, layer: C.oilOut > 1e-6 ? { h: .004, c: 0xe8c547, op: .8 } : null }); tap.rotation.y = C.open ? Math.PI / 2 : 0; }
+$('#c1').onclick = () => { C.open = !C.open; drawSF(); if (!C.open) { const ok = C.w < V0w * .04 && C.oilOut < V0o * .03; $('#r3').textContent = ok ? 'Tách được: nước ở cốc hứng, dầu ăn còn lại trong phễu' : C.w >= V0w * .04 ? 'Khoá sớm: còn nước lẫn trong phễu' : 'Khoá muộn: dầu ăn đã chảy lẫn vào cốc nước'; toast(ok ? 'Khoá đúng lúc! Đã tách được dầu ăn khỏi nước.' : $('#r3').textContent); } };
+$('#c0').onclick = () => { Object.assign(C, { w: V0w, o: V0o, open: false, out: 0, oilOut: 0 }); drawSF(); $('#r3').textContent = '?'; };
+// ===== vòng lặp =====
+lab.onTick((dt, t) => {
+  // lắng
+  if (F.settling) { F.settle = Math.min(1, F.settle + dt / 10); const k = F.settle; bA.set({ cloud: .9 * (1 - k) ** 1.5, ppt: { c: 0x6e5132, amt: .05 + .2 * k, settle: 1 }, color: new THREE.Color(0xb5946a).lerp(new THREE.Color(0xd2c6a6), k).getHex(), op: .6 - .15 * k }); if (k >= 1) { F.settling = false; toast('Đất đã lắng, lớp nước phía trên trong hơn (vẫn hơi đục).'); } }
+  // gạn + lọc
+  if (F.pouring) { F.pour = Math.min(1, F.pour + dt / 8); const k = F.pour; bA.g.rotation.z = k < .9 ? .9 * Math.min(1, k * 5) : .9 * (1 - (k - .9) * 10); bA.g.position.set(X1 + .13 - Math.min(1, k * 5) * .07, Math.min(1, k * 5) * .17, .08 - Math.min(1, k * 5) * .07);
+    if (k >= 1) { bA.g.rotation.z = 0; bA.g.position.set(X1 + .13, 0, .08); }
+    bA.set({ level: .7 - .45 * k }); inF.visible = k > .1 && k < 1; mudOnPaper.visible = k > .2;
+    F.filt = Math.min(1, F.filt + dt / 9); bB.set({ level: .45 * F.filt, color: 0xdcecf3, op: .4 });
+    drip.visible = true; const ph = (t * 3) % 1; drip.position.set(X1, .12 - ph * (.12 - .45 * F.filt * .09 * .85), funnel.position.z);
+    if (k >= 1) { F.pouring = false; drip.visible = false; inF.visible = false; F.step = 4; mark1(); $('#r1').textContent = 'Nước gạn còn hơi đục; nước lọc trong suốt, đất được giữ lại trên giấy lọc'; toast('Nước lọc thu được trong suốt; đất bị giữ lại trên giấy lọc.'); } }
+  // cô cạn
+  if (E.on && E.w > 0) { E.T = Math.min(100, E.T + dt * 20); if (E.T >= 100) E.w = Math.max(0, E.w - dt / 14); drawBrine(); if (E.w <= 0) { E.on = false; lamp.set(false); $('#r2').textContent = 'Nước bay hơi hết, còn lại muối ăn (tinh thể màu trắng) trong bát sứ'; toast('Nước đã bay hơi hết, thu được muối ăn.'); } }
+  else if (!E.on) E.T = Math.max(25, E.T - dt * 5);
+  stM.opacity = E.T > 60 && E.w > 0 ? .2 : 0; steam.children.forEach(p => { const k = (t * .4 + p.userData.ph) % 1; p.position.set(Math.sin(p.userData.ph * 17 + t) * .015 * k, .14 + k * .1, Math.cos(p.userData.ph * 9) * .015 * k); p.scale.setScalar(.5 + k * 1.5); });
+  // chiết
+  if (C.open) { const flow = dt * 6e-6; if (C.w > 0) { const d = Math.min(C.w, flow); C.w -= d; C.out += d; } else if (C.o > 0) { const d = Math.min(C.o, flow); C.o -= d; C.oilOut += d; } stream.visible = C.w + C.o > 0; const top = SF.position.y - .08, bot = .006 + bC.st.level * .08 * .85; stream.scale.y = top - bot; stream.position.set(X3, (top + bot) / 2, SF.position.z); stream.material.color.setHex(C.w > 0 ? 0xcfe6f5 : 0xe8c547); drawSF();
+    if (C.w <= 0 && !C.warned) { C.warned = true; toast('Lớp dầu đã chạm khoá – đóng khoá ngay!'); } }
+  else stream.visible = false;
+  const h = `Lọc: ${F.pour >= 1 ? '<b>đã có nước lọc</b>' : F.pouring ? 'đang lọc…' : F.settling ? 'đang lắng…' : F.mixed ? 'hỗn hợp đục' : 'chưa làm'} · Cô cạn: ${E.w <= 0 ? '<b>thu được muối</b>' : E.on ? 'đang đun (' + Math.round(E.T) + ' °C)' : 'chưa đun'}<br>Chiết: nước còn trong phễu ${fmt(C.w / V0w * 100, 0)}% · ${C.open ? '<b>khoá đang mở</b>' : 'khoá đóng'}`; if (h != hud.innerHTML) hud.innerHTML = h;
+});
+$('#v1').onclick = () => lab.view([X1 + .06, .26, .32], [X1 + .06, .11, 0]); $('#v2').onclick = () => lab.view([X2, .3, .25], [X2, .12, 0]); $('#v3').onclick = () => lab.view([X3 - .04, .22, .3], [X3, .14, 0]);
+quiz($('#qz'), [
+  { q: 'Để tách đất ra khỏi nước, ta dùng cách', o: ['lắng, gạn, lọc', 'cô cạn', 'chiết', 'nung'], a: 0 },
+  { q: 'Muối ăn được tách ra khỏi nước muối bằng cách', o: ['lọc', 'cô cạn (làm bay hơi nước)', 'chiết', 'gạn'], a: 1 },
+  { q: 'Tách dầu ăn ra khỏi nước dùng', o: ['giấy lọc', 'phễu chiết', 'bát sứ và đèn cồn', 'nam châm'], a: 1 },
+  { q: 'Trong phễu chiết, lớp nào ở dưới?', o: ['Dầu ăn vì nặng hơn', 'Nước vì nặng hơn dầu ăn', 'Hai lớp trộn đều', 'Không xác định'], a: 1 },
+  { q: 'Quá trình làm muối từ nước biển sử dụng phương pháp', o: ['lọc', 'chiết', 'cô cạn (bay hơi)', 'chưng cất'], a: 2 },
+]);
+drawBrine(); drawSF(); ready(); window.dbg = { lab, F, E, C };
+</script></body></html>

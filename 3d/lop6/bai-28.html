@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 28. Thực hành: Làm sữa chua và quan sát vi khuẩn</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, clamp } from '../core/lab3d.js';
+import { vessel, thermometer } from '../core/chem.js';
+import { wetMount } from '../core/wetmount.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 28. Thực hành: Làm sữa chua và quan sát vi khuẩn', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>1. Quan sát vi khuẩn trong sữa chua</h3><ol id="st">
+<li>Lấy một thìa sữa chua (không đường) pha loãng với 10 mL nước cất. Dùng ống nhỏ giọt hút một giọt nhỏ lên lam kính.</li>
+<li>Đậy lamen, dùng giấy thấm thấm bớt nước thừa.</li>
+<li>Đặt lên bàn kính, quan sát ở vật kính 10x để xác định vị trí có nhiều vi khuẩn, rồi chuyển sang 40x (có thể 100x).</li></ol>
+<div class="row"><button class="btn p" id="next">Làm bước tiếp theo</button><button class="btn" id="redo">Làm lại</button></div>
+<h3>2. Làm sữa chua</h3><ol id="st2">
+<li>Đun sôi 1 lít nước (sữa) rồi để nguội đến khoảng <b>50 °C</b> (dùng nhiệt kế đo).</li>
+<li>Cho sữa đặc vào khuấy tan, để nguội đến khoảng 40 – 50 °C rồi cho sữa chua (men) vào, khuấy đều.</li>
+<li>Rót vào lọ thuỷ tinh sạch, đậy nắp, đặt vào thùng xốp ủ ấm 10 – 12 giờ.</li></ol>
+<div class="row"><button class="btn p" id="y1">Đun sôi</button><button class="btn" id="y2">Cho sữa đặc + men</button><button class="btn" id="y3">Rót vào lọ</button><button class="btn" id="y4">Ủ ấm</button><button class="btn" id="y0">Làm lại</button></div>
+<div class="row"><button class="btn g" id="go1">Xem bàn kính hiển vi</button><button class="btn g" id="go2">Xem khu làm sữa chua</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><tbody><tr><td>Vi khuẩn quan sát được</td><td id="r1">?</td></tr><tr><td>Nhiệt độ khi cho men</td><td id="r2">?</td></tr><tr><td>Sau khi ủ</td><td id="r3">?</td></tr></tbody></table>
+<div class="note">Trong sữa chua có các vi khuẩn lactic: <b>hình que</b> (trực khuẩn) và <b>hình cầu xếp thành chuỗi</b> (liên cầu khuẩn). Chúng lên men đường trong sữa thành acid lactic làm sữa đông lại, có vị chua.</div>
+<div class="warn sm">Không dùng nước quá nóng (vi khuẩn bị chết) hoặc quá nguội (vi khuẩn hoạt động yếu). Sau khi ủ xong phải cho vào tủ lạnh để sữa chua không bị chua quá.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .42, .55], [0, .08, 0]], KIT = [[-.62, .3, .35], [-.62, .06, -.05]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.8, .8], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const bugs = new Set();
+const W = wetMount(lab, stage, { sample: 'yogurt', src: 'cup', liquid: 0xf3f0e6, liqOp: .85, srcLabel: 'Sữa chua pha loãng', onStep, onSeen, onPick });
+function onStep(n) { document.querySelectorAll('#st li').forEach((li, i) => li.style.color = i < Math.min(n, 2) ? '#2f9e44' : ''); upd(); }
+function onSeen(o) { if (o >= 1) { document.querySelector('#st li:nth-child(3)').style.color = '#2f9e44'; toast('Thấy rõ vi khuẩn. Bấm vào vi khuẩn để biết tên.'); } upd(); }
+function onPick(nm) { bugs.add(nm); $('#r1').textContent = [...bugs].join('; '); upd(); }
+
+// ---- khu làm sữa chua ----
+const K = new THREE.Group(); K.position.set(-.62, 0, -.05); scene.add(K);
+const stove = roundBox(.16, .03, .16, .006, MAT.plastic(0x222428, .4)); stove.position.y = .015; K.add(stove);
+const plate = new THREE.Mesh(new THREE.CylinderGeometry(.055, .055, .004, 40), new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0xff3300, emissiveIntensity: 0 })); plate.position.y = .032; K.add(plate);
+const potM = MAT.metal(0xc9ced4, .25);
+const pot = new THREE.Mesh(lathe([[0, 0], [.055, 0], [.057, .002], [.057, .1], [.06, .102], [.055, .102], [.053, .004], [0, .004]], 48), potM); pot.position.y = .034; K.add(pot);
+const milk = new THREE.Mesh(new THREE.CylinderGeometry(.052, .052, .07, 40), new THREE.MeshStandardMaterial({ color: 0xfbf8ef, roughness: .5 })); milk.position.y = .034 + .039; K.add(milk);
+for (const s of [-1, 1]) { const h = new THREE.Mesh(new THREE.TorusGeometry(.012, .003, 8, 16, Math.PI), potM); h.position.set(s * .066, .12, 0); h.rotation.z = -s * Math.PI / 2; K.add(h); }
+const th = thermometer(lab, K, [.025, .08, .02], { L: .14 }); th.g.rotation.z = -.2;
+const steam = new THREE.Group(); K.add(steam);
+const stM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .0, depthWrite: false });
+for (let i = 0; i < 14; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(.012, 10, 8), stM); p.userData.ph = i / 14; steam.add(p); }
+lab.label(pot, 'Nồi sữa', [-.07, .1, 0]); lab.label(th.g, 'Nhiệt kế', [0, .16, 0]); lab.label(stove, 'Bếp điện', [0, .02, .09]);
+// thùng xốp + lọ
+const box = new THREE.Group(); box.position.set(-.62 + .2, 0, -.05); scene.add(box);
+const foamM = new THREE.MeshStandardMaterial({ color: 0xdfe6ea, roughness: 1 });
+const bb = new THREE.Mesh(new THREE.BoxGeometry(.16, .006, .12), foamM); bb.position.y = .003; box.add(bb);
+for (const [x, z, w, d] of [[0, -.057, .16, .006], [0, .057, .16, .006], [-.077, 0, .006, .12], [.077, 0, .006, .12]]) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, .06, d), foamM); m.position.set(x, .03, z); box.add(m); }
+const lid = new THREE.Mesh(new THREE.BoxGeometry(.165, .01, .125), foamM); lid.position.set(0, .2, -.12); lid.visible = false; box.add(lid);
+lab.label(box, 'Thùng xốp', [0, .08, .06]);
+const jars = []; for (let i = 0; i < 6; i++) { const v = vessel(lab, { kind: 'beaker', R: .015, H: .045 }); v.g.position.set(-.045 + (i % 3) * .045, .006, -.025 + Math.floor(i / 3) * .05); box.add(v.g); jars.push(v); }
+lab.shadow(K); lab.shadow(box);
+const Y = { k: 0, T: 25, heat: false, cool: false, Tadd: null, h: 0, inc: false, ok: null };
+function setJars(level, op, color) { jars.forEach(j => j.set({ level, op, color })); }
+lab.onTick((dt, t) => {
+  if (Y.heat) { Y.T = Math.min(100, Y.T + dt * 25); if (Y.T >= 100) { Y.heat = false; Y.cool = true; plate.material.emissiveIntensity = 0; toast('Sữa đã sôi. Tắt bếp, để nguội và theo dõi nhiệt kế.'); mark2(1); } }
+  else if (Y.cool && Y.k < 3) Y.T = Math.max(26, Y.T - dt * (Y.T - 25) * .09);
+  if (Y.inc) { Y.h = Math.min(12, Y.h + dt * 1.6); const f = Y.ok ? clamp((Y.h - 3) / 7, 0, 1) : 0; setJars(.8, .85 + .15 * f, new THREE.Color(0xf3e6c2).lerp(new THREE.Color(0xe9d7a6), f).getHex()); if (Y.h >= 12) { Y.inc = false; lid.visible = false; finishInc(); } }
+  th.set(Y.T); plate.material.emissiveIntensity = Y.heat ? .9 : 0;
+  const st = clamp((Y.T - 55) / 40, 0, 1) * (Y.k < 3 ? 1 : 0); stM.opacity = .18 * st;
+  steam.children.forEach(p => { const k = (t * .35 + p.userData.ph) % 1; p.position.set(Math.sin(p.userData.ph * 20 + t) * .02 * k, .14 + k * .12, Math.cos(p.userData.ph * 13) * .02 * k); p.scale.setScalar(.6 + k * 1.6); });
+  updY();
+});
+function mark2(n) { document.querySelectorAll('#st2 li').forEach((li, i) => li.style.color = i < n ? '#2f9e44' : ''); }
+function updY() { const s = Y.inc || Y.h > 0 ? `Ủ: <b>${fmt(Y.h, 1)} giờ</b>` : ''; const h = `Nhiệt độ sữa: <b>${fmt(Y.T, 0)} °C</b> ${s ? '· ' + s : ''}`; if (h != updY.l) { updY.l = h; upd(); } }
+function upd() { hud.innerHTML = `Tiêu bản: <b>${['chưa làm', 'đã nhỏ giọt', 'đã đậy lamen', 'trên bàn kính'][Math.min(W.S.step, 3)]}</b>${bugs.size ? ' · đã nhận ra ' + bugs.size + ' loại vi khuẩn' : ''}<br>${updY.l || ''}`; }
+$('#y1').onclick = () => { if (Y.k > 0) return toast('Đã đun rồi. Bấm “Làm lại” để làm mẻ mới.'); lab.view(...KIT); Y.heat = true; Y.k = 1; toast('Đang đun sôi sữa…'); };
+$('#y2').onclick = () => { if (Y.k != 1 || Y.heat) return toast(Y.heat ? 'Chờ sữa sôi rồi để nguội.' : 'Cần đun sôi trước.'); Y.Tadd = Y.T; Y.ok = Y.T >= 38 && Y.T <= 52; Y.k = 2; milk.material.color.set(0xf5edd8); mark2(2);
+  $('#r2').textContent = fmt(Y.T, 0) + ' °C – ' + (Y.ok ? 'thích hợp' : Y.T > 52 ? 'quá nóng, vi khuẩn bị chết' : 'quá nguội, vi khuẩn hoạt động yếu');
+  toast(Y.ok ? `Cho men ở ${fmt(Y.T, 0)} °C – nhiệt độ thích hợp.` : Y.T > 52 ? `${fmt(Y.T, 0)} °C quá nóng: vi khuẩn lactic sẽ bị chết!` : `${fmt(Y.T, 0)} °C quá nguội: vi khuẩn hoạt động rất yếu.`); };
+$('#y3').onclick = () => { if (Y.k != 2) return toast('Cần cho sữa đặc và men trước.'); Y.k = 3; milk.scale.y = .15; milk.position.y = .034 + .008; setJars(.8, .85, 0xf3e6c2); lab.view([-.42, .22, .2], [-.42, .03, -.05]); toast('Đã rót vào 6 lọ.'); };
+$('#y4').onclick = () => { if (Y.k != 3) return toast(Y.k > 3 ? 'Đang/đã ủ.' : 'Cần rót sữa vào lọ trước.'); Y.k = 4; Y.inc = true; Y.h = 0; lid.visible = true; lid.position.set(0, .065, 0); mark2(3); toast('Đậy nắp thùng xốp, ủ ấm 10 – 12 giờ…'); };
+function finishInc() { $('#r3').textContent = Y.ok ? 'Sữa đông lại, sánh mịn, có vị chua' : 'Sữa không đông (vẫn lỏng) – thất bại'; toast(Y.ok ? 'Sau 12 giờ: sữa đã đông thành sữa chua!' : 'Sữa không đông – do nhiệt độ khi cho men không thích hợp.', 4000); showPane(1); }
+$('#y0').onclick = () => { Object.assign(Y, { k: 0, T: 25, heat: false, cool: false, Tadd: null, h: 0, inc: false, ok: null }); milk.scale.y = 1; milk.position.y = .034 + .039; milk.material.color.set(0xfbf8ef); setJars(0, .85, 0xfbf8ef); lid.visible = false; mark2(0); $('#r2').textContent = $('#r3').textContent = '?'; };
+$('#go1').onclick = () => lab.view(...HOME); $('#go2').onclick = () => lab.view(...KIT);
+$('#next').onclick = () => W.next(); $('#redo').onclick = () => { W.redo(); lab.view(...HOME); };
+quiz($('#qz'), [
+  { q: 'Vi khuẩn trong sữa chua có hình dạng', o: ['hình que và hình cầu xếp thành chuỗi', 'hình xoắn', 'hình dấu phẩy', 'hình sợi dài có nhánh'], a: 0 },
+  { q: 'Vì sao không dùng nước sôi để pha hộp sữa chua dùng làm giống?', o: ['Nhiệt độ cao làm chết vi khuẩn lactic', 'Làm sữa ngọt hơn', 'Làm sữa đặc lại ngay', 'Không ảnh hưởng gì'], a: 0 },
+  { q: 'Nhiệt độ thích hợp để cho men (sữa chua) vào sữa khoảng', o: ['10 °C', '40 – 50 °C', '80 °C', '100 °C'], a: 1 },
+  { q: 'Sau khi ủ xong, nếu để sữa chua ở ngoài (không cho vào tủ lạnh) thì', o: ['vi khuẩn tiếp tục lên men, sữa chua bị chua hơn', 'sữa chua ngọt hơn', 'sữa trở lại thành sữa lỏng ban đầu', 'không thay đổi'], a: 0 },
+  { q: 'Sữa đông lại và có vị chua là do vi khuẩn lactic biến đổi đường thành', o: ['acid lactic', 'rượu', 'muối', 'tinh bột'], a: 0 },
+]);
+upd(); ready(); window.dbg = { lab, W, Y, jars };
+</script></body></html>

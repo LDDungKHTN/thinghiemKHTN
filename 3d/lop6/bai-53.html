@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 53. Mặt Trăng</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, canvasTex, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 53. Mặt Trăng – Các pha của Mặt Trăng', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p>Mặt Trăng không tự phát sáng, nó phản xạ ánh sáng Mặt Trời. Mặt Trăng quay quanh Trái Đất mất khoảng <b>29,5 ngày</b>. Ở mỗi vị trí, phần bề mặt được chiếu sáng mà ta nhìn thấy từ Trái Đất khác nhau → các <b>pha của Mặt Trăng</b>.</p>
+<ol><li>Chọn vị trí 1 – 8 (Hình 53.2) hoặc kéo thanh “Ngày”.</li><li>Quan sát Mặt Trăng trên quỹ đạo (nửa sáng luôn hướng về Mặt Trời) và hình dạng nhìn thấy từ Trái Đất (khung bên phải).</li><li>Bấm “Chạy 1 tháng” để xem cả chu kì.</li></ol>
+<div class="row" id="pos"></div>
+<div class="sl">Ngày <input type="range" id="day" min="0" max="29.5" step=".1" value="0"><span id="dv"></span></div>
+<div class="row"><button class="btn p" id="run">Chạy 1 tháng</button><button class="btn" id="earth">Nhìn từ Trái Đất</button><button class="btn" id="top">Nhìn từ trên xuống</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Vị trí</th><th>Ngày</th><th>Hình dạng nhìn thấy</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="note">Nửa đầu tháng phần sáng (bên phải) <b>to dần</b>: không trăng → lưỡi liềm → bán nguyệt → trăng khuyết → trăng tròn. Nửa cuối tháng phần sáng (bên trái) <b>nhỏ dần</b>. Hai lần trăng tròn liên tiếp cách nhau khoảng <b>một tháng</b> (≈ 29,5 ngày).</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const TOP = [[-.18, 1.15, .4], [-.18, 0, 0]];
+const lab = createLab(stage, { cam: TOP[0], target: TOP[1], table: 'wood', tableSize: [.1, .1], minDist: .05, fov: 40 });
+const { scene, renderer } = lab;
+
+lab.room.visible = false; scene.children.forEach(o => { if (o !== lab.room && (o.isMesh || o.isGroup) && !o.isLight) o.visible = false; });
+// sao
+const stars = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([...Array(1500)].flatMap(() => { const v = new THREE.Vector3().randomDirection().multiplyScalar(6); return [v.x, v.y, v.z]; }), 3)), new THREE.PointsMaterial({ color: 0xffffff, size: .012 })); scene.add(stars);
+// Mặt Trời (xa bên trái) + chùm sáng
+const sunL = new THREE.DirectionalLight(0xffffff, 3); sunL.position.set(-5, 0, 0); scene.add(sunL); scene.add(sunL.target);
+const sun = new THREE.Mesh(new THREE.SphereGeometry(.12, 32, 24), new THREE.MeshBasicMaterial({ color: 0xffd23f })); sun.position.set(-.75, 0, 0); scene.add(sun);
+const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(128, 128, (g, w) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,220,120,1)'); r.addColorStop(.4, 'rgba(255,180,60,.5)'); r.addColorStop(1, 'rgba(255,150,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); }), blending: THREE.AdditiveBlending, depthWrite: false })); glow.scale.set(.6, .6, 1); glow.position.copy(sun.position); scene.add(glow);
+for (let i = -2; i <= 2; i++) { const a = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-.58, 0, i * .08), .16, 0xffa94d, .03, .02); scene.add(a); }
+lab.label(sun, 'Ánh sáng Mặt Trời', [.0, .16, 0]);
+// Trái Đất
+const earthTex = canvasTex(512, 256, (g, w, h) => { g.fillStyle = '#1f5fa8'; g.fillRect(0, 0, w, h); g.fillStyle = '#3f9b4a'; for (let i = 0; i < 26; i++) { g.beginPath(); g.ellipse(Math.random() * w, 40 + Math.random() * (h - 80), 20 + Math.random() * 50, 10 + Math.random() * 30, Math.random() * 3, 0, 7); g.fill(); } g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(0, 0, w, 16); g.fillRect(0, h - 16, w, 16); });
+const earth = new THREE.Mesh(new THREE.SphereGeometry(.07, 48, 32), new THREE.MeshStandardMaterial({ map: earthTex, roughness: .8 })); scene.add(earth);
+lab.label(earth, 'Trái Đất', [0, .1, 0]);
+// quỹ đạo + Mặt Trăng
+const RO = .32;
+const orbit = new THREE.Mesh(new THREE.RingGeometry(RO - .002, RO + .002, 128), new THREE.MeshBasicMaterial({ color: 0x8899aa, transparent: true, opacity: .5, side: THREE.DoubleSide })); orbit.rotation.x = -Math.PI / 2; scene.add(orbit);
+const moonTex = canvasTex(512, 256, (g, w, h) => { g.fillStyle = '#b9b9b5'; g.fillRect(0, 0, w, h); for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(${90 + Math.random() * 40},${90 + Math.random() * 40},${90 + Math.random() * 40},.35)`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 2 + Math.random() * 16, 0, 7); g.fill(); } });
+const moon = new THREE.Mesh(new THREE.SphereGeometry(.035, 48, 32), new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1 })); scene.add(moon);
+// 8 vị trí đánh dấu
+const DAYS = [0, 4, 8, 12, 16, 19, 23, 27];
+const NAME = d => { const p = ((d / 29.53) % 1 + 1) % 1; if (p < .03 || p > .97) return 'Không trăng (trăng non)'; if (p < .22) return 'Trăng lưỡi liềm đầu tháng'; if (p < .28) return 'Trăng bán nguyệt đầu tháng'; if (p < .47) return 'Trăng khuyết đầu tháng'; if (p < .53) return 'Trăng tròn'; if (p < .72) return 'Trăng khuyết cuối tháng'; if (p < .78) return 'Trăng bán nguyệt cuối tháng'; return 'Trăng lưỡi liềm cuối tháng'; };
+const posOf = d => { const f = d / 29.53 * Math.PI * 2; return new THREE.Vector3(-Math.cos(f) * RO, 0, Math.sin(f) * RO); };
+DAYS.forEach((d, i) => { const m = new THREE.Mesh(new THREE.CircleGeometry(.008, 16), new THREE.MeshBasicMaterial({ color: 0x9fb3c8 })); m.rotation.x = -Math.PI / 2; m.position.copy(posOf(d)).multiplyScalar(1.22); m.position.y = .001; scene.add(m); lab.label(m, String(i + 1), [0, .0, 0]); });
+// khung "nhìn từ Trái Đất"
+const pc = document.createElement('canvas'); pc.width = pc.height = 220; pc.style.cssText = 'position:absolute;right:10px;top:10px;width:150px;height:150px;border-radius:12px;background:#0b0f18;border:1px solid #334;z-index:3';
+stage.appendChild(pc); const pcap = document.createElement('div'); pcap.style.cssText = 'position:absolute;right:10px;top:164px;width:150px;text-align:center;color:#fff;font:600 12px Segoe UI,sans-serif;background:rgba(0,0,0,.55);border-radius:6px;padding:3px;z-index:3'; stage.appendChild(pcap);
+function drawPhase(d) { const g = pc.getContext('2d'), c = 110, R = 80, f = d / 29.53 * Math.PI * 2; g.clearRect(0, 0, 220, 220); g.fillStyle = '#0b0f18'; g.fillRect(0, 0, 220, 220);
+  g.fillStyle = '#1d2129'; g.beginPath(); g.arc(c, c, R, 0, 7); g.fill();
+  const k = Math.cos(f), waxing = Math.sin(f) >= 0; g.save(); g.beginPath();
+  // nửa sáng (phải nếu đầu tháng, trái nếu cuối tháng) + elip đầu mút
+  if (waxing) { g.arc(c, c, R, -Math.PI / 2, Math.PI / 2, false); g.ellipse(c, c, Math.abs(k) * R, R, 0, Math.PI / 2, -Math.PI / 2, k > 0); }
+  else { g.arc(c, c, R, Math.PI / 2, -Math.PI / 2, false); g.ellipse(c, c, Math.abs(k) * R, R, 0, -Math.PI / 2, Math.PI / 2, k > 0); }
+  g.closePath(); g.clip(); g.drawImage(moonTex.image, 0, 0, 256, 256, c - R, c - R, 2 * R, 2 * R); g.fillStyle = 'rgba(255,250,230,.15)'; g.fillRect(0, 0, 220, 220); g.restore();
+  pcap.innerHTML = `Nhìn từ Trái Đất<br><b style="color:#ffd43b">${NAME(d)}</b>`; }
+const S = { d: 0, run: false, rows: {} };
+function setDay(d) { S.d = ((d % 29.53) + 29.53) % 29.53; moon.position.copy(posOf(S.d)); moon.rotation.y = -S.d / 29.53 * Math.PI * 2; drawPhase(S.d); $('#day').value = S.d.toFixed(1); $('#dv').textContent = fmt(S.d, 1) + ' ngày';
+  const i = DAYS.findIndex(x => Math.abs(x - S.d) < .3); document.querySelectorAll('#pos .btn').forEach((b, j) => b.classList.toggle('on', j == i));
+  if (i >= 0 && !S.rows[i]) { S.rows[i] = `<tr><td>${i + 1}</td><td>${DAYS[i]}</td><td>${NAME(DAYS[i])}</td></tr>`; $('#tb').innerHTML = Object.keys(S.rows).sort((a, b) => a - b).map(k => S.rows[k]).join(''); }
+  if (S.earthView) earthCam(); }
+DAYS.forEach((d, i) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = i + 1; b.onclick = () => { S.run = false; setDay(d); }; $('#pos').appendChild(b); });
+$('#day').oninput = e => { S.run = false; setDay(+e.target.value); };
+$('#run').onclick = () => { S.run = !S.run; $('#run').textContent = S.run ? 'Dừng' : 'Chạy 1 tháng'; };
+function earthCam() { const m = moon.position.clone(); lab.view(m.clone().normalize().multiplyScalar(.075).setY(.02).toArray(), m.toArray(), .01); }
+$('#earth').onclick = () => { S.earthView = true; lab.controls.minDistance = .01; earthCam(); toast('Đang nhìn Mặt Trăng từ Trái Đất'); };
+$('#top').onclick = () => { S.earthView = false; lab.view(...TOP); };
+lab.onTick(dt => { if (S.run) setDay(S.d + dt * 3); earth.rotation.y += dt * .3; });
+quiz($('#qz'), [
+  { q: 'Mặt Trăng sáng được là do', o: ['tự phát ra ánh sáng', 'phản xạ ánh sáng Mặt Trời', 'phản xạ ánh sáng Trái Đất', 'các ngôi sao chiếu vào'], a: 1 },
+  { q: 'Hai lần trăng tròn liên tiếp cách nhau khoảng', o: ['1 tuần', '15 ngày', '1 tháng (≈ 29,5 ngày)', '1 năm'], a: 2 },
+  { q: 'Không trăng xảy ra khi Mặt Trăng ở vị trí', o: ['giữa Trái Đất và Mặt Trời', 'phía sau Trái Đất so với Mặt Trời', 'vuông góc với đường Trái Đất – Mặt Trời', 'bất kì'], a: 0 },
+  { q: 'Trong nửa đầu tháng, phần Mặt Trăng được chiếu sáng nhìn thấy từ Trái Đất', o: ['nhỏ dần', 'to dần', 'không đổi', 'biến mất'], a: 1 },
+  { q: 'Trăng tròn vào khoảng ngày nào của tháng âm lịch?', o: ['Ngày 1', 'Ngày 8', 'Ngày 15 – 16', 'Ngày 23'], a: 2 },
+]);
+lab.roomLight(.02); scene.background = new THREE.Color(0x05070d); if (scene.fog) { scene.fog.near = 50; scene.fog.far = 100; } setDay(0); ready(); window.dbg = { lab, S, setDay };
+</script></body></html>

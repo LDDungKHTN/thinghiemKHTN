@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 31. Thực hành: Quan sát nguyên sinh vật</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab } from '../core/lab3d.js';
+import { wetMount } from '../core/wetmount.js';
+import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 31. Thực hành: Quan sát nguyên sinh vật', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<p><b>Mẫu vật:</b> nước ao, hồ (hoặc nước ngâm rơm, cỏ khô cắt nhỏ để vài ngày nơi có ánh sáng).</p><ol id="st">
+<li>Chuyển mẫu vật vào cốc thuỷ tinh. Dùng ống nhỏ giọt hút mẫu vật, nhỏ 1 – 2 giọt lên lam kính.</li>
+<li>Đậy lamen, dùng giấy thấm thấm nước thừa trên lam kính.</li>
+<li>Quan sát bằng kính hiển vi: vật kính 10x rồi 40x.</li></ol>
+<div class="row"><button class="btn p" id="next">Làm bước tiếp theo</button><button class="btn" id="redo">Làm lại</button></div>
+<div class="note sm">Trong thị kính: kéo để tìm, <b>bấm vào sinh vật</b> để biết tên. Hãy tìm đủ 5 loại nguyên sinh vật.</div>` },
+    { id: 'p2', title: 'Kết quả', html: `<p>Nguyên sinh vật đã tìm thấy (<span id="cnt">0</span>/5):</p><table class="dt"><thead><tr><th>Tên</th><th>Đặc điểm quan sát được</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="note">Nguyên sinh vật là những sinh vật nhân thực, phần lớn <b>đơn bào</b>, kích thước hiển vi. Có loài có lục lạp, tự dưỡng (trùng roi xanh, tảo); có loài dị dưỡng, di chuyển bằng lông bơi (trùng giày), chân giả (trùng biến hình) hoặc roi.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .42, .55], [0, .08, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.2, .8], minDist: .05 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const DESC = { 'Trùng giày': 'Hình đế giày, di chuyển nhờ lông bơi', 'Trùng roi xanh': 'Hình thoi, có lục lạp màu xanh, roi bơi, điểm mắt', 'Trùng biến hình': 'Hình dạng luôn thay đổi, di chuyển bằng chân giả', 'Trùng loa kèn': 'Hình loa kèn, có lông quanh miệng', 'Tảo lục đơn bào': 'Hình cầu nhỏ màu xanh lục, tự dưỡng' };
+const found = new Set();
+const W = wetMount(lab, stage, { sample: 'pond', src: 'cup', liquid: 0xb3c492, liqOp: .6, srcLabel: 'Cốc mẫu nước ao', onStep, onSeen, onPick });
+function onStep(n) { document.querySelectorAll('#st li').forEach((li, i) => li.style.color = i < Math.min(n, 2) ? '#2f9e44' : ''); upd(); }
+function onSeen(o) { if (o == 1) document.querySelector('#st li:nth-child(3)').style.color = '#2f9e44'; toast(o == 0 ? 'Đã thấy rõ ở 100 lần. Chuyển 40x để quan sát chi tiết.' : 'Đã thấy rõ ở ' + (o == 1 ? 400 : 1000) + ' lần.'); upd(); }
+function onPick(nm) { if (!DESC[nm]) return toast(nm + ' – là vi khuẩn, không phải nguyên sinh vật'); if (!found.has(nm)) { found.add(nm); $('#tb').innerHTML = [...found].map(n => `<tr><td><b>${n}</b></td><td>${DESC[n]}</td></tr>`).join(''); $('#cnt').textContent = found.size; if (found.size == 5) toast('Đã tìm đủ 5 loại nguyên sinh vật!'); } upd(); }
+function upd() { hud.innerHTML = `Tiêu bản: <b>${['chưa làm', 'đã nhỏ mẫu', 'đã đậy lamen', 'trên bàn kính'][Math.min(W.S.step, 3)]}</b><br>Nguyên sinh vật đã tìm: <b>${found.size}/5</b>`; }
+$('#next').onclick = () => W.next(); $('#redo').onclick = () => { W.redo(); lab.view(...HOME); };
+quiz($('#qz'), [
+  { q: 'Phần lớn nguyên sinh vật có cơ thể', o: ['đơn bào, kích thước hiển vi', 'đa bào, rất lớn', 'không có tế bào', 'có thành tế bào bằng gỗ'], a: 0 },
+  { q: 'Nguyên sinh vật nào có lục lạp, có thể tự tổng hợp chất hữu cơ?', o: ['Trùng giày', 'Trùng biến hình', 'Trùng roi xanh', 'Trùng kiết lị'], a: 2 },
+  { q: 'Trùng biến hình di chuyển nhờ', o: ['lông bơi', 'roi', 'chân giả', 'vây'], a: 2 },
+  { q: 'Để nuôi cấy nguyên sinh vật, ta có thể', o: ['ngâm rơm, cỏ khô trong nước, để nơi có ánh sáng vài ngày', 'đun sôi nước ao', 'cho muối vào nước', 'để nước trong tủ lạnh'], a: 0 },
+  { q: 'Trùng giày di chuyển nhờ', o: ['lông bơi', 'chân giả', 'roi', 'cánh'], a: 0 },
+]);
+upd(); ready(); window.dbg = { lab, W };
+</script></body></html>

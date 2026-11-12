@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 3. Sử dụng kính lúp</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, canvasTex, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 3. Sử dụng kính lúp', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Cấu tạo</h3><p>Kính lúp gồm <b>tay cầm</b>, <b>khung</b> và <b>mặt kính</b> (thấu kính lồi, dày ở giữa, mỏng ở mép). Kính lúp phóng to ảnh của vật khoảng <b>3 – 20 lần</b>.</p>
+<h3>Cách sử dụng</h3><ol><li><b>Kéo vành kính</b> để đưa kính lúp tới trên vật mẫu (chiếc lá, dòng chữ nhỏ, con kiến).</li><li>Đặt kính lúp <b>gần sát vật mẫu</b> (thanh “Khoảng cách” gần 0).</li><li>Từ từ <b>dịch kính ra xa</b> vật cho đến khi nhìn thấy vật rõ nét và to nhất.</li></ol>
+<div class="note sm">Kính lúp trong bài có tiêu cự 5 cm (ghi “5x”). Khi kính cách vật nhỏ hơn 5 cm, ta thấy ảnh to, cùng chiều; dịch quá xa thì ảnh bị mờ và lộn ngược.</div>
+<div class="warn sm">Không nhìn Mặt Trời qua kính lúp để tránh bị tổn thương mắt.</div>
+<div class="sl">Khoảng cách <input type="range" id="d" min=".2" max="9" step=".1" value=".5"><span id="dv"></span></div>
+<div class="row"><button class="btn" data-g="leaf">Tới chiếc lá</button><button class="btn" data-g="txt">Tới dòng chữ</button><button class="btn" data-g="ant">Tới con kiến</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Khoảng cách (cm)</th><th>Ảnh</th><th>Phóng to (lần)</th></tr></thead><tbody id="tb"></tbody></table><button class="btn o" id="rec">Ghi lại vị trí hiện tại</button>
+<div class="note">Khi đưa kính lúp từ sát vật ra xa dần (vẫn trong khoảng 5 cm), ảnh <b>to dần và rõ</b>; dịch kính tiếp tục ra xa thì ảnh <b>bị mờ</b> rồi lộn ngược. Kính lúp giúp quan sát rõ <b>gân lá</b>, chữ nhỏ, các bộ phận của con kiến.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .36, .22], [0, 0, -.01]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1, .7], minDist: .08 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+
+// ---- tờ giấy mẫu vật (vẽ độ phân giải cao để nhìn qua kính lúp) ----
+const PW = .3, PH = .15, CW = 4096, CH = 2048, K = CW / PW / 1000;  // K: px/mm
+function drawSheet(g, w, h) {
+  g.fillStyle = '#f7f4ea'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(0,0,0,${Math.random() * .04})`; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+  // chiếc lá (trái)
+  g.save(); g.translate(K * 70, K * 75); g.rotate(-.5);
+  const L = K * 52; const lf = new Path2D(); lf.moveTo(-L, 0); lf.bezierCurveTo(-L * .4, -L * .62, L * .5, -L * .55, L, 0); lf.bezierCurveTo(L * .5, L * .55, -L * .4, L * .62, -L, 0);
+  const gr = g.createLinearGradient(0, -L * .5, 0, L * .5); gr.addColorStop(0, '#3e8e2f'); gr.addColorStop(1, '#2f7524'); g.fillStyle = gr; g.fill(lf); g.save(); g.clip(lf);
+  // gân lá các bậc
+  const vein = (x0, y0, a, len, wd, depth) => { if (depth > 4 || len < K * 1.5) return; g.strokeStyle = `rgba(190,225,150,${.85 - depth * .14})`; g.lineWidth = wd; let x = x0, y = y0; const P = [[x, y, a]], n = 8; for (let i = 0; i < n; i++) { a += (Math.random() - .5) * .25; x += Math.cos(a) * len / n; y += Math.sin(a) * len / n; P.push([x, y, a]); }
+    g.beginPath(); P.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+    P.forEach(([x, y, a], i) => { if (i > 1 && i % 2 == 0) { vein(x, y, a + .9 + Math.random() * .4, len * .45, wd * .55, depth + 1); vein(x, y, a - .9 - Math.random() * .4, len * .45, wd * .55, depth + 1); } }); };
+  g.strokeStyle = 'rgba(200,230,160,.9)'; g.lineWidth = K * .9; g.beginPath(); g.moveTo(-L * 1.1, 0); g.lineTo(L, 0); g.stroke();
+  for (let i = -6; i <= 6; i++) if (i) { const x = i * L / 7.5; vein(x, 0, (i > 0 ? -1 : 1) * 0 + (Math.sign(i) || 1) * 0 - .9, L * .5, K * .45, 1); vein(x, 0, .9, L * .5, K * .45, 1); }
+  for (let i = 0; i < 2500; i++) { g.fillStyle = 'rgba(30,80,20,.25)'; g.fillRect((Math.random() - .5) * 2 * L, (Math.random() - .5) * L, K * .15, K * .12); }
+  g.restore(); g.strokeStyle = '#2a5f1e'; g.lineWidth = K * .3; g.stroke(lf);
+  g.strokeStyle = '#4c7a2a'; g.lineWidth = K * 1.4; g.beginPath(); g.moveTo(-L, 0); g.lineTo(-L * 1.35, K * 4); g.stroke(); g.restore();
+  // dòng chữ nhỏ (giữa)
+  g.fillStyle = '#1b1b1b'; g.textBaseline = 'middle';
+  g.font = `600 ${K * 4}px "Times New Roman",serif`; g.fillText('KHTN 6', K * 150, K * 40);
+  g.font = `${K * 1.3}px "Times New Roman",serif`; ['Kính lúp là dụng cụ có thể phóng to ảnh của vật', 'được quan sát khoảng từ 3 đến 20 lần. Do đó, người', 'ta thường sử dụng kính lúp để quan sát các vật có', 'kích thước nhỏ. Không nhìn Mặt Trời qua kính lúp.'].forEach((s, i) => g.fillText(s, K * 150, K * (52 + i * 2.6)));
+  g.font = `${K * .55}px Arial`; g.fillText('Dòng chữ rất nhỏ – chỉ đọc được khi nhìn qua kính lúp: Khoa học tự nhiên 6.', K * 150, K * 66);
+  // con kiến (phải) ~ 7 mm
+  g.save(); g.translate(K * 245, K * 85); g.rotate(.4); g.fillStyle = '#2b1a12'; g.strokeStyle = '#2b1a12'; g.lineCap = 'round';
+  const el = (x, r1, r2) => { g.beginPath(); g.ellipse(K * x, 0, K * r1, K * r2, 0, 0, 7); g.fill(); };
+  el(-2.6, 1.3, .95); el(-.6, .9, .45); el(.6, .45, .4); el(1.9, .8, .75);
+  g.lineWidth = K * .12; for (const s of [-1, 1]) for (const [x, a] of [[-.9, 1.9], [-.5, 1.55], [-.1, 1.2]]) { g.beginPath(); g.moveTo(K * x, 0); g.lineTo(K * (x + Math.cos(a) * 1.4 - .3), s * K * 1.3); g.lineTo(K * (x + Math.cos(a) * 2.4 - .9), s * K * 2.2); g.stroke(); }
+  g.lineWidth = K * .09; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(K * 2.5, s * K * .3); g.lineTo(K * 3.4, s * K * .9); g.lineTo(K * 4.1, s * K * .5); g.stroke(); }
+  g.fillStyle = '#000'; for (const s of [-1, 1]) { g.beginPath(); g.arc(K * 2.1, s * K * .5, K * .18, 0, 7); g.fill(); }
+  g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.ellipse(-K * 2.8, -K * .4, K * .5, K * .25, 0, 0, 7); g.fill();
+  g.restore();
+}
+const sharpTex = canvasTex(CW, CH, drawSheet, { aniso: 16 }); sharpTex.generateMipmaps = true;
+const blurTex = canvasTex(1024, 512, (g, w, h) => { g.filter = 'blur(6px)'; g.drawImage(sharpTex.image, 0, 0, w, h); });
+const sheet = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: sharpTex, roughness: .9 }));
+sheet.rotation.x = -Math.PI / 2; sheet.position.y = .0005; sheet.receiveShadow = true; scene.add(sheet);
+const SPOT = { leaf: [-.08, -.0], txt: [.03, -.012], ant: [.095, .012] };
+
+// ---- kính lúp ----
+const R = .035, F = .05;   // bán kính mặt kính, tiêu cự (m)
+const lens = new THREE.Group(); scene.add(lens);
+const rim = new THREE.Mesh(new THREE.TorusGeometry(R + .002, .0035, 12, 64), MAT.plastic(0x222222, .4)); rim.rotation.x = Math.PI / 2; lens.add(rim);
+const handle = new THREE.Mesh(new THREE.CylinderGeometry(.007, .009, .1, 20), MAT.plastic(0x1c1c1c, .5)); handle.rotation.z = Math.PI / 2; handle.position.x = R + .055; lens.add(handle);
+const neck = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .012, 12), MAT.metal(0xc0c0c0, .3)); neck.rotation.z = Math.PI / 2; neck.position.x = R + .006; lens.add(neck);
+const glassGeo = new THREE.SphereGeometry(R * 4.2, 48, 12, 0, Math.PI * 2, 0, Math.asin(R / (R * 4.2)));
+const gTop = new THREE.Mesh(glassGeo, MAT.glassLite({ opacity: .18 })); gTop.position.y = -R * 4.2 * Math.cos(Math.asin(1 / 4.2)); lens.add(gTop);
+// mặt hiển thị ảnh qua kính
+const imgS = new THREE.Mesh(new THREE.CircleGeometry(R, 64), new THREE.MeshBasicMaterial({ map: sharpTex.clone(), toneMapped: false, transparent: true }));
+const imgB = new THREE.Mesh(new THREE.CircleGeometry(R, 64), new THREE.MeshBasicMaterial({ map: blurTex.clone(), toneMapped: false, transparent: true, depthWrite: false }));
+for (const m of [imgS, imgB]) { m.rotation.x = -Math.PI / 2; m.position.y = .0002; m.renderOrder = 2; lens.add(m); m.material.map.needsUpdate = true; }
+imgB.position.y = .0004; imgB.renderOrder = 3;
+lab.shadow(lens); imgS.castShadow = imgB.castShadow = false;
+lab.label(handle, 'Tay cầm', [.03, .01, 0]); lab.label(lens, 'Khung', [0, .006, -R - .006]); lab.label(lens, 'Mặt kính', [-R * .45, .006, R * .45]);
+const S = { x: SPOT.leaf[0], z: SPOT.leaf[1], d: .005, rows: [] };
+lab.draggable({ obj: lens, handles: [rim, handle, gTop, imgS, imgB], plane: new THREE.Vector3(0, 1, 0), get: () => 0,
+  set(p) { S.x = clamp(p.x, -PW / 2 - .02, PW / 2 + .02); S.z = clamp(p.z, -PH / 2 - .02, PH / 2 + .02); update(); } });
+function mag(d) { return d < F ? Math.min(20, F / (F - d)) : -F / (d - F); }
+function update() {
+  const d = S.d, M = mag(d), aM = Math.max(1, Math.abs(M));
+  lens.position.set(S.x, d + .002, S.z);
+  const blur = d >= F ? 1 : clamp((aM - 9) / 9, 0, .85);
+  for (const [m, tw] of [[imgS, 1], [imgB, 1]]) {
+    const t = m.material.map, rep = (2 * R / aM), sgn = M < 0 ? -1 : 1;
+    t.repeat.set(sgn * rep / PW, sgn * rep / PH);
+    const u = (S.x + PW / 2) / PW, v = 1 - (S.z + PH / 2) / PH;
+    t.offset.set(u - t.repeat.x / 2, v - t.repeat.y / 2);
+  }
+  imgB.material.opacity = blur; imgS.material.opacity = 1;
+  $('#d').value = d * 100; $('#dv').textContent = fmt(d * 100, 1) + ' cm';
+  const st = d >= F ? 'mờ, lộn ngược' : blur > .25 ? 'to nhưng hơi mờ' : 'rõ nét, cùng chiều';
+  hud.innerHTML = `Kính lúp 5x (tiêu cự 5 cm)<br>Khoảng cách kính – vật: <b>${fmt(d * 100, 1)} cm</b><br>Ảnh: <b>${st}</b>, phóng to ≈ <b>${d >= F ? '–' : fmt(aM, 1) + ' lần'}</b>`;
+  S.st = st; S.M = aM;
+}
+$('#d').oninput = e => { S.d = +e.target.value / 100; update(); };
+document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const p = SPOT[b.dataset.g]; S.x = p[0]; S.z = p[1]; update(); lab.view([p[0], .3, p[1] + .16], [p[0], 0, p[1]]); });
+$('#rec').onclick = () => { if (S.rows.some(r => r.d == S.d)) return toast('Đã ghi vị trí này'); S.rows.push({ d: S.d, st: S.st, M: S.d >= F ? '–' : fmt(S.M, 1) }); S.rows.sort((a, b) => a.d - b.d); $('#tb').innerHTML = S.rows.map(r => `<tr><td>${fmt(r.d * 100, 1)}</td><td>${r.st}</td><td>${r.M}</td></tr>`).join(''); };
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" id="up">▲ Dịch kính ra xa</button><button class="btn" id="dn">▼ Đưa kính lại gần</button><button class="btn o" id="rec2">Ghi kết quả</button><button class="btn" id="home">Nhìn toàn cảnh</button>`;
+let hold = 0; const step = k => { S.d = clamp(S.d + k * .002, .002, .09); update(); };
+for (const [id, k] of [['up', 1], ['dn', -1]]) { const b = $('#' + id); b.onpointerdown = () => { step(k); clearInterval(hold); hold = setInterval(() => step(k), 70); }; b.onpointerup = b.onpointerleave = () => clearInterval(hold); }
+$('#rec2').onclick = () => { $('#rec').click(); showPane(1); };
+$('#home').onclick = () => lab.view(...HOME);
+quiz($('#qz'), [
+  { q: 'Kính lúp có thể phóng to ảnh của vật khoảng', o: ['3 – 20 lần', '40 – 3 000 lần', '100 – 1 000 lần', '1 – 2 lần'], a: 0 },
+  { q: 'Mặt kính của kính lúp là', o: ['thấu kính lồi (dày ở giữa, mỏng ở mép)', 'kính phẳng', 'gương cầu', 'thấu kính lõm'], a: 0 },
+  { q: 'Cách sử dụng kính lúp đúng là', o: ['Đặt kính xa vật rồi đưa lại gần thật nhanh', 'Đặt kính gần sát vật, từ từ dịch kính ra xa đến khi thấy vật rõ nét', 'Nhìn Mặt Trời qua kính', 'Đặt kính ở bất kì đâu'], a: 1 },
+  { q: 'Tiếp tục dịch kính lúp ra xa chiếc lá hơn nữa thì ảnh', o: ['rõ nét hơn', 'bị mờ đi', 'không thay đổi', 'biến mất ngay'], a: 1 },
+  { q: 'Vật nào thường được quan sát bằng kính lúp?', o: ['Tế bào biểu bì hành', 'Vi khuẩn', 'Gân lá, con kiến, chữ nhỏ', 'Virus'], a: 2 },
+]);
+update(); ready(); window.dbg = { lab, S, update };
+</script></body></html>

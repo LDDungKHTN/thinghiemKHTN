@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 24. Thực hành: Quan sát và mô tả cơ thể đơn bào, cơ thể đa bào</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab } from '../core/lab3d.js';
+import { wetMount } from '../core/wetmount.js';
+import { shell, ready, toast, quiz, $, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 24. Thực hành: Quan sát và mô tả cơ thể đơn bào, cơ thể đa bào', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Làm tiêu bản và quan sát cơ thể đơn bào trong nước ao (hồ)</h3><ol id="st">
+<li>Dùng thìa khuấy đều nước ao (hồ) trong cốc. Dùng ống nhỏ giọt hút lấy một giọt nước ao nhỏ lên lam kính.</li>
+<li>Đậy lamen, dùng giấy thấm hút phần nước tràn ra ngoài lamen.</li>
+<li>Đặt tiêu bản lên bàn kính hiển vi, quan sát ở vật kính 10x và 40x.</li></ol>
+<div class="row"><button class="btn p" id="next">Làm bước tiếp theo</button><button class="btn" id="redo">Làm lại</button></div>
+<div class="note sm">Khi nhìn vào thị kính: kéo để dịch tiêu bản tìm sinh vật, <b>bấm vào sinh vật</b> để biết tên (đối chiếu Hình 24.2). Vi khuẩn rất nhỏ – cần vật kính 40x hoặc 100x.</div>` },
+    { id: 'p2', title: 'Kết quả', html: `<p>Các sinh vật đơn bào đã nhận ra (<span id="cnt">0</span>/9):</p><table class="dt"><thead><tr><th>Tên sinh vật</th><th>Hình dạng – đặc điểm</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="note">Cơ thể đơn bào được cấu tạo từ <b>một tế bào</b>, thực hiện mọi chức năng sống (di chuyển, lấy thức ăn, sinh sản…). Cơ thể đa bào (người, cây lúa, cây cải…) gồm nhiều tế bào, tổ chức thành mô, cơ quan, hệ cơ quan.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .42, .55], [0, .08, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1.2, .8], minDist: .05 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const DESC = { 'Trùng giày': 'Hình chiếc giày, có lông bơi phủ khắp cơ thể', 'Trùng roi xanh': 'Hình thoi, màu xanh lục, có roi bơi, điểm mắt đỏ', 'Trùng biến hình': 'Không có hình dạng cố định, di chuyển bằng chân giả', 'Trùng loa kèn': 'Hình loa kèn, miệng loe rộng có lông', 'Trùng bánh xe': 'Đầu có vành lông quay như bánh xe', 'Tảo lục đơn bào': 'Hình cầu nhỏ, màu xanh lục', 'Cầu khuẩn': 'Vi khuẩn hình cầu (xếp thành chuỗi)', 'Trực khuẩn': 'Vi khuẩn hình que', 'Xoắn khuẩn': 'Vi khuẩn hình xoắn' };
+const found = new Set(); let seen = [];
+const W = wetMount(lab, stage, { sample: 'pond', src: 'cup', liquid: 0xb9c99a, liqOp: .6, srcLabel: 'Cốc nước ao', onStep, onSeen, onPick });
+function onStep(n) { document.querySelectorAll('#st li').forEach((li, i) => li.style.color = i < Math.min(n, 2) ? '#2f9e44' : ''); upd(); }
+function onSeen(o) { seen[o] = 1; if (o == 1) document.querySelector('#st li:nth-child(3)').style.color = '#2f9e44'; toast(o == 0 ? 'Đã quan sát ở 100 lần. Bấm vào các sinh vật để biết tên.' : `Đã quan sát ở ${o == 1 ? 400 : 1000} lần.`); upd(); }
+function onPick(nm) { if (!found.has(nm)) { found.add(nm); $('#tb').innerHTML = [...found].map(n => `<tr><td><b>${n}</b></td><td>${DESC[n]}</td></tr>`).join(''); $('#cnt').textContent = found.size; } upd(); }
+function upd() { hud.innerHTML = `Tiêu bản: <b>${['chưa làm', 'đã nhỏ giọt nước ao', 'đã đậy lamen', 'trên bàn kính'][Math.min(W.S.step, 3)]}</b><br>Đã nhận ra: <b>${found.size}/9</b> loại sinh vật`; }
+$('#next').onclick = () => W.next(); $('#redo').onclick = () => { W.redo(); lab.view(...HOME); };
+quiz($('#qz'), [
+  { q: 'Cơ thể đơn bào là cơ thể được cấu tạo từ', o: ['một tế bào', 'hai tế bào', 'nhiều tế bào', 'không có tế bào'], a: 0 },
+  { q: 'Sinh vật nào sau đây là cơ thể đơn bào?', o: ['Cây lúa', 'Trùng giày', 'Con người', 'Cây cải'], a: 1 },
+  { q: 'Trùng roi xanh có màu xanh lục là nhờ', o: ['có lục lạp (chất diệp lục)', 'ăn tảo', 'có roi', 'sống trong nước'], a: 0 },
+  { q: 'Muốn quan sát vi khuẩn trong giọt nước ao cần dùng', o: ['mắt thường', 'kính lúp', 'kính hiển vi với vật kính 40x trở lên', 'kính râm'], a: 2 },
+  { q: 'Vì sao phải dùng giấy thấm hút nước tràn ra ngoài lamen?', o: ['Để lamen không bị trôi và không làm ướt bàn kính, vật kính', 'Để nhuộm màu', 'Để diệt sinh vật', 'Để tăng độ phóng đại'], a: 0 },
+]);
+upd(); ready(); window.dbg = { lab, W };
+</script></body></html>

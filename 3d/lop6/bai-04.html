@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 4. Sử dụng kính hiển vi quang học</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab } from '../core/lab3d.js';
+import { microscope, scopeUI } from '../core/microscope.js';
+import { shell, ready, toast, quiz, $, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 4. Sử dụng kính hiển vi quang học', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Các bộ phận chính</h3><ul><li><b>Thị kính</b> (mắt nhìn vào): 10x.</li><li><b>Đĩa quay</b> gắn các <b>vật kính</b> 10x, 40x, 100x (bấm vào đĩa để đổi).</li><li><b>Ốc to</b>, <b>ốc nhỏ</b>: điều chỉnh cho ảnh rõ nét.</li><li><b>Bàn kính</b>: đặt tiêu bản, có kẹp giữ. <b>Đèn</b> chiếu sáng mẫu vật.</li></ul>
+<h3>Cách sử dụng (SGK)</h3><ol id="steps">
+<li data-k="obj">Chọn vật kính thích hợp (bắt đầu với <b>10x</b>).</li>
+<li data-k="light">Bật công tắc đèn.</li>
+<li data-k="slide">Đặt tiêu bản lên bàn kính, kẹp giữ.</li>
+<li data-k="down">Nhìn từ bên ngoài, vặn <b>ốc to</b> hạ vật kính <b>gần sát</b> tiêu bản (kéo thanh “Ốc to” về gần 0).</li>
+<li data-k="up">Mắt nhìn vào thị kính, vặn ốc to theo chiều ngược lại (nâng vật kính lên từ từ) đến khi thấy mẫu vật.</li>
+<li data-k="fine">Vặn <b>ốc nhỏ</b> thật chậm đến khi nhìn thấy mẫu vật thật rõ nét.</li></ol>
+<div class="note sm">Độ phóng đại = số ghi trên vật kính × số ghi trên thị kính. Kính hiển vi quang học phóng to ảnh khoảng 40 – 3 000 lần.</div>
+<div class="warn sm">Khi đổi sang vật kính 40x, 100x chỉ chỉnh bằng ốc nhỏ – tránh để vật kính chạm, làm vỡ tiêu bản.</div>
+<div class="row"><b>Tiêu bản:</b><button class="btn on" data-s="leaf">Lá cây</button><button class="btn" data-s="onion">Vảy hành</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<div id="res"></div><div class="note">Ở vật kính 10x thấy nhiều tế bào nhỏ; đổi sang 40x thấy ít tế bào hơn nhưng to, rõ chi tiết hơn (nhân, vách tế bào…).</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[.32, .34, .42], [0, .14, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'bench', tableSize: [1, .7], minDist: .12 });
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const done = {}, seen = new Set();
+const M = microscope(lab, stage, [0, 0, 0], { sample: 'leaf', onChange });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+scopeUI(M, tb);
+function mark(k) { if (done[k]) return; done[k] = 1; const li = $(`#steps [data-k=${k}]`); if (li) li.style.color = '#2f9e44', li.innerHTML = '✔ ' + li.innerHTML; }
+let lowSeen = false;
+function onChange(S) {
+  if (S.obj == 0 && Object.keys(done).length == 0) mark('obj');
+  if (S.light) mark('light'); if (S.slide) mark('slide');
+  if (S.slide && S.z < .1 && !S.view) { mark('down'); lowSeen = true; }
+  if (S.slide && S.z < .03 && S.obj > 0) toast('Cẩn thận! Vật kính sắp chạm tiêu bản.');
+}
+let last = '';
+lab.onTick(() => {
+  const S = M.S, err = Math.abs(S.z - M.ZF);
+  if (S.view && S.light && S.slide && lowSeen && err < .012) mark('up');
+  if (S.view && S.sharp && done.up) { mark('fine'); const k = S.sample + S.obj; if (!seen.has(k)) { seen.add(k); res(); toast(`Đã quan sát rõ ở ${M.OBJ[S.obj].m * 10} lần`); } }
+  const h = `Vật kính <b>${M.OBJ[S.obj].m}x</b> · thị kính 10x → phóng đại <b>${M.OBJ[S.obj].m * 10} lần</b><br>Đèn: ${S.light ? 'bật' : 'tắt'} · tiêu bản: ${S.slide ? 'đã đặt' : 'chưa đặt'}<br>Khoảng cách vật kính – tiêu bản: ${S.z < .04 ? '<b style="color:#ff8787">rất sát</b>' : S.z < .12 ? 'gần' : 'xa'}`;
+  if (h != last) hud.innerHTML = last = h;
+});
+const NAME = { leaf: 'Tế bào lá cây', onion: 'Tế bào vảy hành' };
+function res() { $('#res').innerHTML = '<table class="dt"><thead><tr><th>Mẫu vật</th><th>Độ phóng đại</th><th>Nhận xét</th></tr></thead><tbody>' + [...seen].map(k => { const s = k.slice(0, -1), o = +k.slice(-1); return `<tr><td>${NAME[s]}</td><td>${M.OBJ[o].m * 10} lần</td><td>${o == 0 ? 'Thấy nhiều tế bào xếp sát nhau' : o == 1 ? 'Tế bào to, thấy rõ vách, nhân' : 'Rất to, chỉ thấy một phần tế bào'}</td></tr>`; }).join('') + '</tbody></table>'; }
+document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { document.querySelectorAll('[data-s]').forEach(x => x.classList.toggle('on', x == b)); M.setSample(b.dataset.s); toast('Đổi tiêu bản: ' + b.textContent); });
+quiz($('#qz'), [
+  { q: 'Kính hiển vi quang học có thể phóng to ảnh của vật khoảng', o: ['3 – 20 lần', '40 – 3 000 lần', '10 000 – 100 000 lần', '2 – 3 lần'], a: 1 },
+  { q: 'Vật kính 40x, thị kính 10x thì ảnh được phóng to', o: ['50 lần', '30 lần', '400 lần', '4 lần'], a: 2, e: 'Độ phóng đại = 40 × 10 = 400 lần.' },
+  { q: 'Bộ phận dùng để điều chỉnh cho ảnh thật rõ nét sau khi đã thấy mẫu vật là', o: ['ốc to', 'ốc nhỏ', 'bàn kính', 'đèn'], a: 1 },
+  { q: 'Khi hạ vật kính xuống gần tiêu bản, mắt phải', o: ['nhìn vào thị kính', 'nhìn từ bên ngoài để vật kính không chạm tiêu bản', 'nhắm lại', 'nhìn vào đèn'], a: 1 },
+  { q: 'Mẫu vật nào cần dùng kính hiển vi (không dùng kính lúp được)?', o: ['Con kiến', 'Tép bưởi', 'Tế bào biểu bì lá cây', 'Hạt đậu'], a: 2 },
+  { q: 'Khi di chuyển kính hiển vi, cách cầm đúng là', o: ['Một tay cầm thân kính, một tay đỡ chân đế', 'Cầm vào ống kính', 'Cầm vào bàn kính', 'Cầm một tay vào thị kính'], a: 0 },
+]);
+ready(); window.dbg = { lab, M, done };
+</script></body></html>

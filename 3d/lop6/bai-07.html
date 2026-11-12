@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 7. Đo thời gian</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, TEX, clamp } from '../core/lab3d.js';
+import { stopwatch } from '../core/kit.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 7. Đo thời gian', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Đo thời gian viên bi lăn hết máng nghiêng</h3><ol><li><b>Ước lượng</b> thời gian viên bi lăn hết máng để chọn đồng hồ thích hợp (đồng hồ bấm giây).</li><li>Nhấn <b>Reset</b> để đưa đồng hồ về số 0.</li><li>Nhấn <b>“Thả bi”</b>, đồng thời nhấn <b>Start</b> ngay khi bi bắt đầu lăn.</li><li>Nhấn <b>Stop</b> đúng lúc bi chạm chặn cuối máng.</li><li>Đọc, ghi kết quả. Làm 3 lần, tính giá trị trung bình.</li></ol>
+<div class="note sm">Có thể bấm trực tiếp nút xanh (Start/Stop) và nút đỏ (Reset) trên đồng hồ 3D, hoặc dùng phím <b>Space</b> để Start/Stop.</div>
+<div class="sl">Độ nghiêng <input type="range" id="ang" min="3" max="15" step="1" value="6"><span id="angv"></span></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Lần đo</th><th>Thời gian đo (s)</th></tr></thead><tbody id="tb"></tbody></table><p id="avg"></p>
+<div class="note">Đơn vị đo thời gian trong hệ đơn vị đo lường hợp pháp của nước ta là <b>giây (s)</b>. Các lần đo có thể khác nhau một chút do thời gian phản ứng của tay (khoảng 0,1 – 0,3 s), nên cần đo nhiều lần và lấy trung bình.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[0, .32, .72], [0, .04, .05]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.6, .8], minDist: .1 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+// máng nghiêng dài 1 m
+const LEN = 1.0, R = .012;
+const ramp = new THREE.Group(); ramp.position.set(.5, 0, 0); scene.add(ramp);
+const tilt = new THREE.Group(); ramp.add(tilt);
+const rail = new THREE.Mesh(new THREE.BoxGeometry(LEN, .01, .05), new THREE.MeshStandardMaterial({ color: 0xc9a06a, roughness: .6 })); rail.position.set(-LEN / 2, .005, 0); tilt.add(rail);
+const groove = new THREE.Mesh(new THREE.BoxGeometry(LEN, .004, .016), MAT.metal(0x9aa3ab, .35)); groove.position.set(-LEN / 2, .011, 0); tilt.add(groove);
+for (const s of [-1, 1]) { const w = new THREE.Mesh(new THREE.BoxGeometry(LEN, .012, .004), MAT.metal(0xb8bfc6, .3)); w.position.set(-LEN / 2, .016, s * .01); tilt.add(w); }
+const rul = new THREE.Mesh(new THREE.PlaneGeometry(LEN, .016), new THREE.MeshStandardMaterial({ map: TEX.ruler(1000, { px: 6, step: 100, h: 48 }) })); rul.rotation.x = -Math.PI / 2; rul.position.set(-LEN / 2, .0102, .018); tilt.add(rul);
+const stopper = roundBox(.012, .03, .05, .003, MAT.plastic(0xc92a2a, .4)); stopper.position.set(-LEN - .006, .02, 0); tilt.add(stopper);
+const ball = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 24), MAT.metal(0xe0e4e8, .12)); tilt.add(ball);
+const block = roundBox(.06, .1, .08, .006, MAT.plastic(0x4dabf7, .5)); scene.add(block);
+lab.shadow(ramp); lab.shadow(block);
+lab.label(ball, 'Viên bi', [0, .03, 0]); lab.label(stopper, 'Chặn cuối máng', [0, .04, 0]); lab.label(rail, 'Máng nghiêng 1 m', [0, .02, .05]);
+const SW = stopwatch(lab, [.12, 0, .2], { onChange: t => {} });
+const S = { ang: 6, run: false, s: 0, v: 0, t: 0, done: false, rows: [], swStartAt: null };
+function setAng() { const a = S.ang * Math.PI / 180; tilt.rotation.z = a; const h = Math.sin(a) * LEN; block.scale.y = (h + .002) / .1; block.position.set(.5 - .03, (h + .002) / 2, 0); ramp.position.y = h; $('#angv').textContent = S.ang + '°'; reset(); }
+const ACC = () => 5 / 7 * 9.81 * Math.sin(S.ang * Math.PI / 180);
+const Ttrue = () => Math.sqrt(2 * (LEN - .03) / ACC());
+function reset() { S.run = false; S.s = 0; S.v = 0; S.t = 0; S.done = false; place(); }
+function place() { ball.position.set(-.03 - S.s, .013 + R, 0); ball.rotation.z = S.s / R; }
+$('#ang').oninput = e => { S.ang = +e.target.value; setAng(); };
+lab.onTick(dt => {
+  if (S.run && !S.done) { S.t += dt; S.v += ACC() * dt; S.s += S.v * dt; if (S.s >= LEN - .03 - R) { S.s = LEN - .03 - R; S.done = true; S.run = false; toast('Bi đã chạm chặn cuối máng!'); } place(); }
+  const h = `Thời gian thật bi lăn: <b>${S.done ? fmt(Ttrue(), 2) + ' s' : S.run ? 'đang lăn…' : '—'}</b><br>Đồng hồ bấm giây: <b>${fmt(SW.t, 2)} s</b> ${SW.run ? '(đang chạy)' : ''}`; if (h != hud.innerHTML) hud.innerHTML = h;
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" id="rs">Reset</button><button class="btn p" id="go">Thả bi</button><button class="btn o" id="ss">Start / Stop</button><button class="btn" id="rec">Ghi kết quả</button><button class="btn" id="back">Đưa bi về đầu máng</button>`;
+$('#rs').onclick = () => SW.reset();
+$('#go').onclick = () => { if (S.run) return; if (S.done) reset(); S.run = true; };
+$('#ss').onclick = () => SW.toggle();
+addEventListener('keydown', e => { if (e.code == 'Space' && e.target.tagName != 'INPUT') { e.preventDefault(); SW.toggle(); } });
+$('#back').onclick = () => reset();
+$('#rec').onclick = () => { if (SW.run) return toast('Nhấn Stop trước khi đọc kết quả'); if (!SW.t) return toast('Chưa đo'); S.rows.push({ t: SW.t, tr: S.done ? Ttrue() : null });
+  $('#tb').innerHTML = S.rows.map((r, i) => `<tr><td>${i + 1}</td><td>${fmt(r.t, 2)}</td></tr>`).join('');
+  const av = S.rows.reduce((a, r) => a + r.t, 0) / S.rows.length; $('#avg').innerHTML = `Trung bình: <b>${fmt(av, 2)} s</b> (thời gian thật ≈ ${fmt(Ttrue(), 2)} s; chênh lệch do phản xạ của tay)`;
+  showPane(1); toast(`Lần ${S.rows.length}: ${fmt(SW.t, 2)} s`); };
+quiz($('#qz'), [
+  { q: 'Đơn vị đo thời gian trong hệ đơn vị đo lường hợp pháp của nước ta là', o: ['giờ (h)', 'phút', 'giây (s)', 'ngày'], a: 2 },
+  { q: 'Muốn đo thời gian chạy 100 m của vận động viên, nên dùng', o: ['đồng hồ treo tường', 'đồng hồ bấm giây', 'đồng hồ cát', 'lịch'], a: 1 },
+  { q: 'Trước khi đo bằng đồng hồ bấm giây cần nhấn nút', o: ['Start', 'Stop', 'Reset để đưa về số 0', 'không cần'], a: 2 },
+  { q: 'Vì sao nên đo nhiều lần rồi lấy giá trị trung bình?', o: ['Để giảm sai số do phản xạ của tay khi bấm', 'Để đồng hồ chạy nhanh hơn', 'Vì đồng hồ hỏng', 'Không cần thiết'], a: 0 },
+  { q: '1 giờ bằng bao nhiêu giây?', n: 3600, u: 's', tol: 0 },
+]);
+setAng(); SW.reset(); ready(); window.dbg = { lab, S, SW, Ttrue };
+</script></body></html>

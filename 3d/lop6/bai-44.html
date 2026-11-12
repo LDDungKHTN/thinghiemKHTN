@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 44. Lực ma sát</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, canvasTex, clamp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+
+const stage = shell({
+  title: 'Bài 44. Lực ma sát', sub: 'KHTN 6 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Hướng dẫn', html: `
+<h3>Thí nghiệm về lực ma sát nghỉ và lực ma sát trượt (Hình 44.4)</h3><ol><li>Móc lực kế vào khối gỗ đặt trên mặt bàn nằm ngang.</li><li><b>Kéo từ từ</b> đầu lực kế (kéo tay cầm màu đỏ sang phải, hoặc giữ nút “Kéo”): khối gỗ <b>vẫn đứng yên</b> dù lực kế đã chỉ một giá trị → có <b>lực ma sát nghỉ</b>.</li><li>Tăng dần lực kéo đến khi khối gỗ bắt đầu trượt. Kéo cho khối gỗ <b>trượt đều</b>: số chỉ lực kế lúc này bằng độ lớn <b>lực ma sát trượt</b>.</li></ol>
+<div class="row"><b>Mặt tiếp xúc:</b><button class="btn on" data-s="0">Mặt bàn gỗ</button><button class="btn" data-s="1">Tấm kính</button><button class="btn" data-s="2">Khăn bông</button></div>
+<div class="row"><button class="btn" id="w">Đặt / bỏ quả nặng 200 g lên khối gỗ</button></div>
+<div class="row"><button class="btn o" id="rec">Ghi kết quả</button><button class="btn" id="rs">Đưa khối gỗ về chỗ cũ</button></div>` },
+    { id: 'p2', title: 'Kết quả', html: `<table class="dt"><thead><tr><th>Mặt tiếp xúc</th><th>Khối lượng</th><th>F ma sát nghỉ lớn nhất (N)</th><th>F ma sát trượt (N)</th></tr></thead><tbody id="tb"></tbody></table>
+<div class="note"><b>Lực ma sát nghỉ</b> giữ cho vật đứng yên khi bị lực khác tác dụng. <b>Lực ma sát trượt</b> xuất hiện khi vật trượt trên bề mặt vật khác. Mặt tiếp xúc càng nhám, vật càng nặng thì lực ma sát càng lớn.</div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const HOME = [[.05, .3, .5], [.05, .03, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.2, .7], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const SURF = [{ n: 'Mặt bàn gỗ', mu: .35, mk: .28 }, { n: 'Tấm kính', mu: .2, mk: .15 }, { n: 'Khăn bông', mu: .6, mk: .5 }];
+const surfM = [null, new THREE.Mesh(new THREE.BoxGeometry(.6, .003, .12), MAT.glassLite({ opacity: .35, color: 0xd8f0ff })), new THREE.Mesh(new THREE.BoxGeometry(.6, .004, .12), new THREE.MeshStandardMaterial({ color: 0xf2f2f0, roughness: 1, map: canvasTex(256, 64, (g, w, h) => { g.fillStyle = '#f2f2ee'; g.fillRect(0, 0, w, h); for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(0,0,0,${Math.random() * .08})`; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); } g.fillStyle = 'rgba(80,140,200,.5)'; g.fillRect(0, 8, w, 6); g.fillRect(0, h - 14, w, 6); }) }))];
+surfM.forEach(m => { if (m) { m.position.set(.02, .0015, 0); m.visible = false; m.receiveShadow = true; scene.add(m); } });
+// khối gỗ
+const BM = .2; // kg
+const block = new THREE.Group(); scene.add(block);
+const bw = roundBox(.1, .05, .06, .004, new THREE.MeshStandardMaterial({ color: 0xc08a50, roughness: .6, map: canvasTex(256, 128, (g, w, h) => { g.fillStyle = '#c4904f'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 3) { g.fillStyle = `rgba(90,50,20,${.1 + Math.random() * .15})`; g.fillRect(0, y, w, 1 + Math.random() * 2); } }) })); bw.position.y = .025; block.add(bw);
+const eye = new THREE.Mesh(new THREE.TorusGeometry(.005, .0012, 8, 16), MAT.metal(0xbbbbbb, .3)); eye.rotation.y = Math.PI / 2; eye.position.set(.054, .025, 0); block.add(eye);
+const wt = new THREE.Mesh(lathe([[0, 0], [.018, 0], [.019, .003], [.019, .03], [.018, .033], [.004, .033], [.004, .04], [0, .04]], 32), MAT.metal(0x6c757d, .35)); wt.position.y = .05; wt.visible = false; block.add(wt);
+lab.label(block, 'Khối gỗ 200 g', [-.02, .08, 0]); lab.label(wt, '200 g', [.0, .05, 0]);
+// lực kế (GHĐ 5 N, ĐCNN 0,1 N)
+const FM = new THREE.Group(); scene.add(FM);
+const tube = new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, .16, 24, 1, true), MAT.glassLite({ opacity: .35 })); tube.rotation.z = Math.PI / 2; FM.add(tube);
+const scT = canvasTex(1024, 96, (g, w, h) => { g.fillStyle = '#fbfbf5'; g.fillRect(0, 0, w, h); g.fillStyle = '#111'; g.textAlign = 'center'; g.font = 'bold 30px Arial'; for (let i = 0; i <= 50; i++) { const x = 964 - i / 50 * 880; g.fillRect(x - 1.5, 0, 3, i % 10 == 0 ? 46 : i % 5 == 0 ? 34 : 22); if (i % 10 == 0) g.fillText(String(i / 10), x, 84); } g.font = 'bold 26px Arial'; g.fillText('N', 30, 60); });
+const scale = new THREE.Mesh(new THREE.PlaneGeometry(.15, .014), new THREE.MeshStandardMaterial({ map: scT, roughness: .5 })); scale.rotation.x = -Math.PI / 2; scale.position.set(.0, .0112, 0); FM.add(scale);
+const capL = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .008, 24), MAT.plastic(0x1971c2, .4)); capL.rotation.z = Math.PI / 2; capL.position.x = -.083; FM.add(capL);
+const capR = capL.clone(); capR.position.x = .083; FM.add(capR);
+const ind = new THREE.Mesh(new THREE.BoxGeometry(.002, .016, .026), MAT.plastic(0xd61f1f, .4)); FM.add(ind);
+const hookL = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0012, .03, 8), MAT.metal(0xbbbbbb, .3)); hookL.rotation.z = Math.PI / 2; FM.add(hookL);
+const handle = new THREE.Mesh(new THREE.TorusGeometry(.012, .004, 10, 24), MAT.plastic(0xd9480f, .45)); handle.rotation.y = Math.PI / 2; FM.add(handle);
+lab.shadow(FM); lab.label(FM, 'Lực kế (GHĐ 5 N – ĐCNN 0,1 N)', [0, .035, 0]); lab.label(handle, 'Kéo tay cầm', [.02, .02, 0]);
+// vật lí
+const KS = 5 / .129;  // N/m: 5 N ↔ 12,9 cm (dài thang đo)
+const S = { s: 0, xb: -.2, xh: -.2 + .054 + .1, w: false, slide: false, peak: 0, kin: [], rows: [], ps: 0 };
+const g = 9.81, mass = () => BM + (S.w ? .2 : 0);
+const Fs = () => SURF[S.s].mu * mass() * g, Fk = () => SURF[S.s].mk * mass() * g;
+function F() { return Math.max(0, (S.xh - (S.xb + .054) - .198) * KS); }
+function place() { const ext = Math.max(0, S.xh - (S.xb + .054) - .198), y = .025 + (S.s ? .004 : 0); block.position.set(S.xb, S.s ? .004 : 0, 0);
+  FM.position.set(S.xh - .1, y, 0); handle.position.x = .1; const hl = .015 + ext; hookL.scale.y = hl / .03; hookL.position.x = -.083 - hl / 2; ind.position.set(.0662 - ext, .006, 0); }lab.draggable({ obj: handle, axis: new THREE.Vector3(1, 0, 0), min: -.5, max: .5, get: () => S.xh, set(v) { S.xh = Math.max(S.xb + .252, v); } });
+let pull = 0;
+lab.onTick(dt => {
+  if (pull) S.xh += pull * dt * .02;
+  const f = F();
+  if (!S.slide) { if (f > Fs()) { S.slide = true; S.peak = Math.max(S.peak, Fs()); toast('Khối gỗ bắt đầu trượt!'); } else S.peak = Math.max(S.peak, f); }
+  if (S.slide) { const need = S.xh - .198 - .054 - Fk() / KS; if (need > S.xb + 1e-5) { S.xb += Math.min(need - S.xb, .3 * dt); S.kin.push(F()); if (S.kin.length > 60) S.kin.shift(); } else S.slide = false; }
+  if (S.xb > .25) { S.xb = .25; }
+  place();
+  const h = `Lực kế chỉ: <b>${fmt(Math.round(F() * 10) / 10, 1)} N</b><br>Khối gỗ: <b>${S.slide ? 'đang trượt' : 'đứng yên'}</b> trên ${SURF[S.s].n.toLowerCase()}${S.w ? ' (có quả nặng)' : ''}<br>${S.slide ? 'Lực ma sát trượt ≈ ' + fmt(Fk(), 1) + ' N' : F() > .05 ? 'Lực ma sát nghỉ = ' + fmt(Math.round(F() * 10) / 10, 1) + ' N (cân bằng lực kéo)' : ''}`; if (h != hud.innerHTML) hud.innerHTML = h;
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="pl">Kéo từ từ (giữ nút)</button><button class="btn" id="rl">Thả tay</button><button class="btn" id="near">Nhìn gần lực kế</button><button class="btn" id="home">Toàn cảnh</button>`;
+$('#pl').onpointerdown = () => pull = 1; $('#pl').onpointerup = $('#pl').onpointerleave = () => pull = 0;
+$('#rl').onclick = () => { S.xh = S.xb + .252; S.slide = false; };
+$('#near').onclick = () => lab.view([FM.position.x, .12, .1], [FM.position.x, .02, 0]);
+$('#home').onclick = () => lab.view(...HOME);
+function reset() { S.xb = -.25; S.xh = S.xb + .252; S.slide = false; S.peak = 0; S.kin = []; place(); }
+document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { S.s = +b.dataset.s; document.querySelectorAll('[data-s]').forEach(x => x.classList.toggle('on', x == b)); surfM.forEach((m, i) => m && (m.visible = i == S.s)); reset(); });
+$('#w').onclick = () => { S.w = !S.w; wt.visible = S.w; lab.label; reset(); toast(S.w ? 'Khối lượng tổng: 400 g' : 'Khối lượng: 200 g'); };
+$('#rs').onclick = reset;
+$('#rec').onclick = () => { if (!S.peak) return toast('Hãy kéo lực kế trước'); if (!S.kin.length) return toast('Kéo tiếp cho khối gỗ trượt đều rồi ghi'); const fk = S.kin.reduce((a, b) => a + b, 0) / S.kin.length;
+  S.rows.push(`<tr><td>${SURF[S.s].n}</td><td>${S.w ? 400 : 200} g</td><td>${fmt(Math.round(S.peak * 10) / 10, 1)}</td><td>${fmt(Math.round(fk * 10) / 10, 1)}</td></tr>`); $('#tb').innerHTML = S.rows.join(''); showPane(1); };
+quiz($('#qz'), [
+  { q: 'Khi kéo khối gỗ bằng lực kế mà khối gỗ vẫn đứng yên, lực giữ khối gỗ đứng yên là', o: ['lực ma sát trượt', 'lực ma sát nghỉ', 'trọng lực', 'lực đàn hồi'], a: 1 },
+  { q: 'Khi khối gỗ trượt đều trên mặt bàn, số chỉ của lực kế bằng', o: ['trọng lượng khối gỗ', 'độ lớn lực ma sát trượt', 'không', 'lực ma sát nghỉ lớn nhất'], a: 1 },
+  { q: 'Lực ma sát trượt lớn nhất khi khối gỗ trượt trên', o: ['tấm kính', 'mặt bàn gỗ', 'khăn bông', 'như nhau'], a: 2 },
+  { q: 'Đặt thêm quả nặng lên khối gỗ thì lực ma sát', o: ['tăng', 'giảm', 'không đổi', 'bằng 0'], a: 0 },
+  { q: 'Ví dụ lực ma sát có lợi là', o: ['ma sát giữa phanh và vành bánh xe khi phanh', 'ma sát làm mòn đế giày', 'ma sát làm nóng máy', 'ma sát cản trở đẩy thùng hàng'], a: 0 },
+]);
+reset(); ready(); window.dbg = { lab, S, F, Fs, Fk };
+</script></body></html>
