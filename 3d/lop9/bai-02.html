@@ -3,11 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 2. Động năng. Thế năng</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, TEX, roundBox, canvasTex, clamp } from '../core/lab3d.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 2. Động năng. Thế năng', sub: 'KHTN 9 – Kết nối tri thức',
@@ -111,6 +112,8 @@ function step2(dt) {
 /* ===== Vòng lặp & HUD ===== */
 lab.onTick(dt => {
   step1(dt); step2(dt);
+  level('roll', S.mode == 1 && (S.phase == 'ramp' || S.phase == 'flat') ? Math.min(1, S.v * .8) : 0, .8 + S.v * .2); level('scrape', S.phase == 'push' ? Math.min(.8, S.bv * 2) : 0);
+  if (S.phase != S._p) { if (S.phase == 'push') sfx('clack'); S._p = S.phase; } if (S.ph2 != S._p2) { if (S.ph2 == 'sink') sfx('thud'); S._p2 = S.ph2; }
   const m = BALLS[S.mi].m;
   hud.innerHTML = S.mode == 1 ? `Bi ${m * 1000} g · thả ở độ cao h = ${S.h * 100} cm<br>${S.phase == 'idle' ? 'Bấm “Thả bi”.' : S.phase == 'done' ? `Tốc độ tại chân máng v ≈ <b>${fmt(S.vb, 2)} m/s</b> · W<sub>đ</sub> ≈ <b>${fmt(S.Wd, 3)} J</b><br>Khúc gỗ dịch chuyển <b>s ≈ ${fmt(S.bx * 100, 1)} cm</b>` : 'Viên bi đang chuyển động…'}`
     : `Quả nặng ${WS[S.wi] * 1000} g · độ cao h = ${S.hw * 100} cm<br>${S.ph2 == 'idle' ? 'Bấm “Thả quả nặng”.' : S.ph2 == 'done' ? `W<sub>t</sub> = Ph ≈ <b>${fmt(S.Wt, 2)} J</b> · cọc lún <b>d ≈ ${fmt(last2.d, 1)} cm</b>` : 'Quả nặng đang rơi…'}`;

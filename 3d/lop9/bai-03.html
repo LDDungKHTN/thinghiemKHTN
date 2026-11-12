@@ -3,11 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 3. Cơ năng</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, TEX, roundBox, canvasTex, clamp } from '../core/lab3d.js';
 import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 3. Cơ năng', sub: 'KHTN 9 – Kết nối tri thức',
@@ -18,6 +19,7 @@ const stage = shell({
 <ol><li><b>Kéo vật nặng</b> đến vị trí A ở độ cao h rồi thả nhẹ (hoặc bấm “Kéo tới A và thả”).</li><li>Quan sát vật chuyển động đến vị trí thấp nhất O rồi tiếp tục đi lên, rồi dừng lại tại B.</li><li>So sánh độ cao điểm B với độ cao điểm A (dùng thước đo độ cao phía sau).</li><li>Quan sát vật nặng chuyển động qua lại sau một khoảng thời gian.</li></ol>
 <div class="row"><label><input type="checkbox" id="air" checked> Có lực cản của không khí</label></div>
 <div class="sl">Tốc độ hiển thị <input type="range" id="slow" min=".1" max="1" step=".05" value="1"><span id="vs">1×</span></div>
+<h3>Rơi, tung và ném vật</h3><p>Quả bóng ở bên phải: thả rơi từ độ cao 50 cm, tung thẳng lên hoặc ném xiên. Quan sát sự chuyển hoá động năng ↔ thế năng; khi chạm bàn một phần cơ năng chuyển thành nhiệt năng, âm thanh nên bóng nảy thấp dần.</p><div class="row"><button class="btn" id="bDrop">Thả rơi</button><button class="btn" id="bUp">Tung lên</button><button class="btn" id="bThrow">Ném xiên</button></div>
 <p class="sm">Các cột bên phải khung 3D: động năng W<sub>đ</sub>, thế năng W<sub>t</sub>, cơ năng W<sub>c</sub> = W<sub>đ</sub> + W<sub>t</sub> (gốc thế năng tại O).</p>` },
     { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thả con lắc để quan sát.</div>
 <ul><li>Từ A xuống O: độ cao giảm, tốc độ tăng → <b>thế năng chuyển hoá thành động năng</b>. Tại O động năng lớn nhất.</li><li>Từ O lên B: <b>động năng chuyển hoá thành thế năng</b>. Tại A, B vật dừng lại: thế năng lớn nhất, động năng bằng 0.</li><li>Nếu bỏ qua lực cản, cơ năng được bảo toàn: B cao bằng A.</li><li>Thực tế có lực cản không khí: một phần cơ năng chuyển hoá thành nhiệt năng nên độ cao giảm dần, cuối cùng vật dừng lại ở O.</li></ul>
@@ -58,24 +60,31 @@ const hLine = new THREE.Mesh(new THREE.BoxGeometry(.6, .001, .001), new THREE.Me
 
 const posOf = th => new THREE.Vector3(PIV.x + Math.sin(th) * Lp, PIV.y - Math.cos(th) * Lp, PIV.z);
 lab.draggable({ obj: bob, plane: new THREE.Vector3(0, 0, 1), get: () => 0,
-  onStart() { S.held = true; S.w = 0; }, onEnd() { S.held = false; S.hA = Lp * (1 - Math.cos(S.th)); S.side = Math.sign(S.th) || -1; S.maxB = 0; S.trailN = 0; toast('Đã thả vật nặng'); },
+  onStart() { M = 1; Wc0 = .2 * g * Lp * (1 - Math.cos(1.2)); S.held = true; S.w = 0; }, onEnd() { S.held = false; S.hA = Lp * (1 - Math.cos(S.th)); S.side = Math.sign(S.th) || -1; S.maxB = 0; S.trailN = 0; toast('Đã thả vật nặng'); },
   set(p) { S.th = clamp(Math.atan2(p.x - PIV.x, PIV.y - p.y), -1.2, 1.2); } });
 
 /* Thanh năng lượng (HTML) */
 const bars = document.createElement('div'); bars.className = 'hud hud2'; bars.style.pointerEvents = 'none'; stage.appendChild(bars);
 bars.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-end;height:120px">${['Wđ', 'Wt', 'Wc'].map((n, i) => `<div style="text-align:center;font-size:12px"><div style="height:100px;width:26px;background:rgba(255,255,255,.12);border-radius:4px;display:flex;align-items:flex-end"><div id="bar${i}" style="width:100%;background:${['#ff922b', '#4dabf7', '#69db7c'][i]};border-radius:4px;height:0"></div></div>${n}</div>`).join('')}</div><div id="ev" style="font-size:12px;margin-top:4px"></div>`;
 const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
-let Wc0 = .2 * g * Lp * (1 - Math.cos(1.2));
+let Wc0 = .2 * g * Lp * (1 - Math.cos(1.2)), M = 1;
+/* Quả bóng: rơi – tung – ném */
+const BR = .018, BX0 = .2, mb = .1;
+const ball = new THREE.Mesh(new THREE.SphereGeometry(BR, 32, 24), new THREE.MeshStandardMaterial({ color: 0xe03131, roughness: .4 })); ball.castShadow = true; ball.position.set(BX0, BR, .1); scene.add(ball); lab.label(ball, 'Quả bóng', [0, .035, 0]);
+const rul = new THREE.Mesh(new THREE.PlaneGeometry(.025, .62), new THREE.MeshStandardMaterial({ map: (() => { const t = TEX.ruler(600, { px: 4, h: 60 }); t.center.set(.5, .5); t.rotation = Math.PI / 2; return t; })(), roughness: .6 })); rul.position.set(BX0 - .05, .31, .1); scene.add(rul);
+const B = { on: false, x: BX0, y: BR, vx: 0, vy: 0, top: 0 };
+function launch(h, vx, vy) { M = 2; Object.assign(B, { on: true, x: BX0 - (vx > 0 ? .15 : 0), y: BR + h, vx, vy, top: h }); Wc0 = mb * g * h + .5 * mb * (vx * vx + vy * vy); lab.view([.15, .32, .85], [.15, .25, 0]); }
 let tick = 0;
 lab.onTick((dt0, t) => {
   const dt = dt0 * S.slow;
+  if (B.on) { const n = 6; for (let i = 0; i < n; i++) { const h = dt / n; B.vy -= g * h; if (S.air) { B.vx *= 1 - .05 * h; B.vy *= 1 - .05 * h; } B.x += B.vx * h; B.y += B.vy * h; if (B.y < BR) { B.y = BR; const sp = Math.abs(B.vy); if (sp > .25) sfx('thud', { vol: Math.min(1, sp / 3) }); B.vy = sp * .72; B.vx *= .8; if (sp < .25) { B.vy = 0; B.vx *= .9; } } if (B.x > .5) { B.x = .5; B.vx = -B.vx * .5; } } B.top = Math.max(B.top, B.y - BR); ball.position.set(B.x, B.y, .1); ball.rotation.z -= B.vx * dt / BR; }
   if (!S.held) {
     const n = 8; for (let i = 0; i < n; i++) { const h = dt / n, c = S.air ? .12 : 0; const a = -(g / Lp) * Math.sin(S.th) - c * S.w; S.w += a * h; S.th += S.w * h; }
     if (S.hA > .001 && Math.sign(S.th) == -S.side) S.maxB = Math.max(S.maxB, Lp * (1 - Math.cos(S.th)));
   }
   pend.rotation.z = S.th;
   const p = posOf(S.th);
-  const v = Math.abs(S.w) * Lp, Wd = .5 * m * v * v, Wt = m * g * Lp * (1 - Math.cos(S.th)), Wc = Wd + Wt;
+  const v = Math.abs(S.w) * Lp; level('wind', S.held || M == 2 ? 0 : Math.min(.7, v * .45), .8 + v * .3); const vb2 = B.vx * B.vx + B.vy * B.vy; const Wd = M == 1 ? .5 * m * v * v : .5 * mb * vb2, Wt = M == 1 ? m * g * Lp * (1 - Math.cos(S.th)) : mb * g * (B.y - BR), Wc = Wd + Wt;
   [Wd, Wt, Wc].forEach((x, i) => $('#bar' + i).style.height = clamp(x / Wc0 * 100, 0, 100) + '%');
   $('#ev').innerHTML = `W<sub>đ</sub> = ${fmt(Wd * 1000, 0)} mJ<br>W<sub>t</sub> = ${fmt(Wt * 1000, 0)} mJ<br>W<sub>c</sub> = ${fmt(Wc * 1000, 0)} mJ`;
   MA.s.visible = S.hA > .001; MA.l.visible = MA.s.visible; MB.s.visible = S.maxB > .001; MB.l.visible = MB.s.visible;
@@ -85,12 +94,14 @@ lab.onTick((dt0, t) => {
   if (!S.held && (tick++ % 2 == 0)) { S.trail.push(p.clone()); if (S.trail.length > TN) S.trail.shift(); S.trail.forEach((q, i) => tpos.set([q.x, q.y, q.z], i * 3)); trailGeo.setDrawRange(0, S.trail.length); trailGeo.attributes.position.needsUpdate = true; }
   const sig = S.held ? 'Đang kéo vật nặng tới vị trí A…' : S.hA < .001 ? 'Kéo vật nặng sang một bên rồi thả ra.' :
     (v > .05 ? (Math.abs(S.th) < .05 ? 'Vật qua vị trí thấp nhất O: <b>động năng lớn nhất</b>, thế năng nhỏ nhất.' : S.th * S.w < 0 ? 'Vật đi xuống: <b>thế năng → động năng</b>.' : 'Vật đi lên: <b>động năng → thế năng</b>.') : 'Vật dừng tức thời ở vị trí cao nhất: thế năng lớn nhất, động năng bằng 0.');
-  hud.innerHTML = `h<sub>A</sub> = <b>${fmt(S.hA * 100, 1)} cm</b>${S.maxB > .001 ? ` · h<sub>B</sub> = <b>${fmt(S.maxB * 100, 1)} cm</b>` : ''}<br>${sig}`;
+  if (M == 2) { hud.innerHTML = `Quả bóng: độ cao <b>${fmt((B.y - BR) * 100, 0)} cm</b>, tốc độ <b>${fmt(Math.sqrt(vb2), 2)} m/s</b><br>${B.vy > .05 ? 'Đi lên: <b>động năng → thế năng</b>' : B.vy < -.05 ? 'Rơi xuống: <b>thế năng → động năng</b>' : B.y - BR > .01 ? 'Điểm cao nhất: thế năng lớn nhất' : 'Bóng nằm yên trên bàn'}`; return; }
+  hud.innerHTML = `h<sub>A</sub> =<b>${fmt(S.hA * 100, 1)} cm</b>${S.maxB > .001 ? ` · h<sub>B</sub> = <b>${fmt(S.maxB * 100, 1)} cm</b>` : ''}<br>${sig}`;
   if (S.maxB > .001) $('#obs').innerHTML = S.air ? `B (${fmt(S.maxB * 100, 1)} cm) <b>thấp hơn</b> A (${fmt(S.hA * 100, 1)} cm): một phần cơ năng đã chuyển hoá thành nhiệt năng do lực cản của không khí. Sau một thời gian, vật dừng lại ở O.` : `B cao bằng A (${fmt(S.hA * 100, 1)} cm): khi bỏ qua lực cản, cơ năng được bảo toàn.`;
 });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn p" id="bGo">Kéo tới A và thả</button><button class="btn" id="bStop">Giữ vật đứng yên</button><button class="btn" id="bLbl">Tên</button>`;
-$('#bGo').onclick = () => { S.th = -.75; S.w = 0; S.held = false; S.hA = Lp * (1 - Math.cos(S.th)); S.side = -1; S.maxB = 0; S.trail = []; };
+$('#bDrop').onclick = () => launch(.5, 0, 0); $('#bUp').onclick = () => launch(.05, 0, 3); $('#bThrow').onclick = () => launch(.05, 1.2, 2.6);
+$('#bGo').onclick = () => { M = 1; Wc0 = .2 * g * Lp * (1 - Math.cos(1.2)); lab.view(...HOME); S.th = -.75; S.w = 0; S.held = false; S.hA = Lp * (1 - Math.cos(S.th)); S.side = -1; S.maxB = 0; S.trail = []; };
 $('#bStop').onclick = () => { S.th = 0; S.w = 0; S.hA = 0; S.maxB = 0; S.trail = []; };
 $('#air').onchange = e => { S.air = e.target.checked; S.maxB = 0; };
 $('#slow').oninput = e => { S.slow = +e.target.value; $('#vs').textContent = fmt(S.slow, 2) + '×'; };

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 1. Nhận biết một số dụng cụ, hoá chất</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script src="../core/boot.js"></script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, canvasTex, clamp } from '../core/lab3d.js';
+import { vessel } from '../core/chem.js';
+import { meter, coil, led } from '../core/elec.js';
+import { chemBench, benchUI } from '../core/chemlab.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx } from '../core/sfx.js';
+
+const stage = shell({
+  title: 'Bài 1. Nhận biết một số dụng cụ, hoá chất. Thuyết trình một vấn đề khoa học', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Dụng cụ', html: `<p>Bấm vào một dụng cụ trên bàn để xem <b>tên</b> và <b>chức năng</b>.</p><div id="info" class="note">Chưa chọn dụng cụ.</div>
+<div class="row"><button class="btn p" id="mk">Chế độ kiểm tra</button><span id="sc"></span></div>
+<h3>Câu hỏi trong sách</h3><p><b>Phễu, phễu chiết, bình cầu làm bằng vật liệu gì? Cần lưu ý gì?</b> Làm bằng thuỷ tinh nên dễ vỡ: cầm nhẹ tay, không va đập, không làm nóng hoặc lạnh đột ngột, kiểm tra vết nứt trước khi dùng.</p><p><b>Vì sao đun dung dịch trong cốc thuỷ tinh phải dùng lưới tản nhiệt?</b> Lưới tản nhiệt phân tán nhiệt đều, cốc không bị nóng cục bộ và nứt vỡ.</p>` },
+    { id: 'p2', title: 'Hoá chất', html: `<h3>Bảo quản hoá chất</h3><p>Bấm vào từng lọ trên giá để đổi giữa <b>lọ thường</b> (trong suốt) và <b>lọ tối màu</b> (để nơi tối), rồi bấm “Kiểm tra”.</p><div class="row"><button class="btn p" id="ck">Kiểm tra</button><button class="btn" id="gs">Nhìn giá hoá chất</button></div><div id="ckr"></div>
+<h3>An toàn khi dùng hoá chất</h3><ul><li>Dùng thìa, ống hút sạch cho từng lọ; không đổ hoá chất thừa trở lại lọ; đậy nắp ngay sau khi lấy.</li><li>Đọc kĩ nhãn trước khi dùng để lấy đúng hoá chất, đúng nồng độ.</li><li>Không tự ý nghiền, trộn các hoá chất (có thể cháy nổ, toả nhiệt, sinh khí độc).</li><li>Hoá chất dễ bay hơi, độc (H₂SO₄ đặc…): làm nơi thoáng hoặc tủ hút; đeo kính, găng tay. Pha loãng: <b>rót từ từ acid vào nước</b>, không làm ngược lại.</li></ul>` },
+    { id: 'p3', title: 'Acid – base', html: `<p>Thực hành chứng minh tính chất chung của acid, base. Chọn ống, bấm lọ để rót (2 mL) hoặc nhỏ chất chỉ thị.</p><div class="row"><button class="btn p" id="auto">Chuẩn bị nhanh</button><button class="btn o" id="ph">Thử bằng giấy pH</button><button class="btn" id="gb">Nhìn ống nghiệm</button></div><div id="ui"></div><div id="obs" class="note"></div>` },
+    { id: 'p4', title: 'Báo cáo', html: `<p>Bài báo cáo một vấn đề khoa học có 8 phần. Dùng nút ▲ ▼ sắp xếp đúng thứ tự rồi bấm “Kiểm tra”.</p><div id="od"></div><div class="row"><button class="btn p" id="ckr2">Kiểm tra</button><button class="btn" id="sf">Xáo trộn lại</button><span id="cor"></span></div>` },
+    { id: 'p5', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const VIEW = { tools: [[-.71, .62, .72], [-.71, 0, -.04]], bench: [[.05, .28, .55], [.05, .06, -.02]], shelf: [[.78, .3, .5], [.78, .1, -.2]] };
+const lab = createLab(stage, { cam: VIEW.tools[0], target: VIEW.tools[1], table: 'bench', tableSize: [2.4, .9], minDist: .06 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const glass = (o = .3) => MAT.glassLite({ opacity: o });
+const plast = (c, r = .5) => MAT.plastic(c, r);
+// ===== 1. dụng cụ =====
+const TL = [
+  ['Quang học', 'Đèn dây tóc 12 V – 21 W', 'Tạo chùm sáng hẹp khi nối với nguồn điện 12 V; các tấm chắn sáng có một hoặc nhiều khe sáng.', () => { const g = new THREE.Group(); const b = roundBox(.1, .05, .06, .006, plast(0x2b2f33)); b.position.y = .025; g.add(b); const slit = new THREE.Mesh(new THREE.PlaneGeometry(.04, .03), new THREE.MeshBasicMaterial({ color: 0xfff3c0 })); slit.position.set(.0501, .028, 0); slit.rotation.y = Math.PI / 2; g.add(slit); for (let i = -1; i <= 1; i++) { const s = new THREE.Mesh(new THREE.BoxGeometry(.002, .03, .008), plast(0x111111)); s.position.set(.051, .028, i * .01 + .005); g.add(s); } return g; }],
+  ['Quang học', 'Đèn laser', 'Tạo tia sáng, mỗi tia điều khiển bằng một công tắc trên đèn. Lưu ý: không để tia laser chiếu vào mắt.', () => { const g = new THREE.Group(); const b = roundBox(.09, .03, .07, .008, plast(0xf1f3f5)); b.position.y = .015; g.add(b); for (let i = 0; i < 3; i++) { const s = roundBox(.016, .006, .01, .002, plast(0xe03131)); s.position.set(-.015, .031, -.02 + i * .02); g.add(s); const beam = new THREE.Mesh(new THREE.CylinderGeometry(.0008, .0008, .08, 6), new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: .8 })); beam.rotation.z = Math.PI / 2; beam.position.set(.085, .015, -.02 + i * .02); g.add(beam); } return g; }],
+  ['Quang học', 'Bản bán trụ và bảng chia độ', 'Bản bán trụ là khối thuỷ tinh trong suốt; bảng chia độ dùng đọc góc tới, góc khúc xạ, góc phản xạ khi nghiên cứu khúc xạ và phản xạ toàn phần.', () => { const g = new THREE.Group(); const disk = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .004, 64), new THREE.MeshStandardMaterial({ map: canvasTex(512, 512, (c, w) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, w); c.strokeStyle = '#222'; c.translate(256, 256); for (let a = 0; a < 360; a += 5) { const r = a % 30 ? 236 : 210; c.lineWidth = a % 30 ? 2 : 4; c.beginPath(); c.moveTo(Math.cos(a * Math.PI / 180) * r, Math.sin(a * Math.PI / 180) * r); c.lineTo(Math.cos(a * Math.PI / 180) * 252, Math.sin(a * Math.PI / 180) * 252); c.stroke(); } c.beginPath(); c.moveTo(-252, 0); c.lineTo(252, 0); c.moveTo(0, -252); c.lineTo(0, 252); c.stroke(); }) })); disk.position.y = .002; g.add(disk); const hc = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .015, 48, 1, false, 0, Math.PI), glass(.45)); hc.position.y = .0115; g.add(hc); return g; }],
+  ['Quang học', 'Bộ dụng cụ ảnh qua thấu kính', 'Gồm thấu kính hội tụ, thấu kính phân kì, màn chắn và vật sáng (khe chữ F), đặt trên giá quang học đồng trục để dịch chuyển dễ dàng.', () => { const g = new THREE.Group(); const rail = roundBox(.22, .008, .02, .002, MAT.metal(0x9aa3ab, .3)); rail.position.y = .004; g.add(rail); const st = (x, m) => { const p = new THREE.Mesh(new THREE.CylinderGeometry(.002, .002, .04), MAT.metal()); p.position.set(x, .028, 0); g.add(p); m.position.set(x, .05, 0); g.add(m); }; st(-.09, (() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(.025, .025), new THREE.MeshStandardMaterial({ map: canvasTex(64, 64, (c) => { c.fillStyle = '#ffd43b'; c.fillRect(0, 0, 64, 64); c.fillStyle = '#222'; c.font = 'bold 50px Arial'; c.fillText('F', 18, 50); }) })); m.rotation.y = Math.PI / 2; return m; })()); const L1 = new THREE.Mesh(new THREE.SphereGeometry(.02, 24, 12), glass(.4)); L1.scale.set(.25, 1, 1); st(-.02, L1); const L2 = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .006, 24), glass(.4)); L2.rotation.z = Math.PI / 2; st(.03, L2); const sc = new THREE.Mesh(new THREE.BoxGeometry(.003, .04, .04), plast(0xf8f9fa)); st(.09, sc); return g; }],
+  ['Điện từ', 'Điện kế', 'Phát hiện dòng điện cảm ứng. Vạch 0 nằm giữa thang đo nên nhận biết được cả hai chiều dòng điện: dòng vào chốt G, ra chốt (−) kim lệch phải; ngược lại kim lệch trái.', p => meter(lab, p, { kind: 'G', max: 5, center: true }).g],
+  ['Điện từ', 'Đồng hồ đo điện đa năng', 'Đo cường độ dòng điện, hiệu điện thế, điện trở… trong mạch điện một chiều và xoay chiều.', () => { const g = new THREE.Group(); const b = roundBox(.06, .012, .11, .006, plast(0xf5c518, .5)); b.position.y = .006; g.add(b); const lcd = new THREE.Mesh(new THREE.PlaneGeometry(.04, .02), new THREE.MeshStandardMaterial({ map: canvasTex(160, 80, c => { c.fillStyle = '#c9dcc4'; c.fillRect(0, 0, 160, 80); c.fillStyle = '#1b2a1b'; c.font = 'bold 48px monospace'; c.fillText('12.0', 14, 58); }) })); lcd.rotation.x = -Math.PI / 2; lcd.position.set(0, .0125, -.03); g.add(lcd); const knob = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .006, 24), plast(0x222222)); knob.position.set(0, .015, .01); g.add(knob); for (const x of [-.018, 0, .018]) { const j = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .004, 12), plast(x ? 0xc92a2a : 0x111111)); j.position.set(x, .014, .042); g.add(j); } return g; }],
+  ['Điện từ', 'Cuộn dây dẫn có hai đèn LED', 'Hai đèn LED mắc song song, ngược cực với cuộn dây: đèn nào sáng cho biết có dòng điện cảm ứng và chiều của nó.', () => { const g = new THREE.Group(); const c = coil(.022, .07, 22); c.position.y = .025; g.add(c); const bs = roundBox(.1, .006, .06, .002, plast(0x9cc9e8)); bs.position.y = .003; g.add(bs); led(lab, g, [-.02, .006, .025], { color: 0xffe066 }).set(.6); led(lab, g, [.02, .006, .025], { color: 0xff6b6b }).set(0); return g; }],
+  ['Chất và sự biến đổi chất', 'Bát sứ', 'Trộn hoặc đun nóng chảy các chất rắn, cô đặc dung dịch; thực hiện một số phản ứng toả nhiệt mạnh.', () => new THREE.Mesh(lathe([[0, 0], [.02, .001], [.04, .012], [.045, .022], [.043, .022], [.038, .013], [.019, .003], [0, .002]], 40), new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: .35, side: THREE.DoubleSide }))],
+  ['Chất và sự biến đổi chất', 'Phễu', 'Rót chất lỏng hoặc dùng để lọc.', () => { const m = new THREE.Mesh(lathe([[.0035, 0], [.0035, .05], [.04, .095], [.042, .096], [.038, .095], [.0025, .05], [.0025, 0]], 40), glass(.35)); return m; }],
+  ['Chất và sự biến đổi chất', 'Phễu chiết', 'Tách chất theo phương pháp chiết (hai chất lỏng không tan vào nhau).', () => { const g = new THREE.Group(); const p = []; for (let y = 0; y <= .13; y += .005) { const r = y < .07 ? .0035 + y / .07 * .029 : Math.sqrt(Math.max(0, .0325 ** 2 - ((y - .07) * .694) ** 2)); p.push([r + .0015, y + .04]); } const m = new THREE.Mesh(lathe(p, 32), glass(.35)); g.add(m); const st = new THREE.Mesh(new THREE.CylinderGeometry(.0035, .0025, .04, 12), glass(.4)); st.position.y = .02; g.add(st); const tap = new THREE.Mesh(new THREE.BoxGeometry(.025, .005, .005), plast(0x1971c2)); tap.position.y = .035; g.add(tap); return g; }],
+  ['Chất và sự biến đổi chất', 'Bình cầu', 'Đựng chất lỏng, pha chế dung dịch, đun nóng, chưng cất.', () => { const v = vessel(lab, { kind: 'flask', R: .035, H: .14, neck: .01 }); v.set({ level: .3, color: 0xcfe8f3, op: .4 }); return v.g; }],
+  ['Chất và sự biến đổi chất', 'Lưới tản nhiệt', 'Đặt giữa ngọn lửa và dụng cụ thuỷ tinh để phân tán nhiệt đều khi đun.', () => { const m = new THREE.Mesh(new THREE.BoxGeometry(.1, .002, .1), new THREE.MeshStandardMaterial({ color: 0x9aa3ab, metalness: .7, roughness: .5, transparent: true, map: canvasTex(256, 256, c => { c.fillStyle = '#8a9299'; c.fillRect(0, 0, 256, 256); c.fillStyle = '#e9ecef'; c.beginPath(); c.arc(128, 128, 60, 0, 7); c.fill(); c.strokeStyle = '#555'; for (let i = 0; i < 256; i += 8) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i, 256); c.moveTo(0, i); c.lineTo(256, i); c.stroke(); } }) })); m.position.y = .001; return m; }],
+  ['Quan sát nhiễm sắc thể', 'Kính hiển vi và tiêu bản cố định NST', 'Dùng quan sát nhiễm sắc thể. Ở vật kính 100× cần nhỏ dầu soi kính để thấy rõ mẫu vật nhỏ, trong suốt.', () => { const g = new THREE.Group(); const b = roundBox(.1, .015, .13, .006, plast(0xeef0f2)); b.position.y = .0075; g.add(b); const pl = roundBox(.025, .16, .03, .006, plast(0xeef0f2)); pl.position.set(0, .09, -.04); g.add(pl); const st = roundBox(.08, .006, .07, .002, plast(0x2a2e33)); st.position.set(0, .07, .01); g.add(st); const arm = roundBox(.025, .025, .08, .006, plast(0xeef0f2)); arm.position.set(0, .165, -.01); g.add(arm); const tb2 = new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, .07, 20), plast(0xeef0f2)); tb2.position.set(0, .15, .025); g.add(tb2); const ey = new THREE.Mesh(new THREE.CylinderGeometry(.007, .007, .05, 16), plast(0x2a2e33)); ey.rotation.x = -.6; ey.position.set(0, .195, .04); g.add(ey); const ob = new THREE.Mesh(new THREE.CylinderGeometry(.005, .004, .03, 12), MAT.metal(0xd0d4d8, .2)); ob.position.set(0, .105, .025); g.add(ob); return g; }],
+];
+const items = [];
+TL.forEach((t, i) => { const col = i % 5, row = Math.floor(i / 5), p = [-1.05 + col * .17, 0, -.22 + row * .2]; let o = t[3](p); if (o.parent !== scene) { o.position.set(...p); scene.add(o); } lab.shadow(o); items.push(o); const bb = new THREE.Box3().setFromObject(o); const l = lab.label(o, t[1], [0, bb.max.y - o.position.y + .015, 0]); l.element.style.fontSize = '11px'; lab.clickable(o, () => pick(i)); });
+const arrow = new THREE.Mesh(new THREE.ConeGeometry(.012, .03, 16), new THREE.MeshBasicMaterial({ color: 0xff7a00 })); arrow.rotation.x = Math.PI; arrow.visible = false; scene.add(arrow);
+lab.onTick((dt, t) => { if (arrow.visible) arrow.position.y = arrow.userData.y + Math.sin(t * 4) * .006; });
+let qz = null;
+function pick(i) {
+  if (qz && qz.q >= 0) { const ok = i == qz.q; qz.n++; if (ok) qz.s++; sfx(ok ? 'chime' : 'error'); $('#info').innerHTML = `<span class="${ok ? 'ok' : 'er'}">${ok ? 'Chính xác!' : 'Chưa đúng.'}</span> Đó là <b>${TL[qz.q][1]}</b>.`; $('#sc').textContent = `Điểm: ${qz.s}/${qz.n}`; showPane(0);
+    setTimeout(() => { if (!qz) return; if (qz.n >= 8) { $('#info').innerHTML = `<b>Hoàn thành: ${qz.s}/8 câu đúng.</b>`; qz.q = -1; } else ask(); }, 1400); return; }
+  const o = items[i], b = new THREE.Box3().setFromObject(o); arrow.visible = true; arrow.position.set((b.min.x + b.max.x) / 2, 0, (b.min.z + b.max.z) / 2); arrow.userData.y = b.max.y + .03;
+  $('#info').innerHTML = `<b>${TL[i][1]}</b> <span class="sm">(${TL[i][0]})</span><p style="margin:4px 0 0">${TL[i][2]}</p>`; hud.innerHTML = `<b>${TL[i][1]}</b>`; showPane(0);
+}
+function ask() { qz.q = Math.floor(Math.random() * TL.length); $('#info').innerHTML = `<b>Câu ${qz.n + 1}/8:</b> Bấm vào dụng cụ có chức năng sau:<p>${TL[qz.q][2]}</p>`; }
+$('#mk').onclick = () => { if (qz) { qz = null; $('#mk').textContent = 'Chế độ kiểm tra'; $('#sc').textContent = ''; $('#info').textContent = 'Bấm vào một dụng cụ để xem tên và chức năng.'; lab.showLabels(true); } else { qz = { n: 0, s: 0, q: 0 }; $('#mk').textContent = 'Thoát kiểm tra'; $('#sc').textContent = 'Điểm: 0/0'; lab.showLabels(false); arrow.visible = false; ask(); lab.view(...VIEW.tools); } };
+// ===== 2. giá hoá chất =====
+const BS = [['KMnO₄', 1, 0x5a1a6b, true], ['AgNO₃', 1, 0xf4f4f4, true], ['NaCl', 0, 0xffffff, true], ['HCl', 0, 0xeaf6fb, false], ['CuSO₄', 0, 0x2f9fd6, true], ['C₂H₅OH', 0, 0xeaf6fb, false]];
+const shelf = new THREE.Group(); shelf.position.set(.78, 0, -.25); scene.add(shelf);
+const wood = new THREE.MeshStandardMaterial({ color: 0xa47148, roughness: .7 });
+for (const y of [0, .12]) { const b = new THREE.Mesh(new THREE.BoxGeometry(.5, .012, .12), wood); b.position.y = y + .006; shelf.add(b); }
+for (const x of [-.25, .25]) { const s = new THREE.Mesh(new THREE.BoxGeometry(.012, .25, .12), wood); s.position.set(x, .125, 0); shelf.add(s); }
+const dark = BS.map(() => 0), bottles = [];
+BS.forEach((b, i) => { const g = new THREE.Group(); g.position.set(-.18 + (i % 3) * .18, .012 + Math.floor(i / 3) * .12, 0); shelf.add(g);
+  const m = new THREE.MeshPhysicalMaterial({ color: 0xeaf6ff, transparent: true, opacity: .3, roughness: .05, clearcoat: 1, side: THREE.DoubleSide, depthWrite: false });
+  const body = new THREE.Mesh(lathe([[0, 0], [.024, 0], [.026, .004], [.026, .06], [.012, .075], [.01, .085], [0, .085]], 32), m); body.renderOrder = 4; g.add(body);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, .014, 20), plast(0x222222)); cap.position.y = .09; g.add(cap);
+  const cont = b[3] ? new THREE.Mesh(new THREE.CylinderGeometry(.021, .021, .022, 24), new THREE.MeshStandardMaterial({ color: b[2], roughness: .9 })) : new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .04, 24), new THREE.MeshPhysicalMaterial({ color: b[2], transparent: true, opacity: .45 }));
+  cont.position.y = b[3] ? .012 : .022; g.add(cont);
+  const lb = new THREE.Mesh(new THREE.PlaneGeometry(.04, .022), new THREE.MeshStandardMaterial({ map: canvasTex(160, 88, c => { c.fillStyle = '#fffdf3'; c.fillRect(0, 0, 160, 88); c.strokeStyle = '#999'; c.strokeRect(2, 2, 156, 84); c.fillStyle = '#111'; c.font = 'bold 30px Arial'; c.textAlign = 'center'; c.fillText(b[0], 80, 56); }) })); lb.position.set(0, .04, .0265); g.add(lb);
+  bottles.push({ g, m }); lab.clickable(g, () => { dark[i] ^= 1; sfx('clink'); paint(); $('#ckr').innerHTML = ''; });
+});
+function paint() { bottles.forEach((b, i) => { b.m.color.set(dark[i] ? 0x6b3a12 : 0xeaf6ff); b.m.opacity = dark[i] ? .8 : .3; }); }
+lab.label(shelf, 'Giá hoá chất (bấm lọ để đổi lọ thường ↔ lọ tối màu)', [0, .3, 0]);
+$('#ck').onclick = () => { const ok = BS.every((b, i) => b[1] == dark[i]); sfx(ok ? 'chime' : 'error'); $('#ckr').innerHTML = ok ? '<div class="note">Đúng! KMnO₄ và AgNO₃ dễ bị ánh sáng phân huỷ nên cần đựng trong <b>lọ tối màu</b>, để nơi tối.</div>' : '<div class="warn">Chưa đúng: chỉ những chất dễ bị ánh sáng phân huỷ như KMnO₄, AgNO₃ mới cần lọ tối màu.</div>'; };
+$('#gs').onclick = () => lab.view(...VIEW.shelf);
+// ===== 3. acid – base =====
+const REAG = [{ id: 'hcl', n: 'HCl 0,1 M', c: 0xeef6f8, k: 'liq' }, { id: 'h2o', n: 'Nước cất', c: 0xe8f4fa, k: 'liq' }, { id: 'naoh', n: 'NaOH 0,1 M', c: 0xf2f6f8, k: 'liq' }, { id: 'pp', n: 'Phenolphthalein', c: 0xf8f8f8, k: 'drop' }, { id: 'qt', n: 'Quỳ tím (dd)', c: 0x7c4dff, k: 'drop' }, { id: 'zn', n: 'Mẩu kẽm', c: 0x9aa5b1, k: 'sol', solid: { kind: 'chunk', c: 0x9aa5b1, metal: true }, max: 1 }, { id: 'cuo', n: 'Bột CuO', c: 0x222222, k: 'sol', solid: { kind: 'powder', c: 0x1c1c1c }, max: 1 }];
+const has = (it, id) => it.find(x => x.id == id);
+const pHof = it => { const a = has(it, 'hcl')?.amt || 0, b = has(it, 'naoh')?.amt || 0, w = has(it, 'h2o')?.amt || 0, v = a + b + w; if (!v) return 7; const n = .1 * (a - b); return Math.abs(n) < 1e-6 ? 7 : n > 0 ? -Math.log10(n / v) : 14 + Math.log10(-n / v); };
+const mixc = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), clamp(t, 0, 1)).getHex();
+function react(it, heat, age) {
+  const s = { notes: [], eq: [] }; if (!it.length) return s;
+  const a = has(it, 'hcl'), b = has(it, 'naoh'), w = has(it, 'h2o'), v = (a?.amt || 0) + (b?.amt || 0) + (w?.amt || 0), p = pHof(it), acid = v > 0 && p < 6;
+  s.color = 0xe6f2f8; s.op = .3;
+  if (has(it, 'pp')) { const k = clamp((p - 8.2) / 1.8, 0, 1); s.color = mixc(0xe6f2f8, 0xd6246e, k); s.op = .3 + .5 * k; s.notes.push(k > 0 ? 'Phenolphthalein hoá <b>hồng</b> (môi trường base).' : 'Phenolphthalein <b>không màu</b> (acid hoặc trung tính).'); }
+  if (has(it, 'qt')) { s.color = p < 4.5 ? 0xe03131 : p < 7 ? mixc(0xe03131, 0x7e57c2, (p - 4.5) / 2.5) : p < 8.3 ? mixc(0x7e57c2, 0x3b5bdb, (p - 7) / 1.3) : 0x3b5bdb; s.op = .7; s.notes.push(p < 4.5 ? 'Quỳ tím hoá <b>đỏ</b> (acid).' : p > 8.3 ? 'Quỳ tím hoá <b>xanh</b> (base).' : 'Quỳ tím giữ màu tím (gần trung tính).'); }
+  if (a && b) s.eq.push('HCl + NaOH → NaCl + H₂O (phản ứng trung hoà)');
+  if (has(it, 'zn')) { const left = acid ? clamp(1 - age / 40, .25, 1) : 1; s.solid = { kind: 'chunk', c: 0x9aa5b1, amt: left, metal: true }; if (acid) { s.bubbles = .45; s.notes.push('Mẩu kẽm tan dần, có <b>bọt khí H₂</b> thoát ra.'); s.eq.push('Zn + 2HCl → ZnCl₂ + H₂↑'); } else s.notes.push('Kẽm không phản ứng trong môi trường này.'); }
+  if (has(it, 'cuo')) { const k = acid ? clamp(age / 12, 0, 1) : 0; if (k < 1) s.solid = { kind: 'powder', c: 0x1c1c1c, amt: 1 - k }; if (acid) { s.color = mixc(s.color, 0x2bb7c9, k * .8); s.op = .3 + .4 * k; s.notes.push(k < 1 ? 'Bột CuO đen tan dần, dung dịch chuyển <b>xanh lam</b>…' : 'CuO tan hết, dung dịch xanh lam.'); s.eq.push('CuO + 2HCl → CuCl₂ + H₂O'); } else s.notes.push('Bột CuO đen không tan trong nước hoặc base.'); }
+  if (v) s.notes.unshift(`pH ≈ ${fmt(p, 1)}: môi trường ${Math.abs(p - 7) < .3 ? 'trung tính' : p < 7 ? 'acid' : 'base'}.`);
+  return s;
+}
+const tubes = ['Ống 1', 'Ống 2', 'Ống 3', 'Ống 4'];
+const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 2, cap: 12, heat: false, obs: '#obs', onObs: h => hud.innerHTML = h });
+benchUI(bench, $('#ui'), { tubes, reagents: REAG, heat: false });
+$('#auto').onclick = () => { const P = [[['hcl', 4], ['qt', 1]], [['naoh', 4], ['pp', 1]], [['hcl', 4], ['zn', 1]], [['hcl', 4], ['cuo', 1]]]; P.forEach((p, i) => { bench.T[i].items = p.map(([id, amt]) => ({ id, amt })); bench.T[i].age = 0; }); bench.redraw(); lab.view(...VIEW.bench); toast('Đã chuẩn bị 4 ống: acid + quỳ tím, base + phenolphthalein, acid + Zn, acid + CuO. Bấm từng ống để xem hiện tượng.'); };
+const PH = [0xd62828, 0xe8590c, 0xf08c00, 0xf59f00, 0xe6c200, 0xb5c334, 0x7cb342, 0x43a047, 0x26a69a, 0x1e88e5, 0x3949ab, 0x5e35b1, 0x6a1b9a, 0x4a148c];
+const strip = new THREE.Mesh(new THREE.BoxGeometry(.012, .0008, .05), new THREE.MeshStandardMaterial({ color: 0xf2c94a, roughness: .9 })); strip.position.set(.22, .002, .12); scene.add(strip); lab.label(strip, 'Giấy pH', [0, .01, .03]);
+$('#ph').onclick = () => { const t = bench.T[bench.sel]; if (!t.items.length) return toast('Ống đang trống'); const p = pHof(t.items); strip.material.color.setHex(PH[clamp(Math.round(p), 1, 14) - 1]); sfx('paper'); toast(`Giấy pH chuyển màu ứng với pH ≈ ${Math.round(p)} (${p < 6.7 ? 'acid' : p > 7.3 ? 'base' : 'trung tính'}).`); lab.view([.2, .16, .3], [.15, .03, .05]); };
+$('#gb').onclick = () => lab.view(...VIEW.bench);
+// ===== 4. báo cáo =====
+const RP = [['Tiêu đề', 'Chính xác, mô tả rõ nội dung báo cáo'], ['Tóm tắt', 'Tổng hợp ngắn mục tiêu, phương pháp, kết quả, kết luận'], ['Giới thiệu', 'Vấn đề nghiên cứu, tầm quan trọng và mục tiêu'], ['Phương pháp', 'Quá trình thí nghiệm hoặc thu thập, xử lí dữ liệu; vật liệu, hoá chất, dụng cụ'], ['Kết quả', 'Dữ liệu trình bày bằng biểu đồ, hình ảnh hoặc bảng'], ['Thảo luận', 'Phân tích, giải thích ý nghĩa kết quả; so sánh với nghiên cứu khác'], ['Kết luận', 'Những phát hiện chính và gợi ý nghiên cứu tiếp'], ['Tài liệu tham khảo', 'Các nguồn thông tin đã sử dụng']];
+let od = [], ck = 0;
+const sf = () => { od = RP.map((_, i) => i).sort(() => Math.random() - .5); if (od.every((v, i) => v == i)) od.reverse(); ck = 0; $('#cor').textContent = ''; ro(); };
+function ro() { $('#od').innerHTML = od.map((k, i) => `<div class="row" style="justify-content:space-between;border:1px solid var(--ln);border-radius:8px;padding:6px 8px;${ck ? (k == i ? 'background:rgba(47,158,68,.12)' : 'background:rgba(224,49,49,.1)') : ''}"><span><b>${i + 1}. ${RP[k][0]}</b><br><span class="sm">${RP[k][1]}</span></span><span><button class="btn g" data-i="${i}" data-d="-1">▲</button><button class="btn g" data-i="${i}" data-d="1">▼</button></span></div>`).join('');
+  $('#od').querySelectorAll('button').forEach(b => b.onclick = () => { const i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= od.length) return; [od[i], od[j]] = [od[j], od[i]]; ck = 0; ro(); }); }
+$('#ckr2').onclick = () => { ck = 1; ro(); const ok = od.every((v, i) => v == i); sfx(ok ? 'chime' : 'error'); $('#cor').innerHTML = ok ? '<span class="ok">Đúng thứ tự!</span>' : `<span class="er">Đúng ${od.filter((v, i) => v == i).length}/8 vị trí.</span>`; };
+$('#sf').onclick = sf; sf();
+// chuyển góc nhìn theo thẻ
+document.querySelectorAll('.tabs button').forEach((b, i) => b.addEventListener('click', () => { if (i == 0) lab.view(...VIEW.tools); if (i == 1) lab.view(...VIEW.shelf); if (i == 2) lab.view(...VIEW.bench); }));
+quiz($('#qz'), [
+  { q: 'Dụng cụ dùng để tách hai chất lỏng không tan vào nhau là', o: ['phễu lọc', 'phễu chiết', 'bình cầu', 'bát sứ'], a: 1 },
+  { q: 'Khi đun cốc thuỷ tinh trên đèn cồn cần đặt', o: ['lưới tản nhiệt', 'giấy lọc', 'bát sứ', 'tấm kính'], a: 0 },
+  { q: 'Hoá chất nào cần đựng trong lọ tối màu?', o: ['NaCl', 'AgNO₃', 'HCl loãng', 'CuSO₄'], a: 1 },
+  { q: 'Pha loãng H₂SO₄ đặc đúng cách là', o: ['rót nước vào acid', 'rót từ từ acid vào nước và khuấy nhẹ', 'đổ nhanh acid vào nước', 'đun nóng acid'], a: 1 },
+  { q: 'Dung dịch làm quỳ tím hoá đỏ có môi trường', o: ['acid', 'base', 'trung tính', 'không xác định'], a: 0 },
+  { q: 'Điện kế có vạch 0 ở giữa thang đo để', o: ['đo được điện áp lớn', 'nhận biết được cả hai chiều dòng điện', 'đo điện trở', 'trang trí'], a: 1 },
+]);
+paint(); ready(); window.dbg = { lab, bench };
+</script></body></html>
