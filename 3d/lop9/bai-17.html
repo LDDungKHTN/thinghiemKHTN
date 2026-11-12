@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 17. Một số dạng năng lượng tái tạo</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script src="../core/boot.js"></script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, canvasTex, clamp, lerp } from '../core/lab3d.js';
+import { bulb } from '../core/elec.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
+
+const KINDS = [['Năng lượng Mặt Trời', 1, 0], ['Năng lượng gió', 1, 0], ['Than đá', 0, 1], ['Năng lượng sóng biển', 1, 0], ['Thuỷ điện (dòng sông)', 1, 0], ['Dầu mỏ', 0, 1], ['Khí thiên nhiên', 0, 1], ['Năng lượng địa nhiệt', 1, 0], ['Năng lượng sinh khối (củi, rơm)', 1, 1]];
+const stage = shell({
+  title: 'Bài 17. Một số dạng năng lượng tái tạo', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Phân loại', html: `<p><b>Năng lượng tái tạo</b> là năng lượng từ các nguồn có sẵn trong thiên nhiên, liên tục được bổ sung qua các quá trình tự nhiên.</p><table class="dt"><thead><tr><th>Dạng năng lượng</th><th>Tái tạo?</th><th>Phát thải ô nhiễm, khí nhà kính?</th></tr></thead><tbody>${KINDS.map((k, i) => `<tr><td>${k[0]}</td><td><select data-a="${i}"><option value="">?</option><option value="1">Tái tạo</option><option value="0">Không</option></select></td><td><select data-b="${i}"><option value="">?</option><option value="1">Có</option><option value="0">Không / rất ít</option></select></td></tr>`).join('')}</tbody></table><div class="row"><button class="btn p" id="ck">Kiểm tra</button><span id="ckr"></span></div><div class="note">Cần tăng cường dùng năng lượng tái tạo vì nguồn hoá thạch đang cạn kiệt và gây ô nhiễm; năng lượng tái tạo luôn có sẵn, ít hoặc không phát thải.</div>` },
+    { id: 'p2', title: 'Mặt Trời', html: `<h3>Pin mặt trời (Hình 17.2)</h3><p>Pin mặt trời biến đổi trực tiếp <b>quang năng thành điện năng</b>.</p><div class="sl">Giờ trong ngày <input type="range" id="hr" min="5" max="19" step=".1" value="11"><span id="hrv"></span></div><div class="sl">Lượng mây <input type="range" id="cl" min="0" max="100" value="10"><span id="clv"></span></div><div id="e2" class="note"></div><div class="note sm"><b>Ưu điểm:</b> luôn có sẵn, không tiếng ồn, không phát thải. <b>Nhược điểm:</b> giá thành cao, hiệu suất thấp; pin hết hạn (≈ 25 năm) thành rác thải điện tử; chiếm diện tích lớn.</div>` },
+    { id: 'p3', title: 'Gió', html: `<h3>Tuabin gió (Hình 17.3)</h3><p>Gió làm quay cánh tuabin, máy phát biến <b>động năng của gió thành điện năng</b>.</p><div class="sl">Tốc độ gió <input type="range" id="ws" min="0" max="28" step=".5" value="8"><span id="wsv"></span></div><div id="e3" class="note"></div><div class="note sm"><b>Ưu điểm:</b> có sẵn, không phát thải; gió ngoài khơi mạnh và ổn định. <b>Nhược điểm:</b> hiệu suất thấp, đầu tư cao; tiếng ồn, ảnh hưởng chim di cư.</div>` },
+    { id: 'p4', title: 'Sóng biển', html: `<h3>Năng lượng sóng (Hình 17.4)</h3><p>Phao nổi chuyển động lên xuống theo sóng làm quay tuabin của máy phát điện.</p><div class="sl">Độ cao sóng <input type="range" id="wh" min=".2" max="3" step=".1" value="1.2"><span id="whv"></span></div><div class="sl">Chu kì sóng <input type="range" id="wt" min="3" max="12" step=".5" value="6"><span id="wtv"></span></div><div id="e4" class="note"></div><div class="note sm">Ở nước ta, vùng biển miền Trung (Đà Nẵng – Ninh Thuận) có tiềm năng năng lượng sóng lớn nhất.</div>` },
+    { id: 'p5', title: 'Dòng sông', html: `<h3>Thuỷ điện (Hình 17.5)</h3><p>Nước từ hồ chứa chảy qua đập làm quay tuabin: <b>thế năng của nước → động năng → điện năng</b>.</p><div class="sl">Độ cao cột nước <input type="range" id="hh" min="10" max="150" value="80"><span id="hhv"></span></div><div class="sl">Lưu lượng <input type="range" id="qq" min="0" max="500" step="10" value="200"><span id="qqv"></span></div><div id="e5" class="note"></div><div class="warn sm">Xây đập thuỷ điện: ngập rừng, đất canh tác, di dời dân cư, thay đổi dòng chảy và hệ sinh thái hạ lưu.</div>` },
+    { id: 'p6', title: 'Dùng hiệu quả', html: `<p>Sử dụng hiệu quả năng lượng là dùng ít năng lượng hơn để làm cùng một công việc, ví dụ dùng đèn LED thay đèn sợi đốt.</p><div class="sl">Số bóng đèn <input type="range" id="nb" min="1" max="20" value="5"><span id="nbv"></span></div><div class="sl">Giờ dùng/ngày <input type="range" id="hd" min="1" max="12" value="5"><span id="hdv"></span></div><div class="sl">Đơn giá (đ/kWh) <input type="range" id="pr" min="1500" max="3500" step="50" value="2500"><span id="prv"></span></div><div class="row"><button class="btn" id="sw">Bật / tắt hai đèn</button></div><div id="e6"></div><div class="note sm">Biện pháp: dùng năng lượng tái tạo; thiết bị tiết kiệm điện; tắt thiết bị không dùng; đi phương tiện công cộng; tái chế sản phẩm.</div>` },
+    { id: 'p7', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const X = { s: -.95, w: -.45, v: .02, h: .52, e: 1.0 };
+const V = [[[0, 1.0, 1.7], [0, .08, 0]], [[X.s, .32, .5], [X.s, .1, 0]], [[X.w, .4, .65], [X.w, .2, 0]], [[X.v, .3, .45], [X.v, .05, 0]], [[X.h, .35, .55], [X.h, .07, 0]], [[X.e, .25, .4], [X.e, .08, 0]]];
+const lab = createLab(stage, { cam: V[0][0], target: V[0][1], table: 'wood', tableSize: [2.6, .9], minDist: .1, maxDist: 3.2 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const pl = (c, r = .5) => MAT.plastic(c, r), mt = (c = 0xd0d4d8, r = .3) => MAT.metal(c, r);
+const lcd = (w = .06) => { const c = document.createElement('canvas'); c.width = 256; c.height = 96; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * .375), new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: .8 })); m.set = s => { const g = c.getContext('2d'); g.fillStyle = '#0d1a10'; g.fillRect(0, 0, 256, 96); g.fillStyle = '#8cff8a'; g.font = 'bold 44px monospace'; g.textAlign = 'center'; g.fillText(s, 128, 64); t.needsUpdate = true; }; m.set('0'); return m; };
+// ===== Mặt Trời + pin =====
+const sunG = new THREE.Group(); scene.add(sunG); const sun = new THREE.Mesh(new THREE.SphereGeometry(.03, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffd23f })); sunG.add(sun);
+const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(128, 128, g => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,220,120,1)'); r.addColorStop(1, 'rgba(255,170,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); }), blending: THREE.AdditiveBlending, depthWrite: false })); sunGlow.scale.set(.16, .16, 1); sunG.add(sunGlow);
+const PV = new THREE.Group(); PV.position.set(X.s, 0, 0); scene.add(PV);
+const post = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .08), mt()); post.position.y = .04; PV.add(post);
+const cellsT = canvasTex(256, 384, g => { g.fillStyle = '#c9ced4'; g.fillRect(0, 0, 256, 384); for (let r = 0; r < 6; r++) for (let c = 0; c < 4; c++) { g.fillStyle = '#16305a'; g.fillRect(8 + c * 62, 8 + r * 62, 56, 56); g.strokeStyle = '#3d6fb0'; g.lineWidth = 1; for (let k = 1; k < 4; k++) { g.beginPath(); g.moveTo(8 + c * 62 + k * 14, 8 + r * 62); g.lineTo(8 + c * 62 + k * 14, 64 + r * 62); g.stroke(); } } });
+const panel = new THREE.Mesh(new THREE.BoxGeometry(.12, .004, .18), [pl(0xc9ced4), pl(0xc9ced4), new THREE.MeshStandardMaterial({ map: cellsT, roughness: .35, metalness: .1 }), pl(0x888888), pl(0xc9ced4), pl(0xc9ced4)]); panel.position.y = .085; panel.rotation.x = -.35; PV.add(panel);
+const lampPV = bulb(lab, [X.s + .14, 0, .08], { Unom: 6, Pnom: 3 }); const lcd1 = lcd(); lcd1.position.set(X.s - .1, .04, .1); scene.add(lcd1);
+const lcdBox1 = roundBox(.08, .05, .02, .004, pl(0x2b2f33)); lcdBox1.position.set(X.s - .1, .04, .088); scene.add(lcdBox1);
+const clouds = []; for (let i = 0; i < 3; i++) { const c = new THREE.Group(); for (let k = 0; k < 5; k++) { const s = new THREE.Mesh(new THREE.SphereGeometry(.025 + Math.random() * .015, 12, 8), new THREE.MeshStandardMaterial({ color: 0xf1f3f5, transparent: true, opacity: 0 })); s.position.set((k - 2) * .025, Math.random() * .01, Math.random() * .02); c.add(s); } c.position.set(X.s - .15 + i * .15, .42 + i * .02, -.08); scene.add(c); clouds.push(c); }
+lab.label(panel, 'Pin mặt trời', [0, .05, 0]); lab.label(lcdBox1, 'Công suất (W)', [0, .05, 0]); lab.shadow(PV);
+// ===== tuabin gió =====
+const WT = new THREE.Group(); WT.position.set(X.w, 0, 0); scene.add(WT);
+const tower = new THREE.Mesh(new THREE.CylinderGeometry(.006, .012, .32, 20), pl(0xf1f3f5, .4)); tower.position.y = .16; WT.add(tower);
+const nac = roundBox(.05, .02, .02, .006, pl(0xf1f3f5, .4)); nac.position.set(0, .33, -.005); nac.rotation.y = Math.PI / 2; WT.add(nac);
+const rotor = new THREE.Group(); rotor.position.set(0, .33, .03); WT.add(rotor);
+const hub = new THREE.Mesh(new THREE.SphereGeometry(.009, 16, 12), pl(0xf1f3f5, .4)); hub.scale.z = 1.5; rotor.add(hub);
+for (let i = 0; i < 3; i++) { const bl = new THREE.Mesh(new THREE.BoxGeometry(.012, .14, .002), pl(0xf8f9fa, .35)); bl.geometry.translate(0, .075, 0); const s = bl.geometry.attributes.position; for (let k = 0; k < s.count; k++) s.setX(k, s.getX(k) * (1 - s.getY(k) / .17)); bl.rotation.z = i * 2.094; rotor.add(bl); }
+const lcd2 = lcd(); lcd2.position.set(X.w + .12, .04, .1); scene.add(lcd2); const lb2 = roundBox(.08, .05, .02, .004, pl(0x2b2f33)); lb2.position.set(X.w + .12, .04, .088); scene.add(lb2);
+const streaks = new THREE.InstancedMesh(new THREE.BoxGeometry(.03, .0008, .0008), new THREE.MeshBasicMaterial({ color: 0xa5d8ff, transparent: true, opacity: .6 }), 40); scene.add(streaks);
+const SK = [...Array(40)].map(() => ({ x: Math.random(), y: .2 + Math.random() * .25, z: (Math.random() - .5) * .3 }));
+lab.label(WT, 'Tuabin gió', [0, .42, 0]); lab.label(lb2, 'Công suất', [0, .05, 0]); lab.shadow(WT);
+// ===== sóng biển =====
+const WV = new THREE.Group(); WV.position.set(X.v, 0, 0); scene.add(WV);
+const tankG = new THREE.Mesh(new THREE.BoxGeometry(.36, .08, .16), MAT.glassLite({ opacity: .18 })); tankG.position.y = .04; WV.add(tankG);
+const wg = new THREE.PlaneGeometry(.35, .15, 80, 10); wg.rotateX(-Math.PI / 2);
+const water = new THREE.Mesh(wg, new THREE.MeshPhysicalMaterial({ color: 0x2f7fb8, transparent: true, opacity: .75, roughness: .1, clearcoat: 1, side: THREE.DoubleSide })); water.position.y = .045; WV.add(water);
+const wbody = new THREE.Mesh(new THREE.BoxGeometry(.35, .045, .15), new THREE.MeshPhysicalMaterial({ color: 0x1f6aa5, transparent: true, opacity: .45, depthWrite: false })); wbody.position.y = .0225; WV.add(wbody);
+const buoy = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .016, 24), pl(0xf08c00)); WV.add(buoy);
+const gen = roundBox(.05, .04, .04, .005, pl(0x495057)); gen.position.set(.03, .16, -.05); WV.add(gen);
+const pole = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .17), mt()); pole.position.set(.03, .085, -.05); WV.add(pole);
+const rod = new THREE.Mesh(new THREE.CylinderGeometry(.0018, .0018, 1, 8), mt()); WV.add(rod);
+const lcd3 = lcd(); lcd3.position.set(X.v + .21, .04, .1); scene.add(lcd3); const lb3 = roundBox(.08, .05, .02, .004, pl(0x2b2f33)); lb3.position.set(X.v + .21, .04, .088); scene.add(lb3);
+lab.label(buoy, 'Phao', [0, .03, .03]); lab.label(gen, 'Máy phát', [0, .04, 0]); lab.label(lb3, 'Công suất', [0, .05, 0]);
+// ===== thuỷ điện =====
+const HY = new THREE.Group(); HY.position.set(X.h, 0, 0); scene.add(HY);
+const ground = new THREE.Mesh(new THREE.BoxGeometry(.36, .02, .22), new THREE.MeshStandardMaterial({ color: 0x6b8e4e, roughness: 1 })); ground.position.y = .01; HY.add(ground);
+const dam = new THREE.Mesh(new THREE.BoxGeometry(.02, .16, .22), new THREE.MeshStandardMaterial({ color: 0xb8b5ad, roughness: .9 })); dam.position.set(0, .1, 0); HY.add(dam);
+const resv = new THREE.Mesh(new THREE.BoxGeometry(.16, 1, .2), new THREE.MeshPhysicalMaterial({ color: 0x2f7fb8, transparent: true, opacity: .7, roughness: .1 })); resv.position.x = -.09; HY.add(resv);
+const riverD = new THREE.Mesh(new THREE.BoxGeometry(.16, .006, .06), new THREE.MeshPhysicalMaterial({ color: 0x3b8fd1, transparent: true, opacity: .8 })); riverD.position.set(.09, .023, 0); HY.add(riverD);
+const pen = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .14), mt(0x868e96)); pen.rotation.z = .9; pen.position.set(.03, .07, 0); HY.add(pen);
+const house = roundBox(.05, .04, .06, .004, pl(0xdee2e6)); house.position.set(.08, .04, -.05); HY.add(house);
+const turb = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .006, 6), mt(0xf59f00)); turb.rotation.x = Math.PI / 2; turb.position.set(.08, .045, -.017); HY.add(turb);
+const NDr = 60, drops = new THREE.InstancedMesh(new THREE.SphereGeometry(.0025, 6, 4), new THREE.MeshBasicMaterial({ color: 0xbfe3ff, transparent: true, opacity: .8 }), NDr); HY.add(drops);
+const PDr = [...Array(NDr)].map(() => ({ t: Math.random(), z: (Math.random() - .5) * .04 }));
+const lcd4 = lcd(); lcd4.position.set(X.h + .22, .04, .1); scene.add(lcd4); const lb4 = roundBox(.08, .05, .02, .004, pl(0x2b2f33)); lb4.position.set(X.h + .22, .04, .088); scene.add(lb4);
+lab.label(resv, 'Hồ chứa', [0, .02, .1]); lab.label(dam, 'Đập', [0, .1, 0]); lab.label(house, 'Nhà máy (tuabin + máy phát)', [0, .04, 0]); lab.label(lb4, 'Công suất', [0, .05, 0]); lab.shadow(HY);
+// ===== đèn sợi đốt – LED =====
+const L1 = bulb(lab, [X.e - .08, 0, 0], { Unom: 220, Pnom: 60 }), L2 = bulb(lab, [X.e + .08, 0, 0], { Unom: 220, Pnom: 9 });
+const lcd5 = lcd(.05), lcd6 = lcd(.05); lcd5.position.set(X.e - .08, .015, .045); lcd6.position.set(X.e + .08, .015, .045); scene.add(lcd5, lcd6);
+lab.label(L1.g, 'Đèn sợi đốt 60 W', [0, .15, 0]); lab.label(L2.g, 'Đèn LED 9 W (sáng tương đương)', [0, .15, 0]);
+// ===== trạng thái =====
+const S = { hr: 11, cl: .1, ws: 8, wh: 1.2, wt: 6, hh: 80, qq: 200, nb: 5, hd: 5, pr: 2500, lamps: true };
+const bind = (id, f, u) => { const e = $('#' + id); const g = () => { S[id] = +e.value; f && f(); $('#' + id + 'v').textContent = u(+e.value); }; e.oninput = g; g(); };
+bind('hr', null, v => `${Math.floor(v)}:${String(Math.round(v % 1 * 60)).padStart(2, '0')}`); bind('cl', () => S.cl = +$('#cl').value / 100, v => v + '%'); bind('ws', null, v => fmt(v, 1) + ' m/s'); bind('wh', null, v => fmt(v, 1) + ' m'); bind('wt', null, v => fmt(v, 1) + ' s'); bind('hh', null, v => v + ' m'); bind('qq', null, v => v + ' m³/s');
+bind('nb', eff, v => v); bind('hd', eff, v => v + ' h'); bind('pr', eff, v => fmt(v, 0));
+function eff() { const kwh1 = S.nb * 60 * S.hd * 30 / 1000, kwh2 = S.nb * 9 * S.hd * 30 / 1000; $('#e6').innerHTML = `<table class="dt"><tr><th>Mỗi tháng (30 ngày)</th><th>Sợi đốt 60 W</th><th>LED 9 W</th></tr><tr><td>Điện năng</td><td>${fmt(kwh1, 1)} kWh</td><td>${fmt(kwh2, 1)} kWh</td></tr><tr><td>Tiền điện</td><td>${fmt(kwh1 * S.pr, 0)} đ</td><td>${fmt(kwh2 * S.pr, 0)} đ</td></tr><tr><td>CO₂ (giả định 0,7 kg/kWh)</td><td>${fmt(kwh1 * .7, 1)} kg</td><td>${fmt(kwh2 * .7, 1)} kg</td></tr></table><div class="note">Dùng LED tiết kiệm <b>${fmt((kwh1 - kwh2) * S.pr, 0)} đ/tháng</b> (≈ ${Math.round((1 - 9 / 60) * 100)}% điện năng).</div>`; }
+$('#sw').onclick = () => { S.lamps = !S.lamps; sfx('toggle'); };
+$('#ck').onclick = () => { let ok = 0, n = 0; KINDS.forEach((k, i) => { const a = document.querySelector(`[data-a="${i}"]`), b = document.querySelector(`[data-b="${i}"]`); const g = a.value !== '' && +a.value == k[1] && b.value !== '' && +b.value == k[2]; a.parentElement.parentElement.style.background = g ? 'rgba(47,158,68,.12)' : 'rgba(224,49,49,.1)'; n++; ok += g; }); sfx(ok == n ? 'chime' : 'error'); $('#ckr').innerHTML = `${ok}/${n} dòng đúng` + (ok < n ? ' <span class="sm">(sinh khối là tái tạo nhưng đốt vẫn phát thải CO₂)</span>' : ''); };
+let lastBlade = 0, lastCrest = 0;
+lab.onTick((dt, t) => {
+  const tx = lab.controls.target.x, near = x => Math.max(0, 1 - Math.abs(tx - x) / .35);
+  // Mặt Trời theo giờ: mọc phía -x, lặn phía +x
+  const a = (S.hr - 6) / 12 * Math.PI, up = Math.sin(a);
+  sunG.position.set(X.s - Math.cos(a) * .35, Math.max(-.05, up * .45) + .05, -.25 + up * .05); sunG.visible = up > -.05;
+  const sd = sunG.position.clone().sub(panel.getWorldPosition(new THREE.Vector3())).normalize(), n = new THREE.Vector3(0, 1, 0).applyQuaternion(panel.getWorldQuaternion(new THREE.Quaternion()));
+  const Ppv = up > 0 ? 100 * Math.max(0, n.dot(sd)) * Math.min(1, up * 2.5) * (1 - .8 * S.cl) : 0;
+  lcd1.set(fmt(Ppv, 0) + ' W'); lampPV.set(Ppv * .03); clouds.forEach(c => c.children.forEach(s => s.material.opacity = S.cl * .95));
+  $('#e2').innerHTML = `Công suất pin: <b>${fmt(Ppv, 0)} W</b> (tối đa 100 W). ${up <= 0 ? 'Ban đêm: không phát điện.' : S.cl > .6 ? 'Trời nhiều mây: công suất giảm mạnh.' : Math.abs(S.hr - 12) < 2 ? 'Gần trưa, nắng chiếu gần vuông góc: công suất lớn nhất.' : 'Sáng sớm/chiều muộn: tia nắng xiên, công suất nhỏ.'}`;
+  // gió: công suất theo v (cắt vào 3 m/s, định mức 12 m/s, ngắt 25 m/s)
+  const v = S.ws, Pw = v < 3 || v > 25 ? 0 : v < 12 ? 2000 * ((v - 3) / 9) ** 3 : 2000; const om = v > 25 ? 0 : Math.min(v, 14) * 1.6;
+  rotor.rotation.z -= om * dt; const bp = Math.floor(-rotor.rotation.z / 2.094); if (bp != lastBlade) { lastBlade = bp; if (om > 2 && near(X.w) > .2) sfx('swish', { vol: Math.min(1, om / 15) * near(X.w) }); }
+  lcd2.set(fmt(Pw, 0) + ' kW');
+  SK.forEach((p, i) => { p.x += dt * v * .03; if (p.x > 1) p.x = 0; const m = new THREE.Matrix4().makeTranslation(X.w - .35 + p.x * .7, p.y, p.z + .1); streaks.setMatrixAt(i, v > .5 ? m : new THREE.Matrix4().makeScale(0, 0, 0)); }); streaks.instanceMatrix.needsUpdate = true;
+  $('#e3').innerHTML = `Tốc độ gió ${fmt(v, 1)} m/s → công suất <b>${fmt(Pw, 0)} kW</b>. ${v < 3 ? 'Gió quá yếu, tuabin chưa phát điện.' : v > 25 ? 'Gió quá mạnh (bão): tuabin dừng để bảo vệ.' : v >= 12 ? 'Đạt công suất định mức.' : 'Gió càng mạnh, công suất càng lớn.'}`;
+  // sóng
+  const k = 2 * Math.PI / .12, w = 2 * Math.PI / (S.wt / 4), A = S.wh * .006, p = wg.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, A * Math.sin(k * p.getX(i) - w * t)); p.needsUpdate = true; wg.computeVertexNormals();
+  const by = .045 + A * Math.sin(k * .03 - w * t); buoy.position.set(.03, by + .004, 0); rod.scale.y = .16 - by; rod.position.set(.03, by + (.16 - by) / 2, -.02); rod.rotation.x = .12;
+  const cr = Math.sin(k * .03 - w * t) > .95; if (cr && t - lastCrest > .4) { lastCrest = t; if (near(X.v) > .2) sfx('splash', { vol: .25 * near(X.v) * S.wh }); }
+  const Pv = .5 * S.wh * S.wh * S.wt; lcd3.set(fmt(Pv, 1) + ' kW');
+  $('#e4').innerHTML = `Công suất mỗi mét bờ sóng ≈ <b>${fmt(Pv, 1)} kW</b> (minh hoạ định tính): sóng càng cao, chu kì càng dài thì năng lượng càng lớn.`;
+  // thuỷ điện
+  const hW = .03 + S.hh / 150 * .12; resv.scale.y = hW; resv.position.y = .02 + hW / 2; const Ph = 9.8 * S.qq * S.hh * .9 / 1000;
+  turb.rotation.y += dt * S.qq / 40; lcd4.set(fmt(Ph, 0) + ' MW');
+  PDr.forEach((d, i) => { d.t += dt * (.5 + S.qq / 300); if (d.t > 1) d.t = 0; const m = new THREE.Matrix4().makeTranslation(.08 + d.t * .08, .03, d.z); drops.setMatrixAt(i, S.qq > 0 ? m : new THREE.Matrix4().makeScale(0, 0, 0)); }); drops.instanceMatrix.needsUpdate = true;
+  $('#e5').innerHTML = `P ≈ 9,8 · Q · h · 90% = <b>${fmt(Ph, 0)} MW</b>. Cột nước càng cao, lưu lượng càng lớn thì công suất càng lớn.`;
+  // đèn
+  L1.set(S.lamps ? 60 : 0); L2.set(S.lamps ? 9 : 0); lcd5.set(S.lamps ? '60 W' : '0 W'); lcd6.set(S.lamps ? '9 W' : '0 W');
+  // âm thanh nền theo khung đang xem
+  level('wind', near(X.w) * Math.min(1, v / 18), .7 + v * .03); level('stream', near(X.h) * Math.min(1, S.qq / 300)); level('motor', near(X.h) * Math.min(.8, S.qq / 400), .6 + S.qq / 800); level('roll', near(X.v) * .3 * S.wh);
+  hud.innerHTML = 'Chọn các thẻ bên phải để đến từng mô hình.';
+});
+document.querySelectorAll('.tabs button').forEach((b, i) => b.addEventListener('click', () => { if (V[i]) lab.view(...V[i]); }));
+quiz($('#qz'), [
+  { q: 'Năng lượng tái tạo là', o: ['năng lượng từ nguồn có sẵn trong tự nhiên, liên tục được bổ sung', 'năng lượng từ than đá, dầu mỏ', 'năng lượng không bao giờ dùng hết dù không được bổ sung', 'năng lượng hạt nhân'], a: 0 },
+  { q: 'Pin mặt trời biến đổi trực tiếp', o: ['quang năng thành điện năng', 'nhiệt năng thành cơ năng', 'hoá năng thành điện năng', 'cơ năng thành điện năng'], a: 0 },
+  { q: 'Tuabin gió biến đổi', o: ['động năng của gió thành điện năng', 'nhiệt năng thành điện năng', 'quang năng thành điện năng', 'hoá năng thành nhiệt năng'], a: 0 },
+  { q: 'Công suất nhà máy thuỷ điện tăng khi', o: ['cột nước cao hơn và lưu lượng lớn hơn', 'hồ chứa cạn', 'đập thấp', 'trời nắng'], a: 0 },
+  { q: 'Dùng đèn LED 9 W thay đèn sợi đốt 60 W (sáng như nhau) tiết kiệm khoảng', o: ['15%', '50%', '85%', '100%'], a: 2 },
+  { q: 'Nhược điểm của năng lượng gió là', o: ['phát thải nhiều CO₂', 'tiếng ồn, ảnh hưởng chim di cư, hiệu suất thấp', 'nhanh cạn kiệt', 'gây mưa acid'], a: 1 },
+]);
+eff(); ready(); window.dbg = { lab, S };
+</script></body></html>

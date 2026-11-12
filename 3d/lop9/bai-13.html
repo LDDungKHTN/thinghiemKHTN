@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 13. Năng lượng của dòng điện và công suất điện</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE } from '../core/lab3d.js';
@@ -23,6 +23,9 @@ const stage = shell({
     { id: 'p2', title: 'Kết quả', html: `<h3>Bảng số liệu</h3><table class="dt"><thead><tr><th>Đèn</th><th>U (V)</th><th>I (A)</th><th>𝒫 = UI (W)</th><th>Độ sáng</th></tr></thead><tbody id="tb"></tbody></table>
 <div class="row"><button class="btn g" id="clr">Xoá bảng</button></div>
 <div class="eq">W = U·I·t &nbsp;&nbsp; 𝒫 = U·I</div><div class="note sm">1 kW·h = 3 600 000 J. Năng lượng điện được chuyển hoá thành nhiệt năng và quang năng ở bóng đèn.</div>` },
+    { id: 'p4', title: 'Công tơ & tiền điện', html: `<h3>Điện năng tiêu thụ và tiền điện</h3><p>Điện năng tiêu thụ đo bằng <b>công tơ điện</b>, đơn vị kWh (số điện). <b>W = P·t</b>; 1 kWh = 3 600 000 J.</p>
+<table class="dt" id="dev"><thead><tr><th>Thiết bị</th><th>P (W)</th><th>Số lượng</th><th>Giờ/ngày</th></tr></thead><tbody>${[['Bóng đèn LED', 9, 6, 6], ['Quạt điện', 50, 3, 8], ['Tủ lạnh', 120, 1, 24], ['Ti vi', 80, 1, 4], ['Nồi cơm điện', 600, 1, 1], ['Bàn là', 1000, 1, .3]].map((d, i) => `<tr><td>${d[0]}</td><td>${d[1]}</td><td><input type="number" min="0" max="20" value="${d[2]}" data-n="${i}" style="width:52px"></td><td><input type="number" min="0" max="24" step=".5" value="${d[3]}" data-h="${i}" style="width:56px"></td></tr>`).join('')}</tbody></table>
+<div class="sl">Đơn giá (đ/kWh) <input type="range" id="kp" min="1800" max="3500" step="50" value="2500"><span id="kpv"></span></div><div id="bill" class="note"></div><div class="note sm">Số chỉ trên công tơ tăng theo điện năng tiêu thụ. Muốn tiết kiệm: tắt thiết bị khi không dùng, dùng thiết bị công suất nhỏ (đèn LED…).</div>` },
     { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
   ]
 });
@@ -85,6 +88,8 @@ quiz($('#qz'), [
   { q: 'Đèn 220 V – 60 W dùng đúng định mức trong 4 giờ tiêu thụ bao nhiêu kW·h?', n: .24, u: 'kW·h', e: 'W = 𝒫t = 0,06 kW · 4 h = 0,24 kW·h.' },
   { q: 'Bàn là 220 V – 1 000 W hoạt động bình thường thì cường độ dòng điện qua nó là bao nhiêu ampe? (làm tròn 2 chữ số thập phân)', n: 4.55, u: 'A', tol: .01, e: 'I = 𝒫/U = 1000/220 ≈ 4,55 A.' },
 ]);
+function bill() { let kwh = 0; document.querySelectorAll('#dev tbody tr').forEach((r, i) => { const P = +r.children[1].textContent, n = +r.querySelector('[data-n]').value, h = +r.querySelector('[data-h]').value; kwh += P * n * h * 30 / 1000; }); const k = +document.querySelector('#kp').value; document.querySelector('#kpv').textContent = k.toLocaleString('vi-VN'); document.querySelector('#bill').innerHTML = `Điện năng tiêu thụ mỗi tháng (30 ngày): <b>${kwh.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} kWh</b><br>Tiền điện ≈ <b>${Math.round(kwh * k).toLocaleString('vi-VN')} đồng</b>`; }
+document.querySelectorAll('#dev input, #kp').forEach(e => e.oninput = bill); bill();
 build(); solve(); ready();
 window.dbg = { S, lab, ps, k, solve };
 </script></body></html>

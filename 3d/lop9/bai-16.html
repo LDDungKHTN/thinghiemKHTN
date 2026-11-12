@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 16. Vòng năng lượng trên Trái Đất. Năng lượng hoá thạch</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script src="../core/boot.js"></script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, roundBox, lathe, canvasTex, clamp, lerp } from '../core/lab3d.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level } from '../core/sfx.js';
+
+const stage = shell({
+  title: 'Bài 16. Vòng năng lượng trên Trái Đất. Năng lượng hoá thạch', sub: 'KHTN 9 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Sinh vật', html: `<h3>Vòng năng lượng giữa các sinh vật (Hình 16.1)</h3><p>Năng lượng ánh sáng Mặt Trời được thực vật hấp thụ (quang hợp) chuyển thành <b>năng lượng hoá học</b> trong đường glucose; động vật ăn thực vật nhận năng lượng đó, dùng cho hoạt động sống (ATP) và toả <b>nhiệt</b>.</p>
+<div class="sl">Ánh sáng <input type="range" id="sun" min="0" max="100" value="80"><span id="sunv"></span></div><div class="sl">Hoạt động động vật <input type="range" id="act" min="0" max="100" value="50"><span id="actv"></span></div><div id="e1" class="note"></div>` },
+    { id: 'p2', title: 'Vòng nước', html: `<h3>Vòng tuần hoàn của nước (Hình 16.2)</h3><p>Mặt Trời làm nước biển <b>bay hơi</b>, hơi nước bay lên <b>ngưng tụ</b> thành mây, mây gặp lạnh tạo <b>mưa</b> rơi xuống núi, chảy thành sông về biển. Mặt đất nóng lên không đều tạo ra <b>gió</b>.</p>
+<div class="sl">Ánh sáng Mặt Trời <input type="range" id="sun2" min="0" max="100" value="70"><span id="sun2v"></span></div><div id="e2" class="note"></div>` },
+    { id: 'p3', title: 'Dầu mỏ', html: `<h3>Sự hình thành dầu mỏ (Hình 16.3)</h3><p>Xác sinh vật biển chìm xuống đáy, bị bùn cát vùi lấp; qua hàng triệu năm, dưới tác dụng của nhiệt độ, áp suất cao biến đổi thành <b>dầu mỏ, khí thiên nhiên</b>.</p>
+<div class="sl">Thời gian <input type="range" id="tm" min="0" max="100" value="0"><span id="tmv"></span></div>
+<h3>Vì sao dầu mỏ sẽ cạn kiệt?</h3><div class="sl">Tốc độ khai thác <input type="range" id="rate" min="1" max="10" value="3"><span id="ratev"></span></div><div class="row"><button class="btn p" id="pump">Khai thác / dừng</button><button class="btn" id="rs3">Đặt lại</button></div><div id="e3" class="note"></div>` },
+    { id: 'p4', title: 'Đốt nhiên liệu', html: `<p>Chọn nhiên liệu hoá thạch rồi bấm “Đốt” để xem chất thải (so sánh tương đối, minh hoạ).</p><div class="row"><button class="btn on" data-f="0">Than đá</button><button class="btn" data-f="1">Xăng, dầu</button><button class="btn" data-f="2">Khí thiên nhiên</button><button class="btn p" id="burn">Đốt / tắt</button></div><div id="em"></div>
+<div class="note"><b>Ưu điểm:</b> khai thác được khối lượng lớn, dễ vận chuyển; công nghệ chuyển hoá phổ biến, chi phí rẻ.</div><div class="warn"><b>Nhược điểm:</b> hình thành mất hàng triệu năm nhưng bị tiêu thụ rất nhanh nên cạn kiệt dần; khai thác có thể thay đổi địa tầng, hệ sinh thái; đốt cháy thải CO₂, CO, NO₂, SO₂… gây ô nhiễm, hiệu ứng nhà kính, băng tan, nước biển dâng.</div>` },
+    { id: 'p5', title: 'Giá nhiên liệu', html: `<h3>Cơ cấu giá xăng (Hình 16.4, giá gốc = 100)</h3><div class="sl">Chi phí khai thác tăng <input type="range" id="c1" min="0" max="60" value="0"><span id="c1v"></span></div><div class="sl">Thuế bảo vệ môi trường <input type="range" id="c2" min="0" max="30" value="0"><span id="c2v"></span></div><svg id="pr" viewBox="0 0 320 70" style="width:100%"></svg><div class="note">Mỏ dễ khai thác cạn dần, phải thăm dò vùng biển sâu, hẻo lánh → chi phí khai thác tăng → giá nhiên liệu tăng. Thêm chi phí khắc phục ô nhiễm làm giá tăng, khuyến khích chuyển sang năng lượng tái tạo.</div>` },
+    { id: 'p6', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const V = { a: [[-.25, .45, .75], [-.25, .08, 0]], b: [[.0, .7, 1.0], [0, .08, -.05]], c: [[.62, .4, .6], [.62, .1, 0]], d: [[-.65, .28, .5], [-.65, .08, .1]] };
+const lab = createLab(stage, { cam: V.b[0], target: V.b[1], table: 'wood', tableSize: [2.2, 1], minDist: .1 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const R = Math.random;
+// ---------- sa bàn: núi – đồng bằng – biển ----------
+const W = 1.0, D = .6, base = new THREE.Group(); base.position.set(0, 0, -.05); scene.add(base);
+const H = (x, z) => { const m = Math.max(0, .17 * Math.exp(-((x + .33) ** 2 / .02 + (z + .1) ** 2 / .05)) + .1 * Math.exp(-((x + .15) ** 2 / .012 + (z + .18) ** 2 / .02))); return x > .12 ? -.02 * Math.min(1, (x - .12) / .08) : m + .012 + .006 * Math.sin(x * 40) * Math.sin(z * 30); };
+const tg = new THREE.PlaneGeometry(W, D, 120, 72); tg.rotateX(-Math.PI / 2);
+const cols = []; const pos = tg.attributes.position;
+for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i), y = H(x, z); pos.setY(i, y + .014); const c = new THREE.Color(y > .13 ? 0xf2f4f6 : y > .07 ? 0x8a7a5a : y > .005 ? 0x5f9e45 : 0xd9c58e); cols.push(c.r, c.g, c.b); }
+tg.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); tg.computeVertexNormals();
+const terrain = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9 })); terrain.receiveShadow = true; base.add(terrain);
+const box = new THREE.Mesh(new THREE.BoxGeometry(W, .012, D), new THREE.MeshStandardMaterial({ color: 0x6b4f33, roughness: .9 })); box.position.y = .006; base.add(box);
+const sea = new THREE.Mesh(new THREE.PlaneGeometry(.38, D, 40, 20), new THREE.MeshPhysicalMaterial({ color: 0x2f7fb8, transparent: true, opacity: .8, roughness: .1, clearcoat: 1 })); sea.rotation.x = -Math.PI / 2; sea.position.set(.31, .02, 0); base.add(sea);
+// sông
+const riverPts = [[-.3, -.12], [-.22, -.04], [-.12, .02], [-.02, .05], [.06, .07], [.14, .08]].map(([x, z]) => new THREE.Vector3(x, H(x, z) + .017, z));
+const river = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(riverPts), 60, .006, 6), new THREE.MeshStandardMaterial({ color: 0x3b8fd1, roughness: .2 })); river.scale.y = .3; river.position.y = .023; base.add(river);
+lab.shadow(base); terrain.castShadow = false;
+// Mặt Trời
+const sunG = new THREE.Group(); sunG.position.set(.15, .55, -.35); scene.add(sunG);
+const sunM = new THREE.Mesh(new THREE.SphereGeometry(.05, 32, 16), new THREE.MeshBasicMaterial({ color: 0xffd23f })); sunG.add(sunM);
+const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(128, 128, (g) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,220,120,1)'); r.addColorStop(1, 'rgba(255,170,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); }), blending: THREE.AdditiveBlending, depthWrite: false })); glow.scale.set(.25, .25, 1); sunG.add(glow);
+const sunL = new THREE.PointLight(0xfff0c0, 1.2, 3, 1.2); sunG.add(sunL); lab.label(sunG, 'Mặt Trời', [0, .08, 0]);
+// ---------- 1. cây – thỏ ----------
+const tree = new THREE.Group(); tree.position.set(-.05, H(-.05, .15) + .014, .15 - .05 + .05); base.add(tree);
+const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.006, .009, .07, 10), new THREE.MeshStandardMaterial({ color: 0x6b4423 })); trunk.position.y = .035; tree.add(trunk);
+const leafM = new THREE.MeshStandardMaterial({ color: 0x3f8f2f, roughness: .7, emissive: 0x7bdc3a, emissiveIntensity: 0 });
+for (let i = 0; i < 6; i++) { const b = new THREE.Mesh(new THREE.IcosahedronGeometry(.025 + R() * .01, 1), leafM); b.position.set((R() - .5) * .04, .08 + R() * .03, (R() - .5) * .04); tree.add(b); }
+const rabbit = new THREE.Group(); base.add(rabbit);
+const fur = new THREE.MeshStandardMaterial({ color: 0xc9b49a, roughness: .9, emissive: 0xff5a1f, emissiveIntensity: 0 });
+const rb = new THREE.Mesh(new THREE.SphereGeometry(.016, 16, 12), fur); rb.scale.set(1.3, 1, 1); rb.position.y = .016; rabbit.add(rb);
+const rh = new THREE.Mesh(new THREE.SphereGeometry(.01, 16, 12), fur); rh.position.set(.02, .027, 0); rabbit.add(rh);
+for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.CapsuleGeometry(.0028, .016, 4, 8), fur); e.position.set(.018, .044, s * .004); e.rotation.z = -.2; rabbit.add(e); }
+lab.label(tree, 'Thực vật (quang hợp)', [0, .14, 0]); lab.label(rabbit, 'Động vật', [0, .06, 0]);
+// dòng năng lượng (hạt sáng) Mặt Trời → lá → thỏ → nhiệt
+const NP = 60, dots = new THREE.InstancedMesh(new THREE.SphereGeometry(.004, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffd43b, toneMapped: false }), NP); scene.add(dots);
+const heat = new THREE.InstancedMesh(new THREE.SphereGeometry(.004, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff6b3d, transparent: true, opacity: .8, toneMapped: false }), 30); scene.add(heat);
+const P1 = [...Array(NP)].map(() => ({ t: R(), seg: R() < .7 ? 0 : 1 })), PH = [...Array(30)].map(() => ({ t: R(), a: R() * 6.28 }));
+// ---------- 2. vòng nước ----------
+const cloud = new THREE.Group(); cloud.position.set(-.18, .38, -.12); scene.add(cloud);
+const cm = new THREE.MeshStandardMaterial({ color: 0xf8f9fa, roughness: 1, transparent: true, opacity: .95 });
+for (let i = 0; i < 9; i++) { const s = new THREE.Mesh(new THREE.SphereGeometry(.03 + R() * .02, 14, 10), cm); s.position.set((R() - .5) * .14, (R() - .5) * .02, (R() - .5) * .06); cloud.add(s); }
+lab.label(cloud, 'Mây', [0, .06, 0]);
+const NV = 70, vap = new THREE.InstancedMesh(new THREE.SphereGeometry(.003, 6, 4), new THREE.MeshBasicMaterial({ color: 0xcfe9ff, transparent: true, opacity: .7 }), NV); scene.add(vap);
+const NR = 140, rain = new THREE.InstancedMesh(new THREE.CylinderGeometry(.0008, .0008, .012, 4), new THREE.MeshBasicMaterial({ color: 0x7ab8e6, transparent: true, opacity: .8 }), NR); scene.add(rain);
+const PV = [...Array(NV)].map(() => ({ x: .15 + R() * .3, z: -.3 + R() * .5, y: R() })), PR = [...Array(NR)].map(() => ({ x: -.26 + (R() - .5) * .14, z: -.17 + (R() - .5) * .07, y: R() }));
+const wind = []; for (let i = 0; i < 3; i++) { const a = new THREE.ArrowHelper(new THREE.Vector3(-1, .15, 0), new THREE.Vector3(.4, .2 + i * .05, -.2 + i * .1), .12, 0xa5d8ff, .025, .015); scene.add(a); wind.push(a); }
+const flowM = river.material;
+// ---------- 3. dầu mỏ: lát cắt địa tầng ----------
+const OIL = new THREE.Group(); OIL.position.set(.62, 0, .05); scene.add(OIL);
+const layers = [[0x264e70, .05, 'Nước biển'], [0x8d6e47, .02, 'Bùn cát mới'], [0x9c8058, .03, 'Lớp trầm tích'], [0x7d6a52, .04, 'Đá trầm tích'], [0x5b4c3d, .05, 'Đá chứa dầu']];
+const LY = []; let yy = 0;
+for (let i = layers.length - 1; i >= 0; i--) { const [c, h] = layers[i]; const m = new THREE.Mesh(new THREE.BoxGeometry(.3, h, .12), new THREE.MeshStandardMaterial({ color: c, roughness: .95, transparent: i == 0, opacity: i == 0 ? .7 : 1 })); m.position.y = yy + h / 2; yy += h; OIL.add(m); LY[i] = m; }
+const NO = 40, oilD = new THREE.InstancedMesh(new THREE.SphereGeometry(.004, 8, 6), new THREE.MeshStandardMaterial({ color: 0x1a1208, roughness: .2, metalness: .3 }), NO); OIL.add(oilD);
+const NB = 40, bodies = new THREE.InstancedMesh(new THREE.SphereGeometry(.003, 6, 4), new THREE.MeshStandardMaterial({ color: 0x9be37a }), NB); OIL.add(bodies);
+const PO = [...Array(NO)].map(() => ({ x: (R() - .5) * .27, y: .005 + R() * .04, z: (R() - .5) * .1 })), PB = [...Array(NB)].map(() => ({ x: (R() - .5) * .28, z: (R() - .5) * .1, s: R() }));
+const rig = new THREE.Group(); rig.position.set(.08, yy, 0); OIL.add(rig);
+const rigM = MAT.metal(0x6c757d, .4);
+for (const [x, z] of [[-.02, -.02], [.02, -.02], [-.02, .02], [.02, .02]]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(.002, .002, .1, 6), rigM); l.position.set(x * .6, .05, z * .6); l.rotation.set(z * 3, 0, -x * 3); rig.add(l); }
+const pipe = new THREE.Mesh(new THREE.CylinderGeometry(.002, .002, yy - .01, 8), rigM); pipe.position.y = -(yy - .01) / 2; rig.add(pipe);
+const beam = new THREE.Mesh(new THREE.BoxGeometry(.06, .004, .004), plastic(0x2b2f33)); beam.position.y = .1; rig.add(beam);
+function plastic(c) { return MAT.plastic(c, .5); }
+const tank = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .05, 20, 1, true), MAT.glassLite({ opacity: .3 })); tank.position.set(.22, .025, .05); OIL.add(tank);
+const tankOil = new THREE.Mesh(new THREE.CylinderGeometry(.019, .019, 1, 20), new THREE.MeshStandardMaterial({ color: 0x1a1208 })); tankOil.position.set(.22, 0, .05); OIL.add(tankOil);
+lab.label(OIL, 'Lát cắt địa tầng (mô hình)', [0, yy + .12, 0]); lab.label(LY[4], 'Đá chứa dầu', [.0, 0, .07]); lab.label(tank, 'Dầu khai thác', [0, .05, 0]);
+lab.shadow(OIL);
+// ---------- 4. đốt nhiên liệu ----------
+const FU = [{ n: 'Than đá', co2: 1, so2: 1, smoke: 1, c: 0x222222 }, { n: 'Xăng, dầu', co2: .75, so2: .35, smoke: .55, c: 0xd9a400 }, { n: 'Khí thiên nhiên', co2: .55, so2: .02, smoke: .1, c: 0x9fd0ff }];
+const BG = new THREE.Group(); BG.position.set(-.65, 0, .32); scene.add(BG);
+const dish = new THREE.Mesh(lathe([[0, 0], [.02, .001], [.04, .012], [.045, .022], [.043, .022], [.038, .013], [.019, .003], [0, .002]], 40), new THREE.MeshStandardMaterial({ color: 0xe9ecef, roughness: .4, side: THREE.DoubleSide })); BG.add(dish);
+const fuelM = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: .8 }); const fuel = new THREE.Group(); BG.add(fuel);
+const flameM = new THREE.MeshBasicMaterial({ color: 0xff9a2a, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+const fl = new THREE.Mesh(lathe([[0, 0], [.02, .01], [.022, .03], [.012, .06], [0, .08]], 24), flameM); fl.position.y = .015; fl.visible = false; BG.add(fl);
+const smoke = new THREE.Group(); BG.add(smoke); const smM = [];
+for (let i = 0; i < 18; i++) { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(80,80,80,1)'); r.addColorStop(1, 'rgba(80,80,80,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); }, { srgb: false }), transparent: true, depthWrite: false, opacity: 0 })); m.userData.ph = i / 18; smoke.add(m); smM.push(m); }
+lab.label(BG, 'Đốt nhiên liệu', [0, .14, 0]);
+let fi = 0, burning = false;
+function setFuel(i) { fi = i; while (fuel.children.length) fuel.remove(fuel.children[0]); const f = FU[i];
+  if (i == 0) for (let k = 0; k < 7; k++) { const c = new THREE.Mesh(new THREE.DodecahedronGeometry(.008 + R() * .005, 0), fuelM); c.position.set((R() - .5) * .04, .008, (R() - .5) * .04); fuel.add(c); }
+  else if (i == 1) { const l = new THREE.Mesh(new THREE.CylinderGeometry(.03, .025, .006, 32), new THREE.MeshPhysicalMaterial({ color: 0xd9a400, transparent: true, opacity: .7 })); l.position.y = .008; fuel.add(l); }
+  else { const n = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .03, 12), MAT.metal()); n.position.y = .015; fuel.add(n); }
+  flameM.color.set(i == 2 ? 0x5a8dff : 0xff9a2a); emis(); }
+function emis() { const f = FU[fi]; $('#em').innerHTML = `<table class="dt"><tr><th>Chất thải khi đốt ${f.n}</th><th>Mức (tương đối)</th></tr>${[['CO₂ (khí nhà kính)', f.co2], ['SO₂, NOₓ (mưa acid)', f.so2], ['Bụi, khói, CO', f.smoke]].map(([n, v]) => `<tr><td>${n}</td><td><span style="display:inline-block;height:10px;width:${v * 120}px;background:#e8590c;border-radius:3px"></span></td></tr>`).join('')}</table>`; }
+document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { document.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x == b)); setFuel(+b.dataset.f); lab.view(...V.d); });
+$('#burn').onclick = () => { burning = !burning; fl.visible = burning; sfx(burning ? 'whoosh' : 'puff'); level('flame', burning ? .7 : 0); lab.view(...V.d); };
+// ---------- trạng thái ----------
+const S = { sun: .8, act: .5, sun2: .7, tm: 0, reserve: 1, pumping: false, rate: 3, cl: .4 };
+const bind = (id, f, fmtf) => { const e = $('#' + id); const u = () => { f(+e.value); $('#' + id + 'v').textContent = fmtf(+e.value); }; e.oninput = u; u(); };
+bind('sun', v => S.sun = v / 100, v => v + '%'); bind('act', v => S.act = v / 100, v => v + '%'); bind('sun2', v => S.sun2 = v / 100, v => v + '%');
+bind('tm', v => { S.tm = v / 100; oilStage(); }, v => v < 5 ? 'hiện nay' : fmt(v * 3, 0) + ' triệu năm');
+bind('rate', v => S.rate = v, v => '×' + v);
+$('#pump').onclick = () => { if (S.tm < .95) { toast('Kéo thanh thời gian đến cuối để dầu mỏ hình thành trước'); return; } S.pumping = !S.pumping; sfx('toggle'); lab.view(...V.c); };
+$('#rs3').onclick = () => { S.reserve = 1; S.pumping = false; level('motor', 0); };
+function oilStage() { const k = S.tm; LY[1].scale.y = .3 + .7 * clamp(k * 2, 0, 1); LY[2].scale.y = clamp(k * 1.6 - .2, .05, 1); LY[3].material.color.set(new THREE.Color(0x9c8058).lerp(new THREE.Color(0x7d6a52), clamp(k * 1.5 - .3, 0, 1)));
+  const txt = k < .2 ? 'Sinh vật phù du, tảo… sống ở biển chết đi, xác chìm xuống đáy.' : k < .5 ? 'Xác sinh vật bị bùn, cát vùi lấp thành nhiều lớp trầm tích.' : k < .85 ? 'Các lớp chìm sâu dần, nhiệt độ và áp suất tăng cao, chất hữu cơ biến đổi chậm.' : 'Sau hàng triệu năm: hình thành <b>dầu mỏ và khí thiên nhiên</b> trong lớp đá chứa.';
+  $('#e3').innerHTML = txt; }
+oilStage();
+const dm = new THREE.Object3D();
+lab.onTick((dt, t) => {
+  // 1 – sinh vật
+  leafM.emissiveIntensity = S.sun * .35; fur.emissiveIntensity = S.act * .25 * S.sun;
+  const sp = sunG.position, lp = tree.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, .09, 0)), rp = rabbit.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, .02, 0));
+  rabbit.position.set(-.05 + .07 + Math.sin(t * (.3 + S.act)) * .02 * S.act, H(.02, .15) + .014, .15 + Math.cos(t * .5) * .01); rabbit.rotation.y = Math.sin(t * .4) * .5;
+  P1.forEach((p, i) => { p.t += dt * (.25 + .3 * S.sun) * (p.seg ? .5 + S.act : 1); if (p.t > 1) { p.t = 0; p.seg = R() < .7 ? 0 : 1; } const a = p.seg ? lp : sp, b = p.seg ? rp : lp; dm.position.lerpVectors(a, b, p.t); dm.position.y += Math.sin(p.t * Math.PI) * (p.seg ? .03 : 0); dm.scale.setScalar(p.seg ? (S.sun > .05 ? 1 : 0) : S.sun > .02 ? 1 : 0); dm.updateMatrix(); dots.setMatrixAt(i, dm.matrix); }); dots.instanceMatrix.needsUpdate = true;
+  PH.forEach((p, i) => { p.t += dt * (.2 + .6 * S.act); if (p.t > 1) { p.t = 0; p.a = R() * 6.28; } dm.position.copy(rp).add(new THREE.Vector3(Math.cos(p.a) * p.t * .05, p.t * .06, Math.sin(p.a) * p.t * .05)); dm.scale.setScalar(S.act * S.sun * (1 - p.t)); dm.updateMatrix(); heat.setMatrixAt(i, dm.matrix); }); heat.instanceMatrix.needsUpdate = true;
+  $('#e1').innerHTML = `Quang năng hấp thụ: <b>${Math.round(S.sun * 100)}%</b> → hoá năng (glucose) ở thực vật.<br>Động vật nhận năng lượng qua thức ăn → cơ năng khi vận động + <b>nhiệt năng</b> toả ra (${S.act > .6 ? 'nhiều' : S.act > .2 ? 'vừa' : 'ít'}).`;
+  // 2 – vòng nước
+  const e = S.sun2; PV.forEach((p, i) => { p.y += dt * .12 * (.2 + e); if (p.y > 1) { p.y = 0; p.x = .15 + R() * .3; p.z = -.3 + R() * .5; } const x = lerp(p.x, cloud.position.x, p.y * p.y), y = .03 + p.y * (cloud.position.y - .03), z = lerp(p.z - .05, cloud.position.z, p.y * p.y); dm.position.set(x, y, z); dm.scale.setScalar(e > .05 ? 1 : 0); dm.updateMatrix(); vap.setMatrixAt(i, dm.matrix); }); vap.instanceMatrix.needsUpdate = true;
+  cloud.scale.setScalar(.6 + e * .6); cm.color.set(new THREE.Color(0xf8f9fa).lerp(new THREE.Color(0x868e96), e * .6));
+  PR.forEach((p, i) => { p.y -= dt * 1.4; if (p.y < 0) { p.y = 1; p.x = cloud.position.x + (R() - .5) * .14 * cloud.scale.x; p.z = cloud.position.z + (R() - .5) * .07; } dm.position.set(p.x, .05 + p.y * (cloud.position.y - .07), p.z); dm.scale.setScalar(R() < e ? 1 : 0); dm.updateMatrix(); rain.setMatrixAt(i, dm.matrix); }); rain.instanceMatrix.needsUpdate = true;
+  wind.forEach((a, i) => { a.position.x = .4 - ((t * .08 * (.3 + e) + i * .3) % .8); a.setLength(.06 + .1 * e, .02, .012); });
+  flowM.color.setHSL(.57, .6, .45 + .08 * Math.sin(t * 6));
+  $('#e2').innerHTML = `Bay hơi: <b>${e > .6 ? 'mạnh' : e > .25 ? 'vừa' : 'yếu'}</b> · mây ${e > .5 ? 'dày, mưa nhiều' : 'mỏng, mưa ít'} · gió ${e > .5 ? 'mạnh' : 'nhẹ'}. Năng lượng Mặt Trời là “động cơ” của vòng tuần hoàn nước.`;
+  // 3 – dầu
+  PB.forEach((p, i) => { const k = S.tm; const y = lerp(.21, .1 + p.s * .03, clamp(k * 3 + p.s * .2, 0, 1)); dm.position.set(p.x, y, p.z); dm.scale.setScalar(k < .5 ? 1 : 0); dm.updateMatrix(); bodies.setMatrixAt(i, dm.matrix); }); bodies.instanceMatrix.needsUpdate = true;
+  const nO = Math.round(NO * clamp((S.tm - .55) / .4, 0, 1) * S.reserve); oilD.count = nO; PO.forEach((p, i) => { dm.position.set(p.x, p.y, p.z); dm.scale.setScalar(1); dm.updateMatrix(); oilD.setMatrixAt(i, dm.matrix); }); oilD.instanceMatrix.needsUpdate = true;
+  if (S.pumping && S.reserve > 0) { S.reserve = Math.max(0, S.reserve - dt * .012 * S.rate); beam.rotation.z = Math.sin(t * 2 * (1 + S.rate * .2)) * .4; if (S.reserve <= 0) { S.pumping = false; toast('Mỏ dầu đã cạn! Dầu mỏ hình thành mất hàng triệu năm nhưng bị khai thác hết rất nhanh.', 4500); } }
+  level('motor', S.pumping ? .5 + S.rate * .05 : 0, .8 + S.rate * .06);
+  const got = 1 - S.reserve; tankOil.scale.y = Math.max(.001, got * .045); tankOil.position.y = got * .045 / 2 + .001;
+  if (S.tm >= .95) $('#e3').innerHTML = `Trữ lượng còn lại: <b>${Math.round(S.reserve * 100)}%</b>${S.pumping ? ' – đang khai thác ×' + S.rate : ''}. Tốc độ khai thác càng lớn thì mỏ cạn càng nhanh; dầu không kịp hình thành lại (hàng triệu năm).`;
+  // 4 – đốt
+  const f = FU[fi]; fl.scale.set(1, 1 + Math.sin(t * 17) * .08, 1); smM.forEach(s => { const k = (t * .25 + s.userData.ph) % 1; s.position.set(Math.sin(s.userData.ph * 20 + t) * .02 * k, .07 + k * .25, Math.cos(s.userData.ph * 9) * .02 * k); const sc = .03 + k * .12; s.scale.set(sc, sc, 1); s.material.opacity = burning ? f.smoke * .55 * Math.sin(k * Math.PI) : 0; });
+  // âm thanh nền theo khung nhìn đang xem
+  const cx = lab.controls.target.x; level('stream', cx > -.5 && cx < .4 ? .25 + .5 * S.sun2 : 0); level('wind', cx > -.5 && cx < .4 ? S.sun2 * .5 : 0);
+  hud.innerHTML = 'Kéo để xoay sa bàn · chọn các thẻ bên phải để xem từng phần';
+});
+// giá
+const prs = () => { const c1 = +$('#c1').value, c2 = +$('#c2').value; $('#c1v').textContent = '+' + c1 + '%'; $('#c2v').textContent = '+' + c2; const parts = [['Dầu thô', 52 * (1 + c1 / 100), '#495057'], ['Lọc dầu', 18, '#1c7ed6'], ['Phân phối', 16, '#2f9e44'], ['Thuế', 14 + c2, '#e8590c']]; const tot = parts.reduce((a, b) => a + b[1], 0); let x = 0; $('#pr').innerHTML = parts.map(([n, v, c]) => { const w = v / Math.max(tot, 100) * 300; const r = `<rect x="${x}" y="10" width="${w}" height="28" fill="${c}"/><text x="${x + w / 2}" y="54" font-size="9" text-anchor="middle" fill="currentColor">${n}</text>`; x += w; return r; }).join('') + `<text x="300" y="68" font-size="10" text-anchor="end" fill="currentColor">Giá = ${fmt(tot, 0)}</text>`; $('#pr').style.color = getComputedStyle(document.body).color; };
+$('#c1').oninput = prs; $('#c2').oninput = prs; prs();
+document.querySelectorAll('.tabs button').forEach((b, i) => b.addEventListener('click', () => { if (i == 0) lab.view(...V.a); if (i == 1) lab.view(...V.b); if (i == 2) lab.view(...V.c); if (i == 3) lab.view(...V.d); }));
+quiz($('#qz'), [
+  { q: 'Nguồn năng lượng chính duy trì vòng tuần hoàn của nước là', o: ['năng lượng Mặt Trời', 'năng lượng gió', 'năng lượng hạt nhân', 'năng lượng địa nhiệt'], a: 0 },
+  { q: 'Thực vật chuyển năng lượng ánh sáng thành dạng năng lượng nào?', o: ['điện năng', 'hoá năng (trong chất hữu cơ)', 'cơ năng', 'nhiệt năng'], a: 1 },
+  { q: 'Dầu mỏ được hình thành từ', o: ['xác sinh vật biển bị vùi lấp hàng triệu năm', 'nước biển bay hơi', 'đá núi lửa', 'cát biển'], a: 0 },
+  { q: 'Vì sao nhiên liệu hoá thạch là nguồn năng lượng không tái tạo?', o: ['Vì cần hàng triệu năm để hình thành nhưng bị khai thác rất nhanh', 'Vì không cháy được', 'Vì quá rẻ', 'Vì không có trong tự nhiên'], a: 0 },
+  { q: 'Đốt nhiên liệu hoá thạch thải ra khí gây hiệu ứng nhà kính chủ yếu là', o: ['O₂', 'N₂', 'CO₂', 'H₂'], a: 2 },
+  { q: 'Trong ba loại nhiên liệu, loại thải ít SO₂ và khói bụi nhất khi đốt là', o: ['than đá', 'xăng dầu', 'khí thiên nhiên', 'như nhau'], a: 2 },
+]);
+setFuel(0); ready(); window.dbg = { lab, S };
+</script></body></html>

@@ -3,13 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 15. Tác dụng của dòng điện xoay chiều</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
 import { supply, bulb, knife, wire, coil, board } from '../core/elec.js';
 import { vessel, thermometer } from '../core/chem.js';
 import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 15. Tác dụng của dòng điện xoay chiều', sub: 'KHTN 9 – Kết nối tri thức',
@@ -25,6 +26,10 @@ const stage = shell({
 <li><b>Tác dụng phát sáng:</b> làm đèn sợi đốt, đèn huỳnh quang, đèn LED phát sáng.</li>
 <li><b>Tác dụng từ:</b> dòng điện xoay chiều chạy qua cuộn dây sinh ra từ trường, hút được vật bằng sắt (nam châm điện, rơ le, động cơ điện…). Từ trường này đổi chiều theo dòng điện.</li>
 <li><b>Tác dụng sinh lí:</b> gây nguy hiểm cho cơ thể người (cũng được dùng trong y học với dòng điện rất nhỏ).</li></ul>` },
+    { id: 'p4', title: 'Tác dụng sinh lí', html: `<h3>4. Tác dụng sinh lí</h3><p>Dòng điện xoay chiều đi qua cơ thể người có thể làm co giật cơ, gây tổn thương tim, hệ thần kinh, bỏng… Với điện lưới 220 V, dòng điện qua người có thể gây nguy hiểm đến tính mạng.</p>
+<p>Trong y học, dòng điện được dùng có kiểm soát: máy kích thích cơ, máy khử rung tim, châm cứu bằng điện…</p>
+<div class="warn"><b>An toàn điện:</b> không chạm vào ổ điện, dây điện hở; không dùng tay ướt cắm, rút phích; ngắt nguồn trước khi sửa chữa; dùng thiết bị có cầu dao, aptomat, chống giật; khi có người bị điện giật phải ngắt nguồn điện trước, dùng vật cách điện tách người bị nạn.</div>
+<h3>Phân loại tác dụng</h3><table class="dt"><tr><th>Tác dụng</th><th>Thiết bị / ví dụ</th></tr><tr><td>Nhiệt</td><td>Bàn là, nồi cơm điện, ấm siêu tốc</td></tr><tr><td>Phát sáng</td><td>Bóng đèn sợi đốt, đèn LED, đèn huỳnh quang</td></tr><tr><td>Từ</td><td>Quạt điện, máy bơm, chuông điện, nam châm điện</td></tr><tr><td>Sinh lí</td><td>Máy kích thích cơ, máy khử rung tim</td></tr></table>` },
     { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
   ]
 });
@@ -82,7 +87,7 @@ lab.onTick((dt, t) => {
   heaterM.emissiveIntensity = c[0] ? .25 : 0; bk.set({ bubbles: c[0] ? clamp((S.T - 55) / 40, 0, .4) : 0 });
   Lb.set(c[1] ? 6 * (S.ac ? 1 : 1) : 0);
   // tác dụng từ
-  S.nail += ((c[2] ? 1 : 0) - S.nail) * Math.min(1, dt * (c[2] ? 6 : 9));
+  const n0 = S.nail; S.nail += ((c[2] ? 1 : 0) - S.nail) * Math.min(1, dt * (c[2] ? 6 : 9)); if (n0 < .85 && S.nail >= .85) sfx('snap'); else if (n0 > .3 && S.nail <= .3) sfx('metal', { vol: .5 }); mix('buzz', 'ac', c[2] && S.ac ? .6 : 0); mix('hum', 'heat', c[0] ? .3 : 0);
   nails.forEach((n, i) => { const p0 = n.userData.p0, top = new THREE.Vector3(.01 + (i - 1) * .004, .13 - .045 - i * .006, 0); n.position.lerpVectors(p0, top, S.nail * S.nail); n.rotation.z = Math.PI / 2 * (1 - S.nail); n.rotation.x = S.nail * .1 * (i - 1); });
   const target = c[2] ? (S.ac ? Math.sin(t * 2 * Math.PI * 7) * .9 : 1.2) : 0;   // xoay chiều: kim rung; một chiều: lệch hẳn
   S.ang += (target - S.ang) * Math.min(1, dt * 18); needle.rotation.y = S.ang;
