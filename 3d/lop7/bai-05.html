@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 5. Phân tử – Đơn chất – Hợp chất</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script src="../core/boot.js"></script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, clamp } from '../core/lab3d.js';
+import { MOL, buildMol, formula, elOf } from '../core/atoms.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx } from '../core/sfx.js';
+
+const SIMPLE = ['He', 'H2', 'O2', 'N2', 'Cl2', 'O3', 'Cu'], COMP = ['H2O', 'CO2', 'CH4', 'NH3', 'HCl', 'NaCl', 'C2H5OH'];
+const btns = L => L.map(k => `<button class="btn g" data-m="${k}">${MOL[k].f}</button>`).join('');
+const stage = shell({
+  title: 'Bài 5. Phân tử – Đơn chất – Hợp chất (mô hình 3D)', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Mô hình', html: `
+<p><b>Đơn chất</b> là chất được tạo nên từ <b>một</b> nguyên tố hoá học. <b>Hợp chất</b> là chất được tạo nên từ <b>hai hay nhiều</b> nguyên tố hoá học. <b>Phân tử</b> là hạt đại diện cho chất, gồm một số nguyên tử liên kết với nhau.</p>
+<div class="row"><b>Đơn chất:</b>${btns(SIMPLE)}</div><div class="row"><b>Hợp chất:</b>${btns(COMP)}</div>
+<div class="row"><b>Kiểu mô hình:</b><button class="btn on" data-s="stick">Que – bóng</button><button class="btn g" data-s="fill">Đặc khít</button><button class="btn g" id="many">Xem mẫu chất (nhiều hạt)</button></div>
+<div id="info" class="note"></div><div id="leg" class="row sm"></div>` },
+    { id: 'p2', title: 'Phân loại', html: `<p>Quan sát mô hình hiện trên màn hình rồi chọn: chất đó là <b>đơn chất</b> hay <b>hợp chất</b>?</p><div class="row"><button class="btn p" id="gNew">Chất tiếp theo</button><button class="btn o" id="gS">Đơn chất</button><button class="btn o" id="gC">Hợp chất</button></div><div id="gRes" class="note">Bấm “Chất tiếp theo” để bắt đầu.</div>` },
+    { id: 'p3', title: 'Khối lượng phân tử', html: `<p><b>Khối lượng phân tử</b> bằng tổng khối lượng các nguyên tử trong phân tử (đơn vị amu).</p><p>Khối lượng nguyên tử: H = 1, C = 12, N = 14, O = 16, Na = 23, Cl = 35,5, Cu = 64.</p><div id="kl" class="eq"></div><p>Thử tính: chọn một chất ở thẻ “Mô hình” rồi nhập kết quả:</p><div class="row">M = <input id="km" type="number" step=".5" style="width:90px"> amu <button class="btn p" id="kck">Kiểm tra</button><span id="kr"></span></div>` },
+    { id: 'p4', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const CEN = new THREE.Vector3(0, .25, 0), HOME = [[0, .36, .5], [0, .24, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.2, .7], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const holder = new THREE.Group(); holder.position.copy(CEN); scene.add(holder);
+const boxM = new THREE.Mesh(new THREE.BoxGeometry(.34, .22, .22), MAT.glassLite({ opacity: .12 })); boxM.position.copy(CEN); boxM.visible = false; scene.add(boxM);
+const S = { k: 'H2O', style: 'stick', many: false, spin: true, game: null, score: [0, 0] };
+let parts = [];
+function show() {
+  while (holder.children.length) holder.remove(holder.children[0]); parts = [];
+  const m = MOL[S.k], isLat = !!m.lattice;
+  if (S.many && !isLat) {
+    boxM.visible = true; let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 14; i++) { const g = buildMol(m, { style: S.style, scale: .016 }); g.position.set((rnd() - .5) * .28, (rnd() - .5) * .16, (rnd() - .5) * .16); g.rotation.set(rnd() * 6, rnd() * 6, rnd() * 6); holder.add(g); parts.push({ g, v: new THREE.Vector3(rnd() - .5, rnd() - .5, rnd() - .5).multiplyScalar(.05), w: new THREE.Vector3(rnd(), rnd(), rnd()) }); }
+  } else { boxM.visible = false; holder.add(buildMol(m, { style: S.style, scale: isLat ? .022 : .045 })); }
+  lab.shadow(holder);
+  const { comp, M } = formula(m), els = Object.keys(comp);
+  $('#info').innerHTML = `<b>${m.n}</b> – công thức <b>${m.f}</b><br>Tạo nên từ <b>${els.length}</b> nguyên tố (${els.map(e => elOf(e)[1].split(' ')[0]).join(', ')}) → <b style="color:${m.k == 'đơn chất' ? '#1c7ed6' : '#e8590c'}">${m.k.toUpperCase()}</b>${isLat ? '<br>Chất rắn này gồm rất nhiều hạt sắp xếp đều đặn (mạng tinh thể).' : m.atoms.length == 1 ? '<br>Khí hiếm: mỗi hạt là một nguyên tử riêng lẻ.' : `<br>Mỗi phân tử gồm ${Object.entries(comp).map(([e, n]) => `${n} nguyên tử ${e}`).join(' và ')}.`}`;
+  $('#leg').innerHTML = els.map(e => `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px"><i style="width:12px;height:12px;border-radius:50%;display:inline-block;border:1px solid #888;background:#${new THREE.Color(elOf(e)[4]).getHexString()}"></i>${e}</span>`).join('');
+  $('#kl').innerHTML = `${m.f}: ${Object.entries(comp).map(([e, n]) => `${n > 1 ? n + ' × ' : ''}${fmt(elOf(e)[3], 1)}`).join(' + ')} = <b>${fmt(M, 1)} amu</b>`; $('#kl').style.filter = 'blur(5px)'; $('#kr').innerHTML = '';
+  hud.innerHTML = S.game ? 'Đơn chất hay hợp chất?' : `<b>${m.f}</b> · ${m.n} · ${m.k}`;
+  document.querySelectorAll('[data-m]').forEach(b => { b.classList.toggle('on', b.dataset.m == S.k); b.classList.toggle('g', b.dataset.m != S.k); });
+}
+document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { S.k = b.dataset.m; S.game = null; sfx('pop'); show(); });
+document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { S.style = b.dataset.s; document.querySelectorAll('[data-s]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); show(); });
+$('#many').onclick = () => { S.many = !S.many; $('#many').classList.toggle('on', S.many); $('#many').classList.toggle('g', !S.many); $('#many').textContent = S.many ? 'Xem một phân tử' : 'Xem mẫu chất (nhiều hạt)'; show(); lab.view(S.many ? [0, .4, .6] : HOME[0], HOME[1]); };
+// trò chơi phân loại
+const ALL = [...SIMPLE, ...COMP];
+$('#gNew').onclick = () => { let k; do k = ALL[Math.floor(Math.random() * ALL.length)]; while (k == S.k); S.k = k; S.game = k; show(); $('#info').innerHTML = '<i>Thông tin được ẩn trong lúc chơi.</i>'; $('#gRes').innerHTML = 'Quan sát màu các nguyên tử trong mô hình rồi chọn.'; };
+const answer = s => { if (!S.game) return toast('Bấm “Chất tiếp theo” trước'); const m = MOL[S.game], ok = (m.k == 'đơn chất') == s; S.score[0] += ok; S.score[1]++; sfx(ok ? 'chime' : 'error'); $('#gRes').innerHTML = `${ok ? '<span class="ok">Đúng!</span>' : '<span class="er">Chưa đúng.</span>'} ${m.f} (${m.n}) là <b>${m.k}</b> vì tạo nên từ ${Object.keys(formula(m).comp).length} nguyên tố. Điểm: ${S.score[0]}/${S.score[1]}`; S.game = null; show(); };
+$('#gS').onclick = () => answer(true); $('#gC').onclick = () => answer(false);
+$('#kck').onclick = () => { const v = parseFloat($('#km').value), M = formula(MOL[S.k]).M, ok = Math.abs(v - M) < .01; sfx(ok ? 'chime' : 'error'); $('#kr').innerHTML = ok ? '<span class="ok">Đúng!</span>' : '<span class="er">Chưa đúng, thử lại.</span>'; if (ok) $('#kl').style.filter = 'none'; };
+lab.onTick((dt, t) => {
+  if (S.many) parts.forEach(p => { p.g.position.addScaledVector(p.v, dt); ['x', 'y', 'z'].forEach((a, i) => { const L = [.15, .09, .09][i]; if (Math.abs(p.g.position[a]) > L) { p.v[a] = -p.v[a]; p.g.position[a] = Math.sign(p.g.position[a]) * L; } }); p.g.rotation.x += p.w.x * dt; p.g.rotation.y += p.w.y * dt; });
+  else if (S.spin) holder.rotation.y += dt * .5;
+});
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn on" id="bSpin">Tự xoay</button><button class="btn" id="bNear">Nhìn gần</button><button class="btn" id="bHome">Toàn cảnh</button>`;
+$('#bSpin').onclick = () => { S.spin = !S.spin; $('#bSpin').classList.toggle('on', S.spin); };
+$('#bNear').onclick = () => lab.view([0, .3, .25], CEN.toArray()); $('#bHome').onclick = () => lab.view(...HOME);
+quiz($('#qz'), [
+  { q: 'Đơn chất là chất được tạo nên từ', o: ['một nguyên tố hoá học', 'hai nguyên tố hoá học', 'nhiều phân tử khác nhau', 'hỗn hợp nhiều chất'], a: 0 },
+  { q: 'Chất nào sau đây là hợp chất?', o: ['O₂', 'Cu', 'H₂O', 'N₂'], a: 2 },
+  { q: 'Chất nào sau đây là đơn chất?', o: ['CO₂', 'NaCl', 'CH₄', 'O₃'], a: 3 },
+  { q: 'Phân tử methane (CH₄) gồm', o: ['1 nguyên tử C và 4 nguyên tử H', '4 nguyên tử C và 1 nguyên tử H', '1 nguyên tử C và 2 nguyên tử H', 'chỉ có nguyên tử C'], a: 0 },
+  { q: 'Khối lượng phân tử của CO₂ (C = 12, O = 16) là', n: 44, u: 'amu' },
+  { q: 'Khối lượng phân tử của nước H₂O (H = 1, O = 16) là', n: 18, u: 'amu' },
+]);
+show(); ready(); window.dbg = { lab, S };
+</script></body></html>

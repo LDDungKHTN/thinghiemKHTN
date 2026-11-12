@@ -9,6 +9,7 @@
 import { createLab, THREE, MAT, TEX, roundBox, canvasTex, clamp } from '../core/lab3d.js';
 import { tick } from '../core/sound.js';
 import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+import { sfx } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 14. Phản xạ âm, chống ô nhiễm tiếng ồn', sub: 'KHTN 7 – Kết nối tri thức',
@@ -18,19 +19,25 @@ const stage = shell({
 <h3>Thí nghiệm: vật phản xạ âm tốt, vật phản xạ âm kém (Hình 14.3)</h3>
 <p><b>Dụng cụ:</b> hộp làm bằng vật liệu cách âm (1); tấm gỗ nhẵn, tấm gỗ sần sùi, tấm xốp mềm (2); đồng hồ để bàn nhỏ làm nguồn âm (3); giá đỡ tấm phản xạ (4).</p>
 <ol><li>Gắn tấm gỗ nhẵn lên giá, đặt tai ở vị trí như Hình 14.3, lắng nghe âm phản xạ.</li><li>Lần lượt thay bằng tấm gỗ sần sùi, tấm xốp; so sánh độ to của âm phản xạ.</li></ol>
-<div class="row"><b>Tấm phản xạ:</b><button class="btn on" data-m="0">Gỗ nhẵn</button><button class="btn g" data-m="1">Gỗ sần sùi</button><button class="btn g" data-m="2">Xốp mềm</button><button class="btn g" data-m="3">Không có tấm</button></div>
-<h3>Ứng dụng: đo độ sâu của biển (Hình 14.2)</h3><p>Bấm <b>“Đo độ sâu biển”</b>: tàu phát sóng siêu âm xuống đáy biển, đo thời gian t thu được âm phản xạ. Tốc độ âm trong nước biển 1 500 m/s: <b>h = v·t / 2</b>.</p>` },
+<div class="row" id="mats"><b>Tấm phản xạ:</b></div>
+<h3>Ứng dụng: đo độ sâu của biển (Hình 14.2)</h3><p>Máy phát dưới đáy tàu phát <b>sóng siêu âm</b> (màu xanh) đi xuống, gặp đáy biển bị <b>phản xạ</b> trở lại (màu cam) và được máy thu trên tàu ghi nhận. Đo thời gian t từ lúc phát đến lúc thu. Tốc độ âm trong nước biển v = 1 500 m/s; âm đi xuống rồi đi lên nên quãng đường bằng 2h: <b>h = v·t / 2</b>.</p>
+<div class="sl">Độ sâu đáy biển <input type="range" id="dep" min="200" max="4000" step="100" value="1500"><span id="depv"></span></div>
+<div class="row"><button class="btn p" id="bSea2">Phát siêu âm, đo độ sâu</button></div>
+<table class="dt"><thead><tr><th>Độ sâu thật</th><th>t đo được</th><th>h = v·t/2</th></tr></thead><tbody id="tbs"></tbody></table>` },
     { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Lắng nghe âm phản xạ.</div>
 <table class="dt"><thead><tr><th>Tấm phản xạ</th><th>Âm phản xạ nghe được</th></tr></thead><tbody id="tb"></tbody></table>
 <ul><li>Âm dội lại khi gặp một mặt chắn gọi là <b>âm phản xạ</b>. Âm phản xạ đến tai chậm hơn âm truyền trực tiếp ít nhất 1/15 giây thì có <b>tiếng vang</b>.</li><li>Vật cứng, bề mặt nhẵn <b>phản xạ âm tốt</b>; vật mềm, xốp, bề mặt sần sùi <b>phản xạ âm kém</b> (hấp thụ âm tốt).</li><li>Chống ô nhiễm tiếng ồn: tác động vào nguồn âm, phân tán âm trên đường truyền, ngăn cản âm truyền tới tai.</li></ul>` },
     { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
   ]
 });
-const H1 = [[.08, .4, .78], [.08, .12, 0]], H2 = [[.62, .32, .62], [.62, .1, -.05]];
+const H1 = [[.08, .4, .78], [.08, .12, 0]], H2 = [[.66, .24, .52], [.66, .16, -.05]];
 const lab = createLab(stage, { cam: H1[0], target: H1[1], table: 'wood', tableSize: [1.7, .8], minDist: .06 });
 const { scene } = lab;
 const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
-const MATS = [{ n: 'Gỗ nhẵn', k: .85, c: 0xc89a5e, r: .25 }, { n: 'Gỗ sần sùi', k: .35, c: 0x9b7442, r: 1 }, { n: 'Xốp mềm', k: .08, c: 0xf2f2ec, r: 1 }, { n: 'Không có tấm', k: .02 }];
+const MATS = [{ n: 'Gỗ nhẵn', k: .85, c: 0xc89a5e, r: .25 }, { n: 'Gỗ sần sùi', k: .35, c: 0x9b7442, r: 1, wood: 1 }, { n: 'Xốp mềm', k: .08, c: 0xf2f2ec, r: 1 }, { n: 'Tấm kim loại', k: .95, c: 0xc0c5ca, r: .15, metal: 1 }, { n: 'Tấm kính', k: .9, c: 0xd8eef8, r: .05, glass: 1 }, { n: 'Tường gạch', k: .8, c: 0xa8553a, r: .8, brick: 1 }, { n: 'Bìa các-tông', k: .45, c: 0xb8916a, r: .9 }, { n: 'Rèm nhung', k: .1, c: 0x8b1a2b, r: 1 }, { n: 'Thảm len', k: .12, c: 0x4f6d8f, r: 1, rug: 1 }, { n: 'Không có tấm', k: .02, none: 1 }];
+const brickT = canvasTex(256, 256, (c, w, h) => { c.fillStyle = '#d9d2c5'; c.fillRect(0, 0, w, h); for (let r = 0; r < 8; r++) for (let k = -1; k < 5; k++) { c.fillStyle = ['#a8553a', '#b5613f', '#9c4b33'][(r + k + 3) % 3]; c.fillRect(k * 64 + (r % 2) * 32 + 3, r * 32 + 3, 58, 26); } });
+const rugT = canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#4f6d8f'; c.fillRect(0, 0, w, h); for (let i = 0; i < 3000; i++) { c.fillStyle = Math.random() < .5 ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.15)'; c.fillRect(Math.random() * w, Math.random() * h, 2, 2); } });
+$('#mats').insertAdjacentHTML('beforeend', MATS.map((m, i) => `<button class="btn ${i ? 'g' : 'on'}" data-m="${i}">${m.n}</button>`).join(''));
 const S = { m: 0, ph: 0, rows: {} };
 // hộp cách âm + ống hướng âm + đồng hồ
 const box = new THREE.Group(); box.position.set(-.12, 0, .02); scene.add(box);
@@ -64,14 +71,27 @@ const mm = new THREE.Mesh(new THREE.PlaneGeometry(.1, .025), new THREE.MeshStand
 function drawMeter(k) { const c = meter.image.getContext('2d'); c.fillStyle = '#111'; c.fillRect(0, 0, 256, 64); for (let i = 0; i < 20; i++) { c.fillStyle = i < k * 20 ? (i < 12 ? '#40c057' : i < 16 ? '#fab005' : '#fa5252') : '#333'; c.fillRect(8 + i * 12, 14, 9, 36); } meter.needsUpdate = true; }
 
 /* ===== Đo độ sâu biển ===== */
-const SEA = new THREE.Group(); SEA.position.set(.62, 0, -.05); scene.add(SEA);
-const waterB = new THREE.Mesh(new THREE.BoxGeometry(.32, .2, .12), new THREE.MeshPhysicalMaterial({ color: 0x1c6ea4, transparent: true, opacity: .45, roughness: .1, depthWrite: false })); waterB.position.y = .1; SEA.add(waterB);
-const bed = new THREE.Mesh(new THREE.BoxGeometry(.32, .02, .12), new THREE.MeshStandardMaterial({ color: 0xb59a64, roughness: 1 })); bed.position.y = .01; SEA.add(bed);
-const ship = new THREE.Group(); ship.position.set(-.04, .205, 0); SEA.add(ship);
-const hull = roundBox(.09, .02, .03, .006, MAT.plastic(0xd9480f, .4)); ship.add(hull); const cabn = roundBox(.03, .02, .02, .004, MAT.plastic(0xf1f3f5, .4)); cabn.position.set(-.01, .02, 0); ship.add(cabn);
-lab.label(SEA, 'Mô hình đo độ sâu biển', [0, .27, 0]);
-const pulse = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12, 0, 6.3, Math.PI / 2, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xaee4ff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })); SEA.add(pulse);
-const SO = { t: -1, depth: 0 };
+const SEA = new THREE.Group(); SEA.position.set(.66, 0, -.05); scene.add(SEA);
+const TW = .36, TD = .12, BED = .025;
+const bedG = new THREE.BoxGeometry(TW, BED, TD, 40, 1, 4); { const p = bedG.attributes.position; for (let i = 0; i < p.count; i++) if (p.getY(i) > 0) p.setY(i, p.getY(i) + .006 * Math.sin(p.getX(i) * 40) * Math.cos(p.getZ(i) * 30)); bedG.computeVertexNormals(); }
+const bed = new THREE.Mesh(bedG, new THREE.MeshStandardMaterial({ color: 0x8f7a52, roughness: 1 })); bed.position.y = BED / 2; SEA.add(bed);
+for (const [x, z, w, d] of [[0, -TD / 2, TW, .003], [0, TD / 2, TW, .003], [-TW / 2, 0, .003, TD], [TW / 2, 0, .003, TD]]) { const g = new THREE.Mesh(new THREE.BoxGeometry(w, .37, d), MAT.glassLite({ opacity: .15 })); g.position.set(x, .185, z); SEA.add(g); }
+const waterB = new THREE.Mesh(new THREE.BoxGeometry(TW - .006, 1, TD - .006), new THREE.MeshPhysicalMaterial({ color: 0x1c6ea4, transparent: true, opacity: .4, roughness: .1, depthWrite: false })); SEA.add(waterB);
+const surf = new THREE.Mesh(new THREE.PlaneGeometry(TW - .006, TD - .006), new THREE.MeshPhysicalMaterial({ color: 0x3d8fc6, transparent: true, opacity: .55, roughness: .05, clearcoat: 1, depthWrite: false })); surf.rotation.x = -Math.PI / 2; SEA.add(surf);
+const ship = new THREE.Group(); SEA.add(ship);
+const hull = roundBox(.1, .022, .034, .007, MAT.plastic(0xd9480f, .4)); ship.add(hull); const cabn = roundBox(.034, .022, .022, .004, MAT.plastic(0xf1f3f5, .4)); cabn.position.set(-.012, .02, 0); ship.add(cabn);
+const sonar = new THREE.Mesh(new THREE.CylinderGeometry(.008, .01, .008, 20), MAT.metal(0x495057, .3)); sonar.position.set(.015, -.014, 0); ship.add(sonar);
+lab.label(sonar, 'Máy phát – thu siêu âm', [.07, -.01, 0]); lab.label(bed, 'Đáy biển', [-.12, .02, .06]); lab.label(SEA, 'Mô hình đo độ sâu biển', [0, .4, 0]);
+// thước độ sâu bên cạnh bể
+const scC = document.createElement('canvas'); scC.width = 96; scC.height = 512; const scT = new THREE.CanvasTexture(scC); scT.colorSpace = THREE.SRGBColorSpace;
+const scale = new THREE.Mesh(new THREE.PlaneGeometry(.03, .16), new THREE.MeshBasicMaterial({ map: scT, transparent: true })); SEA.add(scale);
+// các đầu sóng siêu âm: đi xuống (xanh) và phản xạ đi lên (cam)
+const mkArc = (c, rz) => { const m = new THREE.Mesh(new THREE.TorusGeometry(.03, .003, 6, 24, Math.PI / 2), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); m.rotation.z = rz; m.renderOrder = 5; SEA.add(m); return m; };
+const NA = 6, DOWN = [...Array(NA)].map(() => mkArc(0x74c0fc, -3 * Math.PI / 4)), UP = [...Array(NA)].map(() => mkArc(0xff922b, Math.PI / 4));
+const SO = { t: -1, dep: 1500, rows: [] };
+const vh = d => .06 + d / 4000 * .27;   // chiều cao cột nước trên mô hình
+function setDepth(d) { SO.dep = d; const h = vh(d); waterB.scale.y = h; waterB.position.y = BED + h / 2; surf.position.y = BED + h; ship.position.set(-.06, BED + h + .006, 0); $('#depv').textContent = d.toLocaleString('vi-VN') + ' m';
+  scale.scale.y = h / .16; scale.position.set(TW / 2 + .02, BED + h / 2, TD / 2); const g = scC.getContext('2d'); g.clearRect(0, 0, 96, 512); g.fillStyle = 'rgba(255,255,255,.92)'; g.fillRect(0, 0, 40, 512); g.fillStyle = '#111'; g.font = 'bold 22px Arial'; const step = d > 2000 ? 1000 : 500; for (let m = 0; m <= d; m += step) { const y = m / d * 504 + 4; g.fillRect(0, y - 1.5, 26, 3); g.save(); g.translate(30, y + 8); g.fillText(m / 1000 + ' km', 0, 0); g.restore(); } scT.needsUpdate = true; }
 
 lab.onTick((dt, t) => {
   // tích tắc mỗi giây
@@ -79,18 +99,27 @@ lab.onTick((dt, t) => {
   S.flash = (S.flash ?? 1) + dt;
   arcs.forEach((a, i) => { const f = ((t + i / 6) % 1); const seg = f < .5; const p = seg ? P0.clone().lerp(P1, f * 2) : P1.clone().lerp(P2, (f - .5) * 2); a.position.copy(p); const dir = seg ? P1.clone().sub(P0) : P2.clone().sub(P1); a.rotation.set(0, 0, Math.atan2(dir.y, dir.x) - .8); a.scale.setScalar(.6 + f * 1.5); a.material.opacity = (seg ? .7 : .7 * k) * (1 - f * .6); });
   drawMeter(k * (S.flash < .15 ? 1 : .15));
-  if (SO.t >= 0) { SO.t += dt; const v = .12, d = SO.depthM, Tm = 2 * d / 1500, T = .7; const f = SO.t / T, H = .19; let r, op;
-    if (f < .5) { r = f * 2 * H; op = .6; } else if (f < 1) { r = (1 - (f - .5) * 2) * H; op = .45; } else { r = 0; op = 0; }
-    pulse.position.set(-.04, .195 - (f < .5 ? 0 : 0), 0); pulse.scale.set(.03 + r * .3, Math.max(.001, r), .03 + r * .3); pulse.material.opacity = op; pulse.rotation.x = f < .5 ? 0 : Math.PI; if (f >= .5 && f < 1) pulse.position.y = .02 + (1 - (f - .5) * 2) * 0;
-    if (f >= 1 && !SO.done) { SO.done = true; hud.innerHTML = `Thời gian từ lúc phát đến lúc thu sóng phản xạ: t = <b>${fmt(Tm, 2)} s</b><br>Độ sâu h = v·t/2 = 1500 · ${fmt(Tm, 2)} / 2 = <b>${fmt(d, 0)} m</b>`; } void v; }
+  if (SO.t >= 0) { SO.t += dt; const d = SO.dep, Tm = 2 * d / 1500, Tv = 1.6 + Tm * .8, p = SO.t / Tv;
+    const yS = ship.position.y - .02, yB = BED + .004, x0 = ship.position.x + .015;
+    const place = (arr, ph, up) => arr.forEach((m, i) => { const q = ph - i * .035; if (q < 0 || q > 1) { m.material.opacity = 0; return; } const y = up ? yB + q * (yS - yB) : yS - q * (yS - yB); const sc = .5 + (up ? 1 - q : q) * 1.2; m.scale.setScalar(sc); m.position.set(x0, up ? y - .03 * sc : y + .03 * sc, 0); m.material.opacity = .9 * (1 - i / NA) * (up ? .85 : 1); });
+    place(DOWN, Math.min(p * 2, 1.3), false); place(UP, p >= .5 ? (p - .5) * 2 : -1, true);
+    if (p >= .5 && !SO.hitBed) { SO.hitBed = true; sfx('tick', { vol: .6 }); }
+    const tNow = Math.min(p, 1) * Tm;
+    if (p < 1) hud.innerHTML = `${p < .5 ? 'Sóng siêu âm đang đi <b>xuống</b> đáy biển…' : 'Sóng <b>phản xạ</b> ở đáy biển, đang đi <b>lên</b> tàu…'}<br>Đồng hồ máy thu: t = <b>${fmt(tNow, 2)} s</b>`;
+    if (p >= 1 && !SO.done) { SO.done = true; sfx('beep2'); [...DOWN, ...UP].forEach(m => m.material.opacity = 0); hud.innerHTML = `Máy thu nhận được sóng phản xạ sau t = <b>${fmt(Tm, 2)} s</b><br>Độ sâu h = v·t/2 = 1 500 · ${fmt(Tm, 2)} / 2 = <b>${fmt(d, 0)} m</b>`;
+      SO.rows.push(`<tr><td>${d.toLocaleString('vi-VN')} m</td><td>${fmt(Tm, 2)} s</td><td>${fmt(1500 * Tm / 2, 0)} m</td></tr>`); $('#tbs').innerHTML = SO.rows.slice(-8).join(''); }
+    if (p > 1.4) SO.t = -1; }
 });
-function setM(i) { S.m = i; document.querySelectorAll('[data-m]').forEach(b => { b.classList.toggle('on', +b.dataset.m == i); b.classList.toggle('g', +b.dataset.m != i); }); const M = MATS[i]; plate.visible = i < 3; if (i < 3) { plate.material.color.set(M.c); plate.material.roughness = M.r; plate.material.map = i == 1 ? TEX.wood() : null; plate.material.needsUpdate = true; }
-  const txt = i == 3 ? 'Không có tấm phản xạ: hầu như <b>không nghe thấy</b> tiếng tích tắc.' : `${M.n}: âm phản xạ nghe được <b>${M.k > .6 ? 'rõ, to' : M.k > .2 ? 'nhỏ hơn' : 'rất nhỏ, gần như không nghe thấy'}</b> → ${M.k > .6 ? 'phản xạ âm tốt' : 'phản xạ âm kém'}.`;
+function setM(i) { S.m = i; document.querySelectorAll('[data-m]').forEach(b => { b.classList.toggle('on', +b.dataset.m == i); b.classList.toggle('g', +b.dataset.m != i); }); const M = MATS[i]; plate.visible = !M.none; if (!M.none) { plate.material.color.set(M.wood || M.brick || M.rug ? 0xffffff : M.c); plate.material.roughness = M.r; plate.material.metalness = M.metal ? .9 : 0; plate.material.transparent = !!M.glass; plate.material.opacity = M.glass ? .45 : 1; plate.material.map = M.wood ? TEX.wood() : M.brick ? brickT : M.rug ? rugT : null; plate.material.needsUpdate = true; }
+  const txt = M.none ?'Không có tấm phản xạ: hầu như <b>không nghe thấy</b> tiếng tích tắc.' : `${M.n}: âm phản xạ nghe được <b>${M.k > .6 ? 'rõ, to' : M.k > .2 ? 'nhỏ hơn' : 'rất nhỏ, gần như không nghe thấy'}</b> → ${M.k > .6 ? 'phản xạ âm tốt' : 'phản xạ âm kém'}.`;
   hud.innerHTML = txt; $('#obs').innerHTML = txt; S.rows[i] = txt.replace(/<[^>]+>/g, ''); $('#tb').innerHTML = Object.entries(S.rows).map(([j, r]) => `<tr><td>${MATS[j].n}</td><td>${r.split(':').slice(1).join(':') || r}</td></tr>`).join(''); }
 document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { setM(+b.dataset.m); lab.view(...H1); });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn p" id="bSea">Đo độ sâu biển</button><button class="btn" id="bH">Thí nghiệm phản xạ âm</button><button class="btn" id="bLbl">Tên</button>`;
-$('#bSea').onclick = () => { lab.view(...H2); SO.depthM = 600 + Math.round(Math.random() * 30) * 100; SO.t = 0; SO.done = false; bed.position.y = .01; hud.innerHTML = 'Tàu phát sóng siêu âm xuống đáy biển…'; };
+const sonarGo = () => { lab.view(...H2); SO.t = 0; SO.done = false; SO.hitBed = false; sfx('beep'); };
+$('#bSea').onclick = sonarGo; $('#bSea2').onclick = sonarGo;
+$('#dep').oninput = e => { setDepth(+e.target.value); SO.t = -1; [...DOWN, ...UP].forEach(m => m.material.opacity = 0); lab.view(...H2); };
+setDepth(1500);
 $('#bH').onclick = () => lab.view(...H1);
 let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
 quiz($('#qz'), [

@@ -62,7 +62,7 @@ function placeMic() { const F = forks[cur]; mic.position.set(F.G.position.x + .0
 const rows = [];
 function hit(F, a) {
   F.A = a; F.t0 = performance.now() / 1000; tone(F.f, .55 * a, 1.6);
-  if (F.f == cur) sc.set({ f: F.f, A: a, tau: 1.6 });
+  if (F.f == cur) sc.set({ f: F.f, A: a, tau: 4 });
   const loud = a > .5 ? 'to' : 'nhỏ', pitch = F.f >= 800 ? 'rất cao (bổng)' : F.f >= 500 ? 'cao (bổng)' : 'thấp (trầm)';
   const t = F.f == cur ? `Âm thoa ${F.f} Hz – gõ ${a > .5 ? 'mạnh' : 'nhẹ'}: đường biểu diễn có biên độ <b>${a > .5 ? 'lớn' : 'nhỏ'}</b>, ${F.f * .02} dao động trong 20 ms → f = ${F.f} Hz. Âm nghe được <b>${loud}</b>, <b>${pitch}</b>.` : `Âm thoa ${F.f} Hz đang kêu nhưng không đặt trước micrô.`;
   hud.innerHTML = t; $('#obs').innerHTML = t;

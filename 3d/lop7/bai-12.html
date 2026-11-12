@@ -19,7 +19,7 @@ const stage = shell({
 <div class="sl">Phần thanh thò ra <input type="range" id="L" min="6" max="25" value="20"><span id="vL">20 cm</span></div>
 <h3>2. Sóng trên mặt nước (Hình 12.2)</h3><p>Bấm “Tạo sóng nước”: vật nhỏ S dao động theo thanh thép làm mặt nước dao động, tạo thành sóng nước hình tròn có tâm S.</p>
 <h3>3. Sóng trên lò xo (Hình 12.3)</h3><p>Bấm “Rung lò xo”: dọc theo lò xo xuất hiện những đoạn nén và dãn liên tiếp.</p>
-<h3>4. Nguồn âm: âm thoa (Hình 12.4d)</h3><p>Bấm vào <b>búa cao su</b> để gõ âm thoa: âm thoa phát ra âm, quả bóng bàn treo chạm vào nhánh âm thoa bị bật ra liên tục – chứng tỏ nguồn âm đang dao động.</p>` },
+<h3>4. Nguồn âm: âm thoa (Hình 12.4d)</h3><p>Quả bóng bàn treo bằng sợi chỉ, đặt <b>gần sát (cách một khoảng rất nhỏ)</b> nhánh âm thoa. Bấm vào <b>búa cao su</b> để gõ âm thoa: âm thoa phát ra âm, nhánh âm thoa dao động chạm vào quả bóng và làm <b>quả bóng bị bật ra liên tục</b> – chứng tỏ nguồn âm đang dao động. Khi âm thoa ngừng kêu, quả bóng đứng yên trở lại.</p>` },
     { id: 'p2', title: 'Kết luận', html: `<div id="obs" class="note">Thực hiện các thí nghiệm.</div><ul>
 <li>Chuyển động qua lại quanh một vị trí cân bằng gọi là <b>dao động</b>.</li><li><b>Sóng</b> là sự lan truyền dao động trong môi trường.</li><li>Nguồn âm là vật phát ra âm; <b>các nguồn âm đều dao động</b>.</li><li><b>Sóng âm</b> là sự lan truyền dao động của nguồn âm trong môi trường. Âm truyền được trong chất rắn, lỏng, khí; không truyền được trong chân không.</li></ul>` },
     { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
@@ -60,9 +60,11 @@ const ubend = new THREE.Mesh(new THREE.TorusGeometry(.009, .0035, 10, 20, Math.P
 const prong = s => { const p = new THREE.Mesh(new THREE.BoxGeometry(.006, .11, .007), steel); p.geometry.translate(0, .055, 0); p.position.set(s * .009, .039, 0); fork.add(p); return p; };
 const pr = [prong(-1), prong(1)];
 lab.label(fork, 'Âm thoa (440 Hz)', [0, .17, 0]);
-const ballP = new THREE.Group(); ballP.position.set(.02, .22, 0); F.add(ballP);
-const sp = standPost(-.14 + .1, .26); void sp;
-const arm = new THREE.Mesh(new THREE.BoxGeometry(.08, .006, .006), dk); arm.position.set(.0, .222, 0); F.add(arm);
+// quả bóng treo cách nhánh phải một khe nhỏ GAP, ngang gần đầu nhánh
+const GAP = .0015, PR_OUT = .009 + .003, BR = .0125, LT = .1125, BALL_Y = .17;
+const ballP = new THREE.Group(); ballP.position.set(PR_OUT + BR + GAP, BALL_Y + LT, 0); F.add(ballP);
+const sp = standPost(-.14 + .1, .32); void sp;
+const arm = new THREE.Mesh(new THREE.BoxGeometry(.08, .006, .006), dk); arm.position.set(.0, BALL_Y + LT + .003, 0); F.add(arm);
 const thread = new THREE.Mesh(new THREE.CylinderGeometry(.0004, .0004, .1, 6), new THREE.MeshStandardMaterial({ color: 0xeeeeee })); thread.position.y = -.05; ballP.add(thread);
 const pball = new THREE.Mesh(new THREE.SphereGeometry(.0125, 30, 20), new THREE.MeshStandardMaterial({ color: 0xff8c1a, roughness: .45 })); pball.position.y = -.1 - .0125; ballP.add(pball); pball.castShadow = true;
 lab.label(pball, 'Quả bóng bàn', [.03, 0, 0]);
@@ -71,9 +73,7 @@ const hh = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .03, 20), MAT.r
 const hs = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, .1, 10), new THREE.MeshStandardMaterial({ color: 0xc9a06a })); hs.position.y = .04; hammer.add(hs);
 hammer.rotation.z = .5; lab.label(hammer, 'Búa cao su (bấm)', [0, .12, 0]);
 const FK = { A: 0, t: 0, ang: 0, w: 0, hit: -1 };
-// góc treo: bóng chạm vào nhánh phải khi đứng yên (dây hơi lệch)
-const restAng = Math.asin((.009 + .0035 + .0125 - .02) / .1125);
-FK.ang = restAng;
+FK.ang = 0; const PIV_H = BALL_Y - .089;   // độ cao chỗ bóng so với gốc nhánh âm thoa
 lab.clickable(hammer, () => strike()); lab.clickable(fork, () => strike());
 function strike() { FK.hit = 0; }
 
@@ -117,12 +117,11 @@ lab.onTick((dt, t) => {
   // âm thoa
   if (FK.hit >= 0) { FK.hit += dt; hammer.rotation.z = .5 - Math.sin(Math.min(1, FK.hit / .12) * Math.PI) * .9; if (FK.hit > .06 && !FK.struck) { FK.struck = true; FK.A = 1; FK.t = 0; tone(440, .45, 1.6); say('Âm thoa <b>phát ra âm</b> và <b>quả bóng bàn bị bật ra</b> liên tục khi chạm vào nhánh âm thoa → nhánh âm thoa đang <b>dao động</b>.'); } if (FK.hit > .3) { FK.hit = -1; FK.struck = false; hammer.rotation.z = .5; } }
   FK.t += dt; const fa = FK.A * Math.exp(-FK.t / 1.6);
-  pr.forEach((p, i) => p.rotation.z = (i ? 1 : -1) * fa * .012 * Math.sin(t * 2 * Math.PI * 37));
+  const th = fa * .045 * Math.sin(t * 2 * Math.PI * 37); pr.forEach((p, i) => p.rotation.z = (i ? -1 : 1) * th);
   // con lắc bóng: lực đàn hồi khi chạm nhánh
-  const g = 9.8, L = .1125; let acc = -(g / L) * Math.sin(FK.ang - 0) - .6 * FK.w;
-  const contact = FK.ang <= restAng + .0005;
-  if (contact && fa > .02) { FK.w = Math.abs(FK.w) + fa * .9; }
-  FK.w += acc * dt; FK.ang += FK.w * dt; if (FK.ang < restAng) { FK.ang = restAng; if (FK.w < 0) FK.w = -FK.w * .3; }
+  const g = 9.8, L = LT; FK.w += (-(g / L) * Math.sin(FK.ang) - .5 * FK.w) * dt; FK.ang += FK.w * dt;
+  const disp = Math.max(0, th) * PIV_H, minAng = Math.asin(clamp((disp - GAP) / L, -1, 1));   // nhánh phồng ra chiếm chỗ
+  if (FK.ang < minAng) { FK.ang = minAng; FK.w = Math.max(Math.abs(FK.w) * .4, fa * 1.4); if (fa > .05) { FK.hits = (FK.hits || 0) + 1; } }
   ballP.rotation.z = FK.ang;
   // sóng nước
   if (WV.on) { WV.t += dt; dip.position.y = .02 + .003 * Math.sin(WV.t * 2 * Math.PI * 4); }

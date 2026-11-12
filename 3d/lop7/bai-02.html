@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bài 2. Nguyên tử</title>
+<link rel="stylesheet" href="../core/ui.css">
+<script src="../core/boot.js"></script>
+</head><body>
+<script type="module">
+import { createLab, THREE, MAT, canvasTex, clamp } from '../core/lab3d.js';
+import { EL, shells } from '../core/atoms.js';
+import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx } from '../core/sfx.js';
+
+const stage = shell({
+  title: 'Bài 2. Nguyên tử – Mô hình 3D', sub: 'KHTN 7 – Kết nối tri thức',
+  panes: [
+    { id: 'p1', title: 'Mô hình', html: `
+<p>Nguyên tử gồm <b>hạt nhân</b> mang điện tích dương ở tâm (gồm <span style="color:#e03131">● proton</span> mang điện +1 và <span style="color:#f59f00">● neutron</span> không mang điện) và <b>vỏ nguyên tử</b> gồm các <span style="color:#1c7ed6">● electron</span> mang điện −1 chuyển động xung quanh.</p>
+<div class="row"><b>Mô hình:</b><button class="btn on" data-v="bohr">Bo (lớp electron)</button><button class="btn g" data-v="ruth">Rơ-dơ-pho (hành tinh)</button></div>
+<div class="row"><b>Chọn nguyên tố:</b></div><div id="els" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px"></div>
+<div id="info" class="note" style="margin-top:8px"></div>
+<div class="note sm">Hạt nhân trong mô hình được vẽ <b>to hơn rất nhiều</b> so với thực tế: kích thước hạt nhân chỉ bằng khoảng một phần mười nghìn (1/10 000) kích thước nguyên tử.</div>` },
+    { id: 'p2', title: 'Tự lắp nguyên tử', html: `<p>Thêm, bớt từng hạt để lắp nguyên tử. Số <b>proton</b> quyết định đó là nguyên tố gì.</p>
+<table class="dt"><tr><td style="color:#e03131"><b>Proton (p)</b></td><td><button class="btn g" data-b="p,-1">−</button> <b id="np">0</b> <button class="btn g" data-b="p,1">+</button></td></tr>
+<tr><td style="color:#f59f00"><b>Neutron (n)</b></td><td><button class="btn g" data-b="n,-1">−</button> <b id="nn">0</b> <button class="btn g" data-b="n,1">+</button></td></tr>
+<tr><td style="color:#1c7ed6"><b>Electron (e)</b></td><td><button class="btn g" data-b="e,-1">−</button> <b id="ne">0</b> <button class="btn g" data-b="e,1">+</button></td></tr></table>
+<div id="bres" class="note"></div><div class="row"><button class="btn" id="bclr">Xoá hết</button><button class="btn p" id="bchk">Thử thách: lắp nguyên tử …</button></div><div id="chal"></div>` },
+    { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
+  ]
+});
+const CEN = new THREE.Vector3(0, .26, 0), HOME = [[0, .62, .48], [0, .25, 0]];
+const lab = createLab(stage, { cam: HOME[0], target: HOME[1], table: 'wood', tableSize: [1.2, .7], minDist: .05 });
+const { scene } = lab;
+const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
+const atomG = new THREE.Group(); atomG.position.copy(CEN); scene.add(atomG);
+const pM = new THREE.MeshStandardMaterial({ color: 0xe03131, roughness: .35 }), nM = new THREE.MeshStandardMaterial({ color: 0xf5b42a, roughness: .4 }), eM = new THREE.MeshStandardMaterial({ color: 0x1c7ed6, roughness: .3, emissive: 0x1c7ed6, emissiveIntensity: .35 });
+const pG = new THREE.SphereGeometry(.0085, 20, 14), eG = new THREE.SphereGeometry(.0065, 16, 12);
+// dấu + trên proton
+const plusT = canvasTex(64, 64, c => { c.fillStyle = '#fff'; c.fillRect(26, 12, 12, 40); c.fillRect(12, 26, 40, 12); });
+const nuc = new THREE.Group(); atomG.add(nuc);
+const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(128, 128, g => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,120,80,.6)'); r.addColorStop(1, 'rgba(255,120,80,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); }), depthWrite: false, transparent: true })); atomG.add(glow);
+const shellG = new THREE.Group(); atomG.add(shellG);
+let electrons = [], view = 'bohr';
+const S = { p: 6, n: 6, e: 6, mode: 'el' };
+let seed = 1; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+function buildNucleus(p, n) {
+  while (nuc.children.length) nuc.remove(nuc.children[0]);
+  const N = p + n; if (!N) { glow.visible = false; return; }
+  seed = 7 + N; const pts = [...Array(N)].map(() => new THREE.Vector3(rnd() - .5, rnd() - .5, rnd() - .5).multiplyScalar(.01));
+  for (let it = 0; it < 80; it++) { for (let i = 0; i < N; i++) { const f = pts[i].clone().multiplyScalar(-.08); for (let j = 0; j < N; j++) if (i != j) { const d = pts[i].clone().sub(pts[j]), L = d.length(); if (L < .016) f.add(d.normalize().multiplyScalar((.016 - L) * .5)); } pts[i].add(f); } }
+  const ids = [...Array(N)].map((_, i) => i < p ? 'p' : 'n'); for (let i = N - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+  pts.forEach((q, i) => { const m = new THREE.Mesh(pG, ids[i] == 'p' ? pM : nM); m.position.copy(q); m.castShadow = true; nuc.add(m);
+    if (ids[i] == 'p') { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: plusT, depthTest: false, transparent: true })); s.scale.setScalar(.008); m.add(s); } });
+  glow.visible = true; glow.scale.setScalar(.06 + Math.cbrt(N) * .02);
+}
+const R0 = .055, DR = .035;
+function buildShells(e) {
+  while (shellG.children.length) shellG.remove(shellG.children[0]); electrons = [];
+  const sh = shells(e), ringM = new THREE.MeshBasicMaterial({ color: 0xf2c94c, transparent: true, opacity: .8 });
+  sh.forEach((cnt, k) => {
+    const r = R0 + k * DR, plane = new THREE.Group(); shellG.add(plane);
+    if (view == 'ruth') { plane.rotation.set(k * 1.1 + .4, k * .7, k * .5); } else plane.rotation.x = Math.PI / 2 - .0;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, .0016, 8, 96), ringM); plane.add(ring);
+    for (let i = 0; i < cnt; i++) { const em = new THREE.Mesh(eG, eM); plane.add(em); electrons.push({ m: em, r, a: i / cnt * Math.PI * 2, w: 1.4 / (k + 1) }); }
+  });
+}
+function update() {
+  buildNucleus(S.p, S.n); buildShells(S.e);
+  const el = EL[S.p], sh = shells(S.e), q = S.p - S.e;
+  const name = el ? `${el[1]} (${el[0]})` : 'Chưa có proton';
+  $('#info').innerHTML = el ? `<b>${name}</b><br>Số proton p = <b>${S.p}</b> · số neutron n = <b>${S.n}</b> · số electron e = <b>${S.e}</b><br>Điện tích hạt nhân: <b>+${S.p}</b> · khối lượng nguyên tử ≈ p + n = <b>${S.p + S.n} amu</b><br>Số lớp electron: <b>${sh.length}</b> (${sh.join(', ')}) · lớp ngoài cùng có <b>${sh[sh.length - 1] || 0}</b> electron` : '';
+  hud.innerHTML = el ? `<b>${name}</b>: ${S.p}p, ${S.n}n, ${S.e}e${q ? ` · ion điện tích ${q > 0 ? '+' : ''}${q}` : ' · nguyên tử trung hoà về điện'}` : 'Thêm proton để tạo hạt nhân';
+  $('#np').textContent = S.p; $('#nn').textContent = S.n; $('#ne').textContent = S.e;
+  $('#bres').innerHTML = !S.p ? 'Chưa có proton.' : `Có ${S.p} proton → nguyên tố <b>${el ? el[1] : '?'}</b>. ${q == 0 ? 'Số p = số e: nguyên tử <b>trung hoà về điện</b>.' : `Số p ≠ số e: hạt mang điện ${q > 0 ? '+' : ''}${q} (gọi là <b>ion</b>, sẽ học ở lớp trên).`} Khối lượng ≈ <b>${S.p + S.n} amu</b>.`;
+  if (S.chal && S.p == S.chal && S.e == S.chal && S.n == EL[S.chal][2]) { sfx('chime'); $('#chal').innerHTML = `<div class="note">Chính xác! Đã lắp đúng nguyên tử <b>${EL[S.chal][1]}</b>.</div>`; S.chal = 0; }
+}
+// nút chọn nguyên tố
+$('#els').innerHTML = EL.slice(1).map((e, i) => `<button class="btn ${i == 5 ? 'on' : 'g'}" data-z="${i + 1}" style="padding:4px 0" title="${e[1]}"><small>${i + 1}</small><br><b>${e[0]}</b></button>`).join('');
+document.querySelectorAll('[data-z]').forEach(b => b.onclick = () => { const z = +b.dataset.z; Object.assign(S, { p: z, n: EL[z][2], e: z }); document.querySelectorAll('[data-z]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); sfx('pop'); update(); });
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; document.querySelectorAll('[data-v]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); update(); });
+document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.b.split(','); S[k] = clamp(S[k] + +d, 0, k == 'n' ? 22 : 20); sfx(+d > 0 ? 'pop' : 'tick'); update(); });
+$('#bclr').onclick = () => { Object.assign(S, { p: 0, n: 0, e: 0 }); update(); };
+$('#bchk').onclick = () => { const z = 1 + Math.floor(Math.random() * 12); S.chal = z; $('#chal').innerHTML = `<div class="warn">Hãy lắp nguyên tử <b>${EL[z][1]}</b> trung hoà: ${z} proton, ${EL[z][2]} neutron và số electron phù hợp.</div>`; };
+lab.onTick((dt, t) => { electrons.forEach(e => { e.a += dt * e.w; e.m.position.set(Math.cos(e.a) * e.r, Math.sin(e.a) * e.r, 0); }); nuc.rotation.y += dt * .3; });
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn" id="vN">Phóng to hạt nhân</button><button class="btn" id="vA">Toàn bộ nguyên tử</button><button class="btn" id="vT">Nhìn từ trên xuống</button>`;
+$('#vN').onclick = () => lab.view([.04, .29, .07], CEN.toArray()); $('#vA').onclick = () => lab.view(...HOME); $('#vT').onclick = () => lab.view([0, .62, .02], CEN.toArray());
+quiz($('#qz'), [
+  { q: 'Hạt nhân nguyên tử được tạo bởi các hạt', o: ['electron và proton', 'proton và neutron', 'electron và neutron', 'chỉ có proton'], a: 1 },
+  { q: 'Hạt mang điện tích âm trong nguyên tử là', o: ['proton', 'neutron', 'electron', 'hạt nhân'], a: 2 },
+  { q: 'Nguyên tử trung hoà về điện vì', o: ['số proton bằng số neutron', 'số proton bằng số electron', 'số neutron bằng số electron', 'không có hạt mang điện'], a: 1 },
+  { q: 'Nguyên tử carbon có 6 proton. Số electron ở lớp ngoài cùng là', o: ['2', '4', '6', '8'], a: 1, e: 'Carbon: lớp 1 có 2e, lớp 2 có 4e.' },
+  { q: 'Nguyên tử sodium (Na) có 11 proton, 12 neutron. Khối lượng nguyên tử khoảng (amu)', n: 23, u: 'amu' },
+  { q: 'Lớp electron trong cùng chứa tối đa bao nhiêu electron?', o: ['1', '2', '8', '18'], a: 1 },
+]);
+update(); ready(); window.dbg = { lab, S };
+</script></body></html>
