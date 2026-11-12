@@ -82,7 +82,7 @@ export function createLab(host, o = {}) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = opt.exposure || 1;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   host.appendChild(renderer.domElement);
-  const lr = new CSS2DRenderer(); lr.domElement.className = 'lbl3d'; host.appendChild(lr.domElement);
+  const lr = new CSS2DRenderer(); lr.domElement.className = 'lbl3d'; lr.domElement.style.zIndex = 2; host.appendChild(lr.domElement);
 
   const scene = new THREE.Scene();
   const pm = new THREE.PMREMGenerator(renderer);
@@ -139,8 +139,9 @@ export function createLab(host, o = {}) {
   const fitK = () => Math.max(1, (1.75 / camera.aspect) ** .75);
   const fitPos = (p, t) => V(...t).add(V(...p).sub(V(...t)).multiplyScalar(fitK()));
   camera.position.copy(fitPos(opt.cam, opt.target)); controls.update();
-  renderer.setAnimationLoop(() => {
-    const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+  renderer.setAnimationLoop(() => frame());
+  function frame(fdt) {
+    const dt = fdt ?? Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
     if (tween) {
       tween.k = Math.min(1, tween.k + dt / tween.dur); const e = tween.k < .5 ? 2 * tween.k * tween.k : 1 - (-2 * tween.k + 2) ** 2 / 2;
       camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.t0, tween.t1, e);
@@ -150,7 +151,7 @@ export function createLab(host, o = {}) {
     controls.update();
     renderer.render(scene, camera); lr.render(scene, camera);
     for (const l of labels) { if (l.element.style.display == 'none') continue; for (let o = l.parent; o; o = o.parent) if (!o.visible) { l.element.style.display = 'none'; break; } }
-  });
+  }
   const labels = [];
 
   // ---- tương tác: kéo theo trục, bấm ----
@@ -217,6 +218,8 @@ export function createLab(host, o = {}) {
     },
     showLabels(on) { lr.domElement.classList.toggle('off', !on); },
     /** (kiểm thử) đặt camera, vẽ một khung và phủ ảnh lên sân khấu; gọi lại không tham số để bỏ */
+    /** (kiểm thử) chạy nhanh n giây mô phỏng khi trang bị ẩn */
+    pump(sec = 1, dt = 1 / 30) { for (let i = 0; i < sec / dt; i++) frame(dt); return 'ok'; },
     shot(p, t) {
       let im = host.querySelector('#shotimg'); if (!p) { im && im.remove(); return; }
       tween = null; camera.position.set(...p); controls.target.set(...t); controls.update(); renderer.render(scene, camera);
