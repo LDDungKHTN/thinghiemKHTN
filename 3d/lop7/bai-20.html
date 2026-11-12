@@ -3,13 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 20. Chế tạo nam châm điện đơn giản</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, clamp } from '../core/lab3d.js';
 import { compass } from '../core/magnet.js';
 import { knife, wire, coil } from '../core/elec.js';
 import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 20. Chế tạo nam châm điện đơn giản', sub: 'KHTN 7 – Kết nối tri thức',
@@ -75,7 +76,7 @@ document.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { S.n = +b.
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn p" id="sw">Đóng / ngắt công tắc</button><button class="btn" id="rev">Đổi cực nguồn điện</button><button class="btn" id="bLbl">Tên</button>`;
 $('#sw').onclick = () => { K.set(!K.closed); upd(); };
-$('#rev').onclick = () => { S.rev = !S.rev; toast('Đã đổi cực của nguồn điện'); upd(); };
+$('#rev').onclick = () => { sfx('toggle'); S.rev = !S.rev; toast('Đã đổi cực của nguồn điện'); upd(); };
 let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
 quiz($('#qz'), [
   { q: 'Nam châm điện gồm', o: ['một thanh nam châm vĩnh cửu', 'ống dây dẫn có lõi sắt non, có dòng điện chạy qua', 'một bóng đèn và pin', 'một cuộn dây không có dòng điện'], a: 1 },

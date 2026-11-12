@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 18. Nam châm</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
 import { barMagnet, uMagnet, compass } from '../core/magnet.js';
 import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 18. Nam châm', sub: 'KHTN 7 – Kết nối tri thức',
@@ -87,8 +88,8 @@ $('#back').onclick = () => { T1.tgt = 0; ITEMS.forEach(it => it.k = 0); };
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn" data-v="a">TN1: Vật liệu</button><button class="btn" data-v="b">TN2: Kim nam châm</button><button class="btn" data-v="c">Hai nam châm</button><button class="btn p" id="push">Đẩy nhẹ kim</button><button class="btn p" id="flip">Đổi cực nam châm B</button><button class="btn" id="bLbl">Tên</button>`;
 tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { lab.view(...V[b.dataset.v]); tb.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x == b)); });
-$('#push').onclick = () => { lab.view(...V.b); cp.w += (Math.random() > .5 ? 1 : -1) * (4 + Math.random() * 4); say('Kim nam châm dao động một lúc rồi <b>nằm cân bằng theo hướng Bắc – Nam</b>: đầu đỏ (cực Bắc N) chỉ hướng Bắc địa lí.'); };
-$('#flip').onclick = () => { lab.view(...V.c); T3.flip = !T3.flip; T3.x = .1; T3.v = 0; say(T3.flip ? 'Cực <b>Bắc</b> của A gần cực <b>Bắc</b> của B: hai cực cùng tên <b>đẩy nhau</b>, xe lăn chạy ra xa.' : 'Cực <b>Bắc</b> của A gần cực <b>Nam</b> của B: hai cực khác tên <b>hút nhau</b>, xe lăn chạy lại gần.'); };
+$('#push').onclick = () => { sfx('swish'); lab.view(...V.b); cp.w += (Math.random() > .5 ? 1 : -1) * (4 + Math.random() * 4); say('Kim nam châm dao động một lúc rồi <b>nằm cân bằng theo hướng Bắc – Nam</b>: đầu đỏ (cực Bắc N) chỉ hướng Bắc địa lí.'); };
+$('#flip').onclick = () => { sfx('snap'); lab.view(...V.c); T3.flip = !T3.flip; T3.x = .1; T3.v = 0; say(T3.flip ? 'Cực <b>Bắc</b> của A gần cực <b>Bắc</b> của B: hai cực cùng tên <b>đẩy nhau</b>, xe lăn chạy ra xa.' : 'Cực <b>Bắc</b> của A gần cực <b>Nam</b> của B: hai cực khác tên <b>hút nhau</b>, xe lăn chạy lại gần.'); };
 let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
 quiz($('#qz'), [
   { q: 'Nam châm hút được vật nào sau đây?', o: ['Đồng xu bằng đồng', 'Chiếc đinh sắt', 'Mẩu gỗ', 'Thìa nhôm'], a: 1 },

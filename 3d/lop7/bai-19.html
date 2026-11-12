@@ -3,13 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 19. Từ trường</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, tubeAlong, clamp } from '../core/lab3d.js';
 import { barMagnet, compass, field } from '../core/magnet.js';
 import { knife, wire } from '../core/elec.js';
 import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 19. Từ trường', sub: 'KHTN 7 – Kết nối tri thức',
@@ -85,7 +86,7 @@ const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild
 tb.innerHTML = `<button class="btn" data-v="o">Dòng điện – kim nam châm</button><button class="btn" data-v="f">Từ phổ</button><button class="btn p" id="rev">Đổi chiều dòng điện</button><button class="btn p" id="tap">Gõ nhẹ tấm nhựa</button><button class="btn" id="cps">Đặt các kim nam châm</button><button class="btn" id="lns">Vẽ đường sức từ</button><button class="btn" id="bLbl">Tên</button>`;
 tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => lab.view(...V[b.dataset.v]));
 $('#rev').onclick = () => { dir = -dir; lab.view(...V.o); upd(); };
-$('#tap').onclick = () => { lab.view(...V.f); FS.tgt = Math.min(1, FS.tgt + .5); fil.visible = true; say(FS.tgt >= 1 ? 'Mạt sắt sắp xếp thành <b>những đường cong nối từ cực này sang cực kia</b> – từ phổ của thanh nam châm. Gần hai cực các đường mạt sắt dày, xa nam châm thưa dần.' : 'Gõ nhẹ: mạt sắt bắt đầu sắp xếp lại… gõ thêm lần nữa.'); };
+$('#tap').onclick = () => { sfx('rattle'); lab.view(...V.f); FS.tgt = Math.min(1, FS.tgt + .5); fil.visible = true; say(FS.tgt >= 1 ? 'Mạt sắt sắp xếp thành <b>những đường cong nối từ cực này sang cực kia</b> – từ phổ của thanh nam châm. Gần hai cực các đường mạt sắt dày, xa nam châm thưa dần.' : 'Gõ nhẹ: mạt sắt bắt đầu sắp xếp lại… gõ thêm lần nữa.'); };
 $('#cps').onclick = () => { lab.view(...V.f); const on = !cps[0].g.visible; cps.forEach(c => c.g.visible = on); fil.visible = !on; say(on ? 'Các kim nam châm nhỏ nằm <b>dọc theo đường sức từ</b>; cực Bắc của kim chỉ chiều đường sức từ: đi ra từ cực Bắc, đi vào cực Nam của thanh nam châm.' : 'Đã cất các kim nam châm.'); };
 $('#lns').onclick = () => { lab.view(...V.f); lineG.visible = !lineG.visible; };
 let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
