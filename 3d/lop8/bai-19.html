@@ -3,11 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 18–19. Moment lực. Đòn bẩy</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
 import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 const stage = shell({ title: 'Bài 18–19. Moment lực. Đòn bẩy', sub: 'KHTN 8 – Kết nối tri thức', panes: [
   { id: 'p1', title: 'Hướng dẫn', html: `<h3>Thanh đòn bẩy cân bằng</h3><p>Thanh cứng có các lỗ cách đều nhau 5 cm, quay quanh trục O ở giữa. Mỗi quả nặng 50 g (P = 0,5 N).</p>
 <ol><li><b>Bấm vào một lỗ</b> trên thanh để treo thêm quả nặng; bấm giữ phím Shift (hoặc nút “Gỡ”) để gỡ bớt.</li><li>Quan sát thanh nghiêng về bên nào. Tìm cách treo để thanh nằm cân bằng.</li><li>So sánh tích F·d (moment lực) của hai bên khi thanh cân bằng.</li></ol>
@@ -34,7 +35,7 @@ const hooks = []; for (let i = -NH; i <= NH; i++) if (i) { const h = new THREE.M
 const W = {}; const wM = MAT.metal(0x6c7178, .3);
 const stacks = {};
 let removeMode = false;
-function rebuild() {
+function rebuild() { sfx('metal', { vol: .6 });
   Object.values(stacks).forEach(g => bar.remove(g));
   hooks.forEach(h => { const n = W[h.userData.i] || 0; if (!n) return; const g = new THREE.Group(); g.position.copy(h.position); const str = new THREE.Mesh(new THREE.CylinderGeometry(.0006, .0006, .03, 6), MAT.metal(0x666666, .4)); str.position.y = -.025; g.add(str); for (let k = 0; k < n; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, .014, 20), wM); m.position.y = -.047 - k * .015; m.castShadow = true; g.add(m); } bar.add(g); stacks[h.userData.i] = g; });
   const ML = Object.entries(W).filter(([i]) => i < 0).reduce((a, [i, n]) => a + n * .5 * (-i) * GAP, 0), MR = Object.entries(W).filter(([i]) => i > 0).reduce((a, [i, n]) => a + n * .5 * i * GAP, 0);

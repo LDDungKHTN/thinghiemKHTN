@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 17. Lực đẩy Archimedes</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, canvasTex, lathe, clamp } from '../core/lab3d.js';
 import { balance, cylinder } from '../core/kit.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 const stage = shell({ title: 'Bài 17. Lực đẩy Archimedes', sub: 'KHTN 8 – Kết nối tri thức', panes: [
   { id: 'p1', title: 'Hướng dẫn', html: `<h3>Độ lớn của lực đẩy Archimedes (Hình 17.4)</h3><p><b>Dụng cụ:</b> lực kế có giới hạn đo 2 N; cân điện tử; quả nặng bằng nhựa 130 g; bình tràn; ống đong; giá thí nghiệm.</p>
 <ol><li>Treo quả nặng vào lực kế. Số chỉ của lực kế là P.</li><li>Nhúng quả nặng vào bình tràn đựng đầy nước sao cho phần chìm có thể tích 20 cm³, đọc số chỉ F₁ trên lực kế. F<sub>A</sub> = P − F₁.</li><li>Dùng cân điện tử đo khối lượng nước tràn ra ống đong, tính trọng lượng nước bị vật chiếm chỗ.</li><li>Lặp lại với 40, 60, 80 cm³. Thay nước bằng nước muối và lặp lại.</li></ol>
@@ -66,7 +67,7 @@ function apply(V) {
   return fa; void FA; void F1;
 }
 lab.onTick(dt => { if (Math.abs(tgt - cur) > .05) { const d = Math.sign(tgt - cur) * Math.min(Math.abs(tgt - cur), dt * 25); cur += d; stream.visible = d > 0; if (stream.visible) { const a = can.localToWorld(new THREE.Vector3(.09, .1, 0)), b = new THREE.Vector3(.17, bal.top + .02 + .14, -.04), L = a.distanceTo(b); stream.position.copy(a).lerp(b, .5); stream.scale.y = L; stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), a.clone().sub(b).normalize()); } apply(Math.round(cur)); } else { stream.visible = false; if (cur != tgt) { cur = tgt; apply(cur); } } });
-document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { tgt = +b.dataset.v; if (tgt < cur) { cur = tgt; } setTimeout(() => record(), 3500); });
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { if (+b.dataset.v > 0) sfx('splash', { delay: .8 }); tgt = +b.dataset.v; if (tgt < cur) { cur = tgt; } setTimeout(() => record(), 3500); });
 function record() { if (!cur) return; const fa = S.rho * cur * .0098; S.rows[cur] = S.rows[cur] || {}; S.rows[cur][S.rho] = fa; $('#tb').innerHTML = [20, 40, 60, 80].map(v => { const r = S.rows[v] || {}; const f = x => x != null ? fmt(x, 2) : '?'; return `<tr><td>${v} cm³</td><td>${f(r[1])}</td><td>${f(r[1])}</td><td>${f(r[1.1])}</td><td>${f(r[1.1])}</td></tr>`; }).join(''); }
 document.querySelectorAll('[data-l]').forEach(b => b.onclick = () => { S.rho = +b.dataset.l; document.querySelectorAll('[data-l]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); cur = tgt = 0; apply(0); toast(S.rho > 1 ? 'Đã thay bằng nước muối (D = 1,1 g/cm³)' : 'Nước (D = 1 g/cm³)'); });
 quiz($('#qz'), [

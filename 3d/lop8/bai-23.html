@@ -3,13 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 23. Tác dụng của dòng điện</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, clamp } from '../core/lab3d.js';
 import { supply, bulb, resistor, knife, wire, led, board } from '../core/elec.js';
 import { vessel } from '../core/chem.js';
 import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 const stage = shell({ title: 'Bài 23. Tác dụng của dòng điện', sub: 'KHTN 8 – Kết nối tri thức', panes: [
   { id: 'p1', title: 'Hướng dẫn', html: `<h3>1. Tác dụng nhiệt</h3><p>Dòng điện qua dây điện trở (dây nung) làm dây nóng lên, mẩu giấy vắt trên dây bị cháy sém.</p>
 <h3>2. Tác dụng phát sáng (Hình 23.2)</h3><p><b>Dụng cụ:</b> nguồn điện 3 V; đèn LED; điện trở R (bảo vệ đèn LED); công tắc K.</p><ol><li>Đóng công tắc K, quan sát đèn LED.</li><li>Đảo ngược hai đầu dây đèn LED (bấm “Đảo cực LED”), đóng công tắc K. Đèn LED có sáng không?</li></ol>
@@ -71,7 +72,7 @@ lab.onTick(dt => {
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn" data-v="h">Tác dụng nhiệt</button><button class="btn" data-v="l">Phát sáng (LED)</button><button class="btn" data-v="c">Tác dụng hoá học</button><button class="btn p" id="rev">Đảo cực LED</button>`;
 tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => lab.view(...V[b.dataset.v]));
-$('#rev').onclick = () => { ledRev = !ledRev; L.g.rotation.z = ledRev ? Math.PI * .0 + .3 : 0; upd(); toast(ledRev ? 'Đã đảo ngược hai đầu dây đèn LED' : 'Đã nối LED đúng chiều'); };
+$('#rev').onclick = () => { sfx('toggle'); ledRev = !ledRev; L.g.rotation.z = ledRev ? Math.PI * .0 + .3 : 0; upd(); toast(ledRev ? 'Đã đảo ngược hai đầu dây đèn LED' : 'Đã nối LED đúng chiều'); };
 quiz($('#qz'), [
   { q: 'Thiết bị nào hoạt động dựa vào tác dụng nhiệt của dòng điện?', o: ['Quạt điện', 'Ấm điện', 'Đèn LED', 'Chuông điện'], a: 1 },
   { q: 'Đèn LED chỉ sáng khi', o: ['dòng điện chạy theo một chiều nhất định qua nó', 'có dòng điện theo mọi chiều', 'không có dòng điện', 'được đun nóng'], a: 0 },

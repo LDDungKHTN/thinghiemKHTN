@@ -3,11 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 20. Hiện tượng nhiễm điện do cọ xát</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, clamp } from '../core/lab3d.js';
 import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 const stage = shell({ title: 'Bài 20. Hiện tượng nhiễm điện do cọ xát', sub: 'KHTN 8 – Kết nối tri thức', panes: [
   { id: 'p1', title: 'Hướng dẫn', html: `<h3>Thí nghiệm 1</h3><p>Cọ xát đũa nhựa vào mảnh vải len, đưa lại gần các mẩu giấy vụn. Quan sát.</p>
 <h3>Thí nghiệm 2 (Hình 20.2)</h3><p><b>Chuẩn bị:</b> hai đũa nhựa và một đũa thuỷ tinh; mảnh vải len (hoặc dạ) và mảnh vải lụa; giá thí nghiệm và dây treo.</p>
@@ -47,7 +48,7 @@ lab.onTick(dt => {
     const near = clamp((t - rubT - .8) / .6, 0, 1), F = (glass ? 1 : -1) * near; S.w += (F * 6 - S.ang * 8 - S.w * 2) * dt; S.ang += S.w * dt; hung.rotation.y = S.ang;
     if (t > rubT + 2 && !S.said) { S.said = 1; say(glass ? 'Đũa thuỷ tinh (cọ vào lụa) đưa lại gần: đầu đũa nhựa treo <b>bị hút lại gần</b> → hai đũa nhiễm điện <b>khác loại hút nhau</b>.' : 'Đũa nhựa thứ hai (cọ vào len) đưa lại gần: đầu đũa nhựa treo <b>bị đẩy ra xa</b> → hai đũa nhiễm điện <b>cùng loại đẩy nhau</b>.'); } }
 });
-function start(m) { S.mode = m; S.t = 0; S.said = 0; S.ang = 0; S.w = 0; hung.rotation.y = 0; bits.forEach(b => b.position.copy(b.userData.home)); setRod(m == 'att'); lab.view(...(m == 'paper' ? [[-.1, .2, .35], [-.12, .03, .05]] : [[.1, .3, .45], [.12, .2, 0]])); say('Đang cọ xát…'); }
+function start(m) { level('scrape', .45, 1.7); clearTimeout(start.t); start.t = setTimeout(() => { level('scrape', 0); sfx('spark', { vol: .5 }); }, 1500); S.mode = m; S.t = 0; S.said = 0; S.ang = 0; S.w = 0; hung.rotation.y = 0; bits.forEach(b => b.position.copy(b.userData.home)); setRod(m == 'att'); lab.view(...(m == 'paper' ? [[-.1, .2, .35], [-.12, .03, .05]] : [[.1, .3, .45], [.12, .2, 0]])); say('Đang cọ xát…'); }
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn p" id="m1">TN1: Đũa nhựa và giấy vụn</button><button class="btn p" id="m2">TN2a: Đũa nhựa (len)</button><button class="btn p" id="m3">TN2b: Đũa thuỷ tinh (lụa)</button>`;
 $('#m1').onclick = () => start('paper'); $('#m2').onclick = () => start('rep'); $('#m3').onclick = () => start('att');

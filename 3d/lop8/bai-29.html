@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 29. Sự nở vì nhiệt</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, lathe, clamp } from '../core/lab3d.js';
 import { burner } from '../core/chem.js';
 import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 const stage = shell({ title: 'Bài 29. Sự nở vì nhiệt', sub: 'KHTN 8 – Kết nối tri thức', panes: [
   { id: 'p1', title: 'Hướng dẫn', html: `<h3>1. Sự nở vì nhiệt của chất rắn</h3><p>Quả cầu kim loại và vòng kim loại: khi chưa hơ nóng, quả cầu lọt qua vòng. Hơ nóng quả cầu rồi thả lại; nhúng quả cầu vào nước lạnh rồi thả lại.</p>
 <div class="row"><button class="btn p" id="dr">Thả quả cầu qua vòng</button><button class="btn o" id="ht">Hơ nóng quả cầu</button><button class="btn g" id="cl">Nhúng nước lạnh</button></div>
@@ -70,13 +71,13 @@ lab.onTick((dt, t) => {
   // chất lỏng
   SC.T += (SC.tgt - SC.T) * Math.min(1, dt * .5); flasks.forEach(f => { const h = .02 + f.k * .012 * SC.T; f.col_.scale.y = Math.max(.001, h); f.col_.position.y = .075 + h / 2; });
 });
-$('#dr').onclick = () => { lab.view(...V.a); SA.anim = { t: 0 }; lampA.set(false); };
+$('#dr').onclick = () => { sfx('metal', { delay: .4 }); lab.view(...V.a); SA.anim = { t: 0 }; lampA.set(false); };
 $('#ht').onclick = () => { lab.view(...V.a); ballAt(.07, .09, .06); SA.heat = 1; lampA.set(true); SA.anim = null; say('Đang hơ nóng quả cầu trên ngọn lửa đèn cồn…'); setTimeout(() => { lampA.set(false); SA.heat = 0; ballAt(.01, .2, 0); say('Quả cầu đã nóng. Bấm “Thả quả cầu qua vòng”.'); }, 5000); };
-$('#cl').onclick = () => { lab.view(...V.a); SA.r = 1; ballM.emissiveIntensity = 0; ballAt(-.06, .05, .06); SA.anim = null; setTimeout(() => { ballAt(.01, .2, 0); say('Quả cầu đã nguội (co lại). Thả lại: quả cầu lại lọt qua vòng.'); }, 1500); };
+$('#cl').onclick = () => { sfx('splash'); lab.view(...V.a); SA.r = 1; ballM.emissiveIntensity = 0; ballAt(-.06, .05, .06); SA.anim = null; setTimeout(() => { ballAt(.01, .2, 0); say('Quả cầu đã nguội (co lại). Thả lại: quả cầu lại lọt qua vòng.'); }, 1500); };
 $('#bk').onclick = () => { lab.view(...V.b); SB.tgt = SB.tgt ? 0 : 1; lampB.set(!!SB.tgt); say(SB.tgt ? `Hơ nóng: băng kép <b>cong về phía thanh ${SB.flip > 0 ? 'sắt (phía dưới)' : 'sắt (phía trên)'}</b> → đồng nở vì nhiệt nhiều hơn sắt.` : 'Băng kép nguội dần và trở lại thẳng.'); };
 $('#bkf').onclick = () => { SB.flip = -SB.flip; stripG.rotation.x = SB.flip > 0 ? 0 : Math.PI; lab.view(...V.b); say(SB.flip > 0 ? 'Đồng ở trên, sắt ở dưới.' : 'Đã lật: sắt ở trên, đồng ở dưới.'); };
-$('#hw').onclick = () => { lab.view(...V.c); SC.tgt = 1; bW.material.color.set(0xffb0a0); say('Đặt bình vào chậu nước nóng: mực chất lỏng trong ống thuỷ tinh <b>dâng lên</b> → chất lỏng nở ra khi nóng lên. Rượu dâng nhiều nhất, rồi đến dầu, nước dâng ít nhất → các chất lỏng khác nhau nở vì nhiệt khác nhau.'); };
-$('#cw').onclick = () => { lab.view(...V.c); SC.tgt = -1; bW.material.color.set(0x9fd0ff); say('Đặt bình vào chậu nước lạnh: mực chất lỏng trong ống <b>hạ xuống</b> → chất lỏng co lại khi lạnh đi.'); };
+$('#hw').onclick = () => { sfx('splash'); lab.view(...V.c); SC.tgt = 1; bW.material.color.set(0xffb0a0); say('Đặt bình vào chậu nước nóng: mực chất lỏng trong ống thuỷ tinh <b>dâng lên</b> → chất lỏng nở ra khi nóng lên. Rượu dâng nhiều nhất, rồi đến dầu, nước dâng ít nhất → các chất lỏng khác nhau nở vì nhiệt khác nhau.'); };
+$('#cw').onclick = () => { sfx('splash'); lab.view(...V.c); SC.tgt = -1; bW.material.color.set(0x9fd0ff); say('Đặt bình vào chậu nước lạnh: mực chất lỏng trong ống <b>hạ xuống</b> → chất lỏng co lại khi lạnh đi.'); };
 quiz($('#qz'), [
   { q: 'Khi hơ nóng quả cầu kim loại thì', o: ['thể tích quả cầu giảm', 'thể tích quả cầu tăng', 'khối lượng quả cầu tăng', 'quả cầu nhẹ đi'], a: 1 },
   { q: 'Băng kép đồng – sắt khi bị hơ nóng sẽ cong về phía thanh', o: ['đồng', 'sắt', 'không cong', 'tuỳ ý'], a: 1, e: 'Đồng nở nhiều hơn sắt nên đồng nằm ở mặt ngoài chỗ cong.' },

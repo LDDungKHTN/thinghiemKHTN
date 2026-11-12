@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 27. Thực hành đo năng lượng nhiệt bằng joulemeter</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, canvasTex, lathe, cable, clamp } from '../core/lab3d.js';
 import { thermometer } from '../core/chem.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 const stage = shell({ title: 'Bài 27. Thực hành đo năng lượng nhiệt bằng joulemeter', sub: 'KHTN 8 – Kết nối tri thức', panes: [
   { id: 'p1', title: 'Hướng dẫn', html: `<p><b>Chuẩn bị:</b> bình nhiệt lượng kế có dây đốt, que khuấy (1); nhiệt kế (2); dụng cụ đo năng lượng điện – joulemeter (3); nguồn điện 12 V (4); dây nối (5); nước sạch.</p>
 <ol><li>Đổ một lượng nước xác định (200 g) vào bình nhiệt lượng kế cho nước ngập dây đốt và đầu đo nhiệt kế.</li><li>Khuấy liên tục, đọc nhiệt độ ban đầu t₀.</li><li>Bật công tắc nguồn, đồng thời khuấy nhẹ; đọc năng lượng trên joulemeter khi nhiệt độ tăng 3 °C, 6 °C, 9 °C so với giá trị ban đầu (bấm “Ghi” đúng lúc).</li></ol>
@@ -39,9 +40,9 @@ const S = { on: false, E: 0, T0: 25.0, T: 25.0, rows: [] };
 const m = .2, c = 4200, P = 38, loss = 1.12;    // công suất dây đốt 38 W; 12% hao phí
 function draw() { const g = dt_.image.getContext('2d'); g.fillStyle = '#0d1a10'; g.fillRect(0, 0, 400, 120); g.fillStyle = '#8cff8a'; g.font = 'bold 64px "Courier New",monospace'; g.textAlign = 'right'; g.fillText(Math.round(S.E) + ' J', 390, 85); dt_.needsUpdate = true; }
 lab.onTick((dt, t) => { if (S.on) { const k = 8; S.E += P * dt * k; S.T = S.T0 + S.E / loss / (m * c); th.set(S.T); stir.position.y = .1 + Math.sin(t * 6) * .01; } draw(); hud.innerHTML = `Nhiệt độ: <b>${fmt(S.T, 1)} °C</b> (Δt = ${fmt(S.T - S.T0, 1)} °C) · Joulemeter: <b>${Math.round(S.E)} J</b>${S.on ? '<br><span style="opacity:.8">(thời gian được tua nhanh 8 lần)</span>' : ''}`; });
-$('#on').onclick = () => { S.on = !S.on; $('#on').textContent = S.on ? 'Tắt nguồn' : 'Bật nguồn'; };
+$('#on').onclick = () => { S.on = !S.on; sfx('toggle'); mix('hum', 'jm', S.on ? .7 : 0); $('#on').textContent = S.on ? 'Tắt nguồn' : 'Bật nguồn'; };
 $('#rec').onclick = () => { const d = Math.round((S.T - S.T0) * 10) / 10; if (d < .5) return toast('Nhiệt độ chưa tăng.'); S.rows.push([d, Math.round(S.E)]); $('#tb').innerHTML = S.rows.map(r => `<tr><td>${fmt(r[0], 1)}</td><td>${r[1]}</td></tr>`).join(''); $('#cm').innerHTML = S.rows.map(r => `Δt = ${fmt(r[0], 1)} °C: Q = m·c·Δt = 0,2·4200·${fmt(r[0], 1)} = ${Math.round(.2 * 4200 * r[0])} J; E/Δt ≈ ${fmt(r[1] / r[0], 0)} J/°C`).join('<br>') + '<br>→ Năng lượng cần cung cấp <b>tỉ lệ thuận</b> với độ tăng nhiệt độ.'; showPane(1); };
-$('#rs').onclick = () => { S.on = false; S.E = 0; S.T = S.T0; S.rows = []; th.set(S.T0); $('#tb').innerHTML = ''; $('#cm').innerHTML = ''; $('#on').textContent = 'Bật nguồn'; };
+$('#rs').onclick = () => { mix('hum', 'jm', 0); S.on = false; S.E = 0; S.T = S.T0; S.rows = []; th.set(S.T0); $('#tb').innerHTML = ''; $('#cm').innerHTML = ''; $('#on').textContent = 'Bật nguồn'; };
 quiz($('#qz'), [
   { q: 'Joulemeter dùng để đo', o: ['nhiệt độ', 'năng lượng điện cung cấp (J)', 'khối lượng', 'thời gian'], a: 1 },
   { q: 'Năng lượng cần để làm 0,2 kg nước nóng thêm 3 °C (c = 4 200 J/kg.K) là bao nhiêu J?', n: 2520, u: 'J' },

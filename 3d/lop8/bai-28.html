@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 28. Sự truyền nhiệt</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, lathe, clamp } from '../core/lab3d.js';
 import { vessel, burner, thermometer } from '../core/chem.js';
 import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 const stage = shell({ title: 'Bài 28. Sự truyền nhiệt', sub: 'KHTN 8 – Kết nối tri thức', panes: [
   { id: 'p1', title: 'Hướng dẫn', html: `<h3>1. Dẫn nhiệt</h3><p>Thanh kim loại được kẹp nằm ngang, các đinh ghim gắn vào thanh bằng sáp. Đun nóng một đầu thanh. Quan sát các đinh rơi xuống. So sánh thanh đồng, thanh thép, thanh thuỷ tinh.</p>
 <div class="row"><b>Thanh:</b><button class="btn on" data-r="cu">Đồng</button><button class="btn g" data-r="fe">Thép</button><button class="btn g" data-r="gl">Thuỷ tinh</button></div>
@@ -71,7 +72,7 @@ const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild
 tb.innerHTML = `<button class="btn p" id="h1">Đun thanh kim loại</button><button class="btn p" id="h2">Đun 2 ống nghiệm + cốc</button><button class="btn p" id="h3">Bật đèn</button><button class="btn" id="sh">Đặt / bỏ tấm gỗ</button>`;
 $('#h1').onclick = () => { reset1(); T1.on = true; lamp1.set(true); lab.view(...V.d); say(T1.mat == 'gl' ? 'Thanh thuỷ tinh: sau một thời gian dài các đinh vẫn chưa rơi → thuỷ tinh <b>dẫn nhiệt kém</b>.' : `Đun một đầu ${RODS[T1.mat][2].toLowerCase()}: các đinh ghim <b>lần lượt rơi xuống</b> từ đầu gần ngọn lửa ra xa → nhiệt truyền dần dọc theo thanh (<b>dẫn nhiệt</b>). ${T1.mat == 'cu' ? 'Đồng dẫn nhiệt rất tốt: đinh rơi nhanh.' : 'Thép dẫn nhiệt kém hơn đồng: đinh rơi chậm hơn.'}`); };
 $('#h2').onclick = () => { T2.on = true; T2.t = 0; TB.k = 0; TB.wax.scale.setScalar(1); lampA.set(true); lampB.set(true); lab.view(...V.o); say('Ống (1) đun gần miệng: nước phía trên sôi nhưng <b>viên sáp ở đáy không nóng chảy</b>. Ống (2) đun ở đáy: <b>viên sáp ở miệng ống nóng chảy</b> nhanh → nước nóng ở dưới nhẹ hơn đi lên, nước lạnh đi xuống tạo thành dòng đối lưu. Trong cốc, thuốc tím vẽ nên các dòng nước màu tím đi lên ở giữa rồi đi xuống ở thành cốc.'); };
-$('#h3').onclick = () => { T3.on = !T3.on; bulb3.material.emissiveIntensity = T3.on ? 3 : 0; bl.intensity = T3.on ? .5 : 0; lab.view(...V.b); say(T3.on ? 'Bật đèn: nhiệt kế trong bình phủ đen <b>tăng dần</b> – năng lượng nhiệt truyền từ đèn đến bình bằng <b>các tia nhiệt</b> đi thẳng (bức xạ nhiệt), không phải dẫn nhiệt hay đối lưu.' : 'Tắt đèn.'); };
+$('#h3').onclick = () => { sfx('toggle'); T3.on = !T3.on; bulb3.material.emissiveIntensity = T3.on ? 3 : 0; bl.intensity = T3.on ? .5 : 0; lab.view(...V.b); say(T3.on ? 'Bật đèn: nhiệt kế trong bình phủ đen <b>tăng dần</b> – năng lượng nhiệt truyền từ đèn đến bình bằng <b>các tia nhiệt</b> đi thẳng (bức xạ nhiệt), không phải dẫn nhiệt hay đối lưu.' : 'Tắt đèn.'); };
 $('#sh').onclick = () => { shield.visible = !shield.visible; lab.view(...V.b); if (shield.visible) say('Đặt tấm gỗ chắn giữa đèn và bình: nhiệt độ <b>không tăng nữa</b> (giảm dần) → tia nhiệt truyền thẳng, bị tấm gỗ chắn lại.'); };
 quiz($('#qz'), [
   { q: 'Hình thức truyền nhiệt chủ yếu của chất rắn là', o: ['dẫn nhiệt', 'đối lưu', 'bức xạ nhiệt', 'cả ba'], a: 0 },

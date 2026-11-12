@@ -3,11 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 16. Áp suất chất lỏng. Áp suất khí quyển</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, roundBox, lathe, clamp } from '../core/lab3d.js';
 import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 const stage = shell({ title: 'Bài 16. Áp suất chất lỏng. Áp suất khí quyển', sub: 'KHTN 8 – Kết nối tri thức', panes: [
   { id: 'p1', title: 'Hướng dẫn', html: `<h3>1. Áp suất chất lỏng (Hình 16.1, 16.2)</h3><p>Bình trụ có đáy C và các lỗ A, B ở thành bình được bịt bằng màng cao su mỏng. Rót nước vào bình (kéo thanh trượt). Quan sát các màng cao su.</p>
 <div class="sl">Rót nước <input type="range" id="lv" min="0" max="100" value="0"><span id="vl">0 %</span></div>
@@ -71,9 +72,9 @@ lab.onTick(dt => { if (flip < 0) return; flip += dt; const k = clamp(flip / 1.2,
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn" data-v="a">Bình màng cao su</button><button class="btn" data-v="b">Pit-tông</button><button class="btn" data-v="c">Áp suất khí quyển</button><button class="btn p" id="fl">Lộn ngược cốc</button>`;
 tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => lab.view(...V[b.dataset.v]));
-$('#fl').onclick = () => { lab.view(...V.c); Cg.rotation.z = 0; hand.visible = true; flip = 0; };
+$('#fl').onclick = () => { sfx('swish'); lab.view(...V.c); Cg.rotation.z = 0; hand.visible = true; flip = 0; };
 $('#lv').oninput = e => { const k = +e.target.value / 100; $('#vl').textContent = e.target.value + ' %'; setLevel(k); lab.view(...V.a); };
-document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const [a, c] = b.dataset.w.split(',').map(Number); setW(a, c); lab.view(...V.b); });
+document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { sfx('splash'); const [a, c] = b.dataset.w.split(',').map(Number); setW(a, c); lab.view(...V.b); });
 quiz($('#qz'), [
   { q: 'Càng xuống sâu trong lòng chất lỏng, áp suất chất lỏng', o: ['càng giảm', 'càng tăng', 'không đổi', 'bằng 0'], a: 1 },
   { q: 'Chất lỏng gây áp suất theo', o: ['chỉ phương thẳng đứng', 'mọi phương', 'chỉ lên đáy bình', 'chỉ phương ngang'], a: 1 },
