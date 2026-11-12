@@ -3,13 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 2. Phản ứng hoá học</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, clamp } from '../core/lab3d.js';
 import { chemBench, benchUI } from '../core/chemlab.js';
 import { barMagnet } from '../core/magnet.js';
 import { shell, ready, toast, quiz, $ } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 
 const stage = shell({
   title: 'Bài 2. Phản ứng hoá học', sub: 'KHTN 8 – Kết nối tri thức',
@@ -49,7 +50,7 @@ const mag = barMagnet(.07, .012); mag.rotation.z = Math.PI / 2; lab.scene.add(ma
 const grains = new THREE.Group(); lab.scene.add(grains);
 for (let i = 0; i < 26; i++) { const g = new THREE.Mesh(new THREE.IcosahedronGeometry(.0009, 0), new THREE.MeshStandardMaterial({ color: 0x55595e, metalness: .6, roughness: .5 })); g.position.set((Math.random() - .5) * .006, .005 + Math.random() * .03, .009); grains.add(g); }
 grains.visible = false;
-$('#mag').onclick = () => {
+$('#mag').onclick = () => { sfx('snap');
   const i = bench.sel, t = bench.T[i], it = t.items; if (!it.length) return toast('Ống nghiệm trống.');
   if (t.heat) return toast('Hãy ngừng đun và để nguội trước.');
   const p = t.v.g.position; mag.position.set(p.x, p.y + .03, p.z + .03); mag.visible = true;

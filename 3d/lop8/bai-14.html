@@ -3,12 +3,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bài 14. Thực hành xác định khối lượng riêng</title>
 <link rel="stylesheet" href="../core/ui.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script src="../core/boot.js"></script>
 </head><body>
 <script type="module">
 import { createLab, THREE, MAT, TEX, roundBox, clamp } from '../core/lab3d.js';
 import { balance, cylinder } from '../core/kit.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
+import { sfx, level, mix } from '../core/sfx.js';
 const stage = shell({ title: 'Bài 14. Thực hành xác định khối lượng riêng', sub: 'KHTN 8 – Kết nối tri thức', panes: [
   { id: 'p1', title: 'Hướng dẫn', html: `<h3>I. Khối lượng riêng của khối gỗ hình hộp chữ nhật</h3><p><b>Chuẩn bị:</b> cân điện tử; khối gỗ hình hộp chữ nhật; thước có ĐCNN 1 mm.</p>
 <ol><li>Đo độ dài các cạnh a, b, c bằng thước (bấm <b>“Đo a, b, c”</b>), tính thể tích V = a.b.c.</li><li>Đặt khối gỗ lên cân, đọc khối lượng m (bấm <b>“Đặt lên cân”</b>).</li><li>Lặp lại 3 lần, ghi Bảng 14.1 (bấm <b>“Ghi lần đo”</b>).</li></ol>
@@ -33,8 +34,8 @@ const M1 = 128.4, noise = s => Math.round((Math.random() - .5) * 2 * s * 10) / 1
 const S = { on: null, dims: null, rows1: [], rows2: [], m1: null };
 const bTop = bal.top - .0025;
 function place(o) {
-  if (o == 'block') { block.position.set(0, bTop + Cc / 2, -.01); cyl.g.position.set(.2, 0, .03); S.on = 'block'; bal.set(Math.round(A * B * Cc * 1e6 * RHO * 10) / 10 + noise(.2)); }
-  else if (o == 'cyl') { cyl.g.position.set(0, bTop, -.01); block.position.copy(BH); S.on = 'cyl'; bal.set(M1 + cyl.V * 1.0 + noise(.1)); }
+  if (o == 'block') { sfx('thud', { vol: .5 }); block.position.set(0, bTop + Cc / 2, -.01); cyl.g.position.set(.2, 0, .03); S.on = 'block'; bal.set(Math.round(A * B * Cc * 1e6 * RHO * 10) / 10 + noise(.2)); }
+  else if (o == 'cyl') { sfx('clink'); cyl.g.position.set(0, bTop, -.01); block.position.copy(BH); S.on = 'cyl'; bal.set(M1 + cyl.V * 1.0 + noise(.1)); }
   else { block.position.copy(BH); cyl.g.position.set(.2, 0, .03); S.on = null; bal.set(0); }
 }
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
