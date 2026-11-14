@@ -79,3 +79,4 @@ select,input[type=text],input[type=number]{font:inherit;color:var(--ink);backgro
 .doc .ungho{background:var(--cd);border:1px solid var(--ln);border-radius:12px;padding:6px 16px 14px;margin-top:26px}
 .doc .ungho .qr{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.doc .ungho img{border-radius:10px;background:#fff;padding:6px;border:1px solid var(--ln)}
 .doc .sm{font-size:13px;color:var(--mut)}
+@media (max-width:560px){.hd a.bv span{display:none}.hd a.bv{padding:3px 6px}}
