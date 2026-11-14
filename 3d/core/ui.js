@@ -6,10 +6,12 @@ export const fmt = (n, d = 1) => Number(n).toLocaleString('vi-VN', { maximumFrac
 /** Dựng khung trang. panes: [{id, title, html}] */
 export function shell({ title, sub = '', back = '../index.html', panes = [] }) {
   document.title = title.replace(/<[^>]+>/g, '');
+  const keep = [...document.querySelectorAll('#baiviet')]; keep.forEach(n => n.remove());
   document.body.innerHTML = `<div class="app"><header class="hd"><a class="bk" href="${back}">← Danh sách</a><h1>${title}</h1><span class="sub">${sub}</span><button class="snd" id="snd" title="Bật/tắt âm thanh" aria-label="Bật/tắt âm thanh">🔊</button></header>
   <div class="main"><div class="stage" id="stage"><div class="ld" id="ld">Đang dựng phòng thí nghiệm 3D…</div><div class="toast" id="toast"></div></div>
   <aside class="side"><nav class="tabs">${panes.map((p, i) => `<button class="${i ? '' : 'on'}" data-i="${i}">${p.title}</button>`).join('')}</nav>
   ${panes.map((p, i) => `<section class="pane" id="${p.id}" ${i ? 'hidden' : ''}>${p.html || ''}</section>`).join('')}</aside></div></div>`;
+  if (keep.length) { keep.forEach(n => document.body.appendChild(n)); const a = document.createElement('a'); a.className = 'bv'; a.href = '#baiviet'; a.textContent = '📖 Bài viết'; a.title = 'Giải thích, câu hỏi ôn tập, chia sẻ'; $('.hd').insertBefore(a, $('#snd')); }
   $$('.tabs button').forEach(b => b.onclick = () => showPane(+b.dataset.i));
   const sb = $('#snd'); sb.onclick = () => setMuted(!isMuted()); onMute(m => { sb.textContent = m ? '🔇' : '🔊'; sb.classList.toggle('off', m); });
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button, .btn, label'); if (b && b.id != 'snd') sfx('click'); }, true);
