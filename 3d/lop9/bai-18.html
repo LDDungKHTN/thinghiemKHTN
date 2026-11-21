@@ -169,7 +169,7 @@ lab.onTick((dt, t) => {
   }
 });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn on" data-m="bench">Ống nghiệm</button><button class="btn" data-m="na">Natri + nước</button><button class="btn" data-m="burn">Đốt trong bình khí</button><button class="btn p" id="bAct">Thả natri</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn on" data-m="bench">Ống nghiệm</button><button class="btn" data-m="na">Natri + nước</button><button class="btn" data-m="burn">Đốt trong bình khí</button><button class="btn p" id="bAct">Thả natri</button>`;
 function setMode(m) { S.mode = m; tb.querySelectorAll('[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m == m)); lab.view(...H[m]); $('#bAct').style.display = m == 'bench' ? 'none' : ''; $('#bAct').textContent = m == 'na' ? 'Thả natri vào nước' : 'Đốt và đưa vào bình'; hud.innerHTML = m == 'na' ? 'Bấm “Thả natri vào nước”.' : m == 'burn' ? `Bình chứa khí ${S.gas == 'o2' ? 'oxygen' : 'chlorine (màu vàng lục)'}. Bấm “Đốt và đưa vào bình”.` : $('#obs').innerHTML; }
 tb.querySelectorAll('[data-m]').forEach(b => b.onclick = () => setMode(b.dataset.m));
 $('#bAct').onclick = () => {
@@ -178,7 +178,7 @@ $('#bAct').onclick = () => {
 };
 document.querySelectorAll('[data-gas]').forEach(b => b.onclick = () => { S.gas = b.dataset.gas; document.querySelectorAll('[data-gas]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); resetBurn(); setMode('burn'); });
 document.querySelectorAll('[data-met]').forEach(b => b.onclick = () => { S.met = b.dataset.met; document.querySelectorAll('[data-met]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); resetBurn(); setMode('burn'); });
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 
 quiz($('#qz'), [
   { q: 'Kim loại nào sau đây dẫn điện tốt nhất?', o: ['Vàng', 'Bạc', 'Nhôm', 'Sắt'], a: 1 },

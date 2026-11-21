@@ -100,11 +100,11 @@ lab.onTick(dt => {
 $('#u').oninput = e => { S.U = +e.target.value; $('#vu').textContent = fmt(S.U, 1) + ' V'; solve(); };
 document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { S.b = +b.dataset.b; document.querySelectorAll('[data-b]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); build(); solve(); toast('Đã thay bóng đèn ' + b.textContent); });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bRec">Ghi số liệu</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+tb.innerHTML = `<button class="btn p" id="bRec">Ghi số liệu</button>`;
 let rows = [];
 $('#bRec').onclick = () => { const v = vals(); if (!v.on) return toast('Hãy bật nguồn và đóng khoá K.'); const b = BS[S.b]; rows.push([`${b.U} V – ${b.P} W`, fmt(v.U, 1), fmt(v.I, 2), fmt(v.P, 2), v.P / b.P > 1.05 ? 'Sáng quá mức' : v.P / b.P > .9 ? 'Sáng bình thường' : v.P / b.P > .3 ? 'Sáng yếu' : 'Rất mờ/không sáng']); $('#tb').innerHTML = rows.map(r => `<tr>${r.map(x => `<td>${x}</td>`).join('')}</tr>`).join(''); showPane(1); };
 $('#clr').onclick = () => { rows = []; $('#tb').innerHTML = ''; };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 
 quiz($('#qz'), [
   { q: 'Năng lượng điện mà động cơ tiêu thụ trong 30 phút, biết U = 12 V, I = 0,5 A, là bao nhiêu jun?', n: 10800, u: 'J', e: 'W = UIt = 12·0,5·1800 = 10 800 J.' },

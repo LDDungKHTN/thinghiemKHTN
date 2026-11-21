@@ -125,10 +125,10 @@ lab.onTick((dt, t) => {
   if (txt != lastT) { lastT = txt; hud.innerHTML = `<b>Nguồn ${S.ac ? 'xoay chiều' : 'một chiều'}</b><br>${txt}`; $('#obs').innerHTML = txt; }
 });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn" id="bAC">Dòng một chiều</button><button class="btn" id="b1">Nhìn cốc nước</button><button class="btn" id="b3">Nhìn nam châm điện</button><button class="btn" id="bH">Toàn cảnh</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn" id="bAC">Dòng một chiều</button><button class="btn" id="b1">Nhìn cốc nước</button><button class="btn" id="b3">Nhìn nam châm điện</button><button class="btn" id="bH">Toàn cảnh</button>`;
 $('#bAC').onclick = () => { S.ac = !S.ac; $('#bAC').textContent = S.ac ? 'Dòng một chiều' : 'Dòng xoay chiều'; toast(S.ac ? 'Đã chuyển sang nguồn xoay chiều' : 'Đã chuyển sang nguồn một chiều'); };
 $('#b1').onclick = () => lab.view([-.24, .2, .3], [-.3, .07, .08]); $('#b3').onclick = () => lab.view([.3, .2, .32], [.25, .09, .08]); $('#bH').onclick = () => lab.view(...HOME);
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 
 quiz($('#qz'), [
   { q: 'Máy sấy tóc thổi ra hơi nóng chứng tỏ dòng điện xoay chiều có tác dụng', o: ['từ', 'nhiệt', 'sinh lí', 'hoá học'], a: 1 },

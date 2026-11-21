@@ -221,14 +221,14 @@ lab.onTick((dt, t) => {
 /* ---------- Thanh công cụ ---------- */
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = [1, 2, 3, 4, 5].map(n => `<button class="btn" data-s="${n}">${NAMES[n]}</button>`).join('') +
-  `<button class="btn p" id="bNear">Đưa lại gần</button><button class="btn p" id="bFar">Đưa ra xa</button><button class="btn" id="bFlip">Đổi cực</button><button class="btn p" id="bSpin">Quay nam châm</button><button class="btn p" id="bSq">Bóp cuộn dây</button><button class="btn" id="bLbl">Tên</button>`;
+  `<button class="btn p" id="bNear">Đưa lại gần</button><button class="btn p" id="bFar">Đưa ra xa</button><button class="btn" id="bFlip">Đổi cực</button><button class="btn p" id="bSpin">Quay nam châm</button><button class="btn p" id="bSq">Bóp cuộn dây</button>`;
 tb.querySelectorAll('[data-s]').forEach(b => b.onclick = () => setSt(+b.dataset.s));
 $('#bNear').onclick = () => S.auto = 1; $('#bFar').onclick = () => S.auto = -1;
 $('#bFlip').onclick = () => { S.flip = !S.flip; mag.rotation.y = S.flip ? Math.PI : 0; prevF = null; toast(S.flip ? 'Cực Nam hướng về cuộn dây' : 'Cực Bắc hướng về cuộn dây'); };
 $('#bSpin').onclick = () => { S.spin3 = !S.spin3; $('#bSpin').textContent = S.spin3 ? 'Dừng quay' : 'Quay nam châm'; };
 $('#bSq').onclick = () => { S.sqT = S.sqT == 1 ? .55 : 1; $('#bSq').textContent = S.sqT < 1 ? 'Thả ra' : 'Bóp cuộn dây'; };
 $('#sp').oninput = e => { S.sp = +e.target.value; $('#vsp').textContent = fmt(S.sp, 1) + ' vòng/s'; };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 
 quiz($('#qz'), [
   { q: 'Đưa cực Bắc của nam châm lại gần cuộn dây, số đường sức từ xuyên qua tiết diện cuộn dây', o: ['tăng', 'giảm', 'không đổi', 'bằng 0'], a: 0 },

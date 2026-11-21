@@ -85,9 +85,9 @@ const tubes = ['Ống 1', 'Ống 2', 'Ống 3', 'Ống 4', 'Ống 5'];
 const bench = chemBench(lab, { tubes, reagents: REAG, react, vol: 4, cap: 16, heat: false, obs: '#obs', onObs: h => hud.innerHTML = h });
 benchUI(bench, $('#ui'), { tubes, reagents: REAG, heat: false });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bAuto">Chuẩn bị nhanh 5 ống</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="bAuto">Chuẩn bị nhanh 5 ống</button>`;
 $('#bAuto').onclick = () => { const plan = [['h2o', 'fe'], ['h2o', 'cu'], ['hcl', 'fe'], ['hcl', 'cu'], ['agno3', 'cu']]; plan.forEach((p, i) => { bench.T[i].items = [{ id: p[0], amt: 8 }, { id: p[1], amt: 1 }]; bench.T[i].age = 0; }); bench.redraw(); toast('Đã chuẩn bị 5 ống nghiệm theo SGK'); };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 // sắp xếp
 const ANS = ['Na', 'Fe', 'H', 'Cu', 'Ag']; let pick = [];
 const ord = $('#ord'); ord.innerHTML = ['Cu', 'Ag', 'Na', 'H', 'Fe'].map(x => `<button class="btn g" data-x="${x}">${x}</button>`).join('') + '<button class="btn g" id="ordC">Làm lại</button>';

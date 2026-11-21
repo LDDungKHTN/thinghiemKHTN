@@ -80,9 +80,9 @@ lab.onTick((dt, t) => {
   if (left <= 0 && S.burn < 15) hud.innerHTML = 'Cồn cháy hết, bát sứ còn lại sạch, không có cặn: sản phẩm cháy là khí CO₂ và hơi nước.';
 });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bB">Đốt cồn trong bát sứ</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="bB">Đốt cồn trong bát sứ</button>`;
 $('#bB').onclick = () => { S.burn = 0; alc.scale.set(1, 1, 1); alc.visible = true; lab.view([.32, .16, .25], [.32, .03, .04]); hud.innerHTML = 'Ethylic alcohol cháy với <b>ngọn lửa màu xanh nhạt</b>, khó nhìn thấy, toả nhiều nhiệt.<br>C₂H₅OH + 3O₂ → 2CO₂ + 3H₂O'; };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Cồn y tế 70° nghĩa là', o: ['nhiệt độ 70 °C', 'trong 100 mL cồn có 70 mL ethylic alcohol nguyên chất', '70 g ethylic alcohol trong 100 g nước', 'cồn sôi ở 70 °C'], a: 1 },
   { q: 'Ethylic alcohol tác dụng được với natri vì trong phân tử có', o: ['nguyên tử carbon', 'nhóm –OH', 'liên kết đôi', 'nguyên tử oxygen'], a: 1 },

@@ -107,12 +107,12 @@ lab.onTick((dt, t) => {
   if (txt != S.last) { S.last = txt; say(txt); }
 });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bH">Bật nguồn nhiệt</button><button class="btn" id="bL">Châm lửa</button><button class="btn" id="bB">Dẫn vào nước bromine</button><button class="btn" id="bR">Làm lại</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="bH">Bật nguồn nhiệt</button><button class="btn" id="bL">Châm lửa</button><button class="btn" id="bB">Dẫn vào nước bromine</button><button class="btn" id="bR">Làm lại</button>`;
 $('#bH').onclick = () => { S.heat ^= 1; $('#bH').textContent = S.heat ? 'Tắt nguồn nhiệt' : 'Bật nguồn nhiệt'; };
 $('#bL').onclick = () => { if (S.br) return toast('Đang dẫn khí vào nước bromine.'); if (S.flow < .05) return toast('Chưa có khí ethylene thoát ra. Hãy đun nóng bình cầu.'); S.lit = true; };
 $('#bB').onclick = () => { S.br = !S.br; S.lit = false; noz.visible = !S.br; brG.visible = S.br; $('#bB').textContent = S.br ? 'Dùng ống vuốt nhọn' : 'Dẫn vào nước bromine'; if (S.br) lab.view([.12, .22, .38], [.15, .1, 0]); else lab.view(...HOME); };
 $('#bR').onclick = () => { Object.assign(S, { heat: 0, T: 25, lit: false, brK: 0 }); $('#bH').textContent = 'Bật nguồn nhiệt'; bt.set({ color: 0xf0a020, op: .75 }); };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Dẫn khí ethylene vào nước bromine, hiện tượng quan sát được là', o: ['Nước bromine chuyển màu xanh', 'Nước bromine bị mất màu', 'Có kết tủa trắng', 'Không có hiện tượng'], a: 1 },
   { q: 'Phản ứng giữa ethylene và bromine thuộc loại phản ứng', o: ['thế', 'cộng', 'cháy', 'trung hoà'], a: 1 },

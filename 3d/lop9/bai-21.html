@@ -153,13 +153,13 @@ lab.onTick((dt, t) => {
   }
 });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn on" data-m="ads">Hấp phụ</button><button class="btn" data-m="cond">Thử dẫn điện</button><button class="btn" data-m="ox">Đốt Mg / S</button><button class="btn p" id="bPour">Rót nước màu</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn on" data-m="ads">Hấp phụ</button><button class="btn" data-m="cond">Thử dẫn điện</button><button class="btn" data-m="ox">Đốt Mg / S</button><button class="btn p" id="bPour">Rót nước màu</button>`;
 function setMode(m) { S.mode = m; tb.querySelectorAll('[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m == m)); $('#bPour').style.display = m == 'ads' ? '' : 'none'; lab.view(...H[m]);
   say(m == 'ads' ? 'Bấm “Rót nước màu”.' : m == 'cond' ? 'Bấm vào một mẫu chất trên khay để thử.' : 'Chọn “Đốt magnesium” hoặc “Đốt lưu huỳnh” trong bảng bên phải.'); }
 tb.querySelectorAll('[data-m]').forEach(b => b.onclick = () => setMode(b.dataset.m));
 $('#bPour').onclick = () => { S.pour = 0; bk.set({ level: 0 }); btl.position.set(.08, .012, .03); btl.rotation.z = 0; };
 document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { if (S.mode != 'ox') setMode('ox'); resetC(); const mg = b.dataset.b == 'mg'; (mg ? tongs : sSpoon).visible = true; mgRib.scale.x = 1; mgRib.material.color.set(0xd0d3d6); sPow.scale.set(1, .4, 1); lamp.set(true); S.burn = { k: b.dataset.b, t: 0 }; say(mg ? 'Đưa băng magnesium vào ngọn lửa đèn cồn…' : 'Đốt lưu huỳnh trong muỗng sắt…'); });
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Than hoạt tính được dùng trong mặt nạ phòng độc vì có tính', o: ['dẫn điện', 'hấp phụ', 'cháy được', 'cứng'], a: 1 },
   { q: 'Chất nào sau đây dẫn điện?', o: ['Lưu huỳnh', 'Than chì', 'Than gỗ', 'Nước cất'], a: 1 },
