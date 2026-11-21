@@ -93,9 +93,9 @@ lab.onTick(dt => {
 });
 $('#nx').onclick = () => { if (S.s < 5) { S.done = 0; step(); } }; $('#rs').onclick = reset;
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bN">Bước tiếp</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="bN">Bước tiếp</button>`;
 $('#bN').onclick = () => $('#nx').click();
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Mục đích của việc ngâm hạt trong nước ấm là', o: ['làm sạch hạt', 'giúp hạt hút đủ nước, kích thích hạt nảy mầm', 'diệt mọt', 'làm hạt mềm để ăn'], a: 1 },
   { q: 'Nước vôi trong ở chuông A bị vẩn đục là do', o: ['hạt thải khí oxygen', 'hạt nảy mầm hô hấp thải khí carbon dioxide', 'nước bay hơi', 'nhiệt độ tăng'], a: 1 },

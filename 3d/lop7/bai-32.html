@@ -97,12 +97,12 @@ lab.onTick(dt => {
     if (k >= 1 && !S.d2) { S.d2 = 1; S.t2 = -1; say('Sau 30 phút: mặt trong túi nylon trùm <b>cây ở chậu B</b> (có lá) <b>xuất hiện nhiều giọt nước</b>, túi mờ đi; túi trùm cây ở chậu A (không có lá) hầu như không có giọt nước.<br><b>Kết luận:</b> lá thoát hơi nước.'); $('#k2').textContent = 'Túi trùm cây có lá (chậu B) có nhiều giọt nước bám ở mặt trong; túi trùm cây không có lá (chậu A) hầu như không có → lá thoát hơi nước.'; showPane(1); } }
 });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="b1">Tua 60 phút (cần tây)</button><button class="btn" id="bc">Cắt ngang cuống lá</button><button class="btn p" id="bBag">Trùm túi nylon</button><button class="btn p" id="b2">Tua 30 phút (2 chậu)</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="b1">Tua 60 phút (cần tây)</button><button class="btn" id="bc">Cắt ngang cuống lá</button><button class="btn p" id="bBag">Trùm túi nylon</button><button class="btn p" id="b2">Tua 30 phút (2 chậu)</button>`;
 $('#b1').onclick = () => { lab.view(...V.c); S.d1 = 0; S.t1 = 0; };
 $('#bc').onclick = () => { if (!S.d1) return toast('Hãy để cần tây trong nước màu khoảng 60 phút trước.'); slice.visible = true; loupe.visible = true; drawSlice(1, 0xd6203a); lab.view(...V.x); say('Lát cắt ngang cuống lá: quan sát bằng kính lúp thấy các <b>chấm màu đỏ xếp thành vòng</b> – đó là các <b>mạch dẫn</b> (mạch gỗ) đã vận chuyển nước màu.<br><b>Kết luận:</b> nước được vận chuyển qua mạch dẫn của thân (cuống lá) lên lá.'); $('#k1').textContent = 'Cuống và lá cần tây chuyển màu của nước pha màu; lát cắt ngang có các chấm màu (mạch dẫn) → thân vận chuyển nước.'; showPane(1); };
 $('#bBag').onclick = () => { PA.bag.visible = PB.bag.visible = true; lab.view(...V.b); say('Đã trùm túi nylon trong suốt kín phần lá ở 2 chậu, buộc kín miệng túi, đặt ra ngoài sáng.'); };
 $('#b2').onclick = () => { if (!PA.bag.visible) return toast('Hãy trùm túi nylon trước.'); lab.view(...V.b); S.d2 = 0; S.t2 = 0; };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Tại sao trong thí nghiệm chứng minh thân vận chuyển nước phải dùng nước pha màu?', o: ['Để cây đẹp hơn', 'Để quan sát được đường đi của nước trong cây', 'Để cây hút nước nhanh hơn', 'Để diệt khuẩn'], a: 1 },
   { q: 'Nước và muối khoáng được vận chuyển từ rễ lên lá qua', o: ['mạch rây', 'mạch gỗ (mạch dẫn)', 'vỏ cây', 'lỗ khí'], a: 1 },

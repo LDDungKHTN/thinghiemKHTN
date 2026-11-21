@@ -155,9 +155,9 @@ lab.onTick((dt, t) => {
 $('#n1').onclick = () => { if (S.s1 < 6) step1(); }; $('#r1').onclick = reset1;
 $('#n2').onclick = () => { if (S.s2 < 4) step2(); }; $('#r2').onclick = () => { reset2(); S.splint = null; S.flamed = 0; };
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="t1">Bước tiếp – TN tinh bột</button><button class="btn p" id="t2">Bước tiếp – TN oxygen</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="t1">Bước tiếp – TN tinh bột</button><button class="btn p" id="t2">Bước tiếp – TN oxygen</button>`;
 $('#t1').onclick = () => $('#n1').click(); $('#t2').onclick = () => $('#n2').click();
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Mục đích của việc dùng băng giấy đen bịt kín một phần lá ở cả 2 mặt là', o: ['để lá không bị héo', 'để phần lá đó không nhận được ánh sáng, so sánh với phần lá được chiếu sáng', 'để lá nhanh lớn', 'để giữ ẩm'], a: 1 },
   { q: 'Cho chiếc lá vào cồn 90° đun sôi cách thuỷ để', o: ['luộc chín lá', 'tẩy hết chất diệp lục, dễ quan sát màu của iodine', 'tạo tinh bột', 'diệt vi khuẩn'], a: 1 },
