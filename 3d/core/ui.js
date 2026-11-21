@@ -7,20 +7,40 @@ export const fmt = (n, d = 1) => Number(n).toLocaleString('vi-VN', { maximumFrac
 export function shell({ title, sub = '', back = '../index.html', panes = [] }) {
   document.title = title.replace(/<[^>]+>/g, '');
   const keep = [...document.querySelectorAll('#baiviet')]; keep.forEach(n => n.remove());
-  document.body.innerHTML = `<div class="app"><header class="hd"><a class="bk" href="${back}">← Danh sách</a><h1>${title}</h1><span class="sub">${sub}</span><button class="snd" id="snd" title="Bật/tắt âm thanh" aria-label="Bật/tắt âm thanh">🔊</button></header>
+  const fsOK = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  document.body.innerHTML = `<div class="app"><header class="hd"><a class="bk" href="${back}">← Danh sách</a><h1>${title}</h1><span class="sub">${sub}</span><button class="hb" id="lblB" title="Hiện / ẩn tên dụng cụ">🏷 <span>Tên</span></button>${fsOK ? '<button class="hb" id="fsB" title="Toàn màn hình">⛶ <span>Toàn màn hình</span></button>' : ''}<button class="snd" id="snd" title="Bật/tắt âm thanh" aria-label="Bật/tắt âm thanh">🔊</button></header>
   <div class="main"><div class="stage" id="stage"><div class="ld" id="ld">Đang dựng phòng thí nghiệm 3D…</div><div class="toast" id="toast"></div></div>
-  <aside class="side"><nav class="tabs">${panes.map((p, i) => `<button class="${i ? '' : 'on'}" data-i="${i}">${p.title}</button>`).join('')}</nav>
+  <aside class="side" id="side"><button class="handle" id="hdl" title="Hướng dẫn, kết quả, câu hỏi"><i>📋</i><span>Hướng dẫn · Kết quả</span><b class="dot"></b></button><button class="xclose" id="xcl" title="Đóng">✕</button><nav class="tabs">${panes.map((p, i) => `<button class="${i ? '' : 'on'}" data-i="${i}">${p.title}</button>`).join('')}</nav>
   ${panes.map((p, i) => `<section class="pane" id="${p.id}" ${i ? 'hidden' : ''}>${p.html || ''}</section>`).join('')}</aside></div></div>`;
   if (keep.length) { keep.forEach(n => document.body.appendChild(n)); const a = document.createElement('a'); a.className = 'bv'; a.href = '#baiviet'; a.innerHTML = '📖<span> Bài viết</span>'; a.title = 'Giải thích, câu hỏi ôn tập, chia sẻ'; $('.hd').insertBefore(a, $('#snd')); }
   $$('.tabs button').forEach(b => b.onclick = () => showPane(+b.dataset.i));
   const sb = $('#snd'); sb.onclick = () => setMuted(!isMuted()); onMute(m => { sb.textContent = m ? '🔇' : '🔊'; sb.classList.toggle('off', m); });
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button, .btn, label'); if (b && b.id != 'snd') sfx('click'); }, true);
+  // hiện / ẩn tên dụng cụ (nhớ lựa chọn)
+  let lbl = true; try { lbl = localStorage.getItem('lbl3d') != '0'; } catch (e) { }
+  const setLbl = v => { lbl = v; document.body.classList.toggle('nolbl', !v); $('#lblB').classList.toggle('off', !v); try { localStorage.setItem('lbl3d', v ? '1' : '0'); } catch (e) { } };
+  $('#lblB').onclick = () => setLbl(!lbl); setLbl(lbl);
+  // toàn màn hình
+  if (fsOK) $('#fsB').onclick = () => { const d = document, el = d.documentElement; if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d); else (el.requestFullscreen || el.webkitRequestFullscreen).call(el); };
+  // ngăn kéo: rê chuột vào nút/ngăn để mở, rời ra thì đóng; chạm vào nút để mở/đóng; chạm vào khung thí nghiệm để đóng
+  const side = $('#side'), hdl = $('#hdl'); let pinned = false, tOut = 0;
+  const hover = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const open = v => { side.classList.toggle('open', v); if (v) hdl.classList.remove('ping'); };
+  hdl.onclick = () => { pinned = !side.classList.contains('open') || !pinned; open(pinned); };
+  $('#xcl').onclick = () => { pinned = false; open(false); };
+  if (hover) { side.addEventListener('mouseenter', () => { clearTimeout(tOut); open(true); }); side.addEventListener('mouseleave', () => { if (!pinned) tOut = setTimeout(() => open(false), 450); }); }
+  $('#stage').addEventListener('pointerdown', () => { if (side.classList.contains('open')) { pinned = false; open(false); } });
+  // màn hình hẹp: bấm nút thao tác trong ngăn thì tự thu ngăn lại để thấy hiện tượng (trừ câu hỏi)
+  side.addEventListener('click', e => { const b = e.target.closest('.pane .btn'); if (!b || innerWidth > 760 || b.closest('.q') || b.dataset.keep != null) return; setTimeout(() => { pinned = false; open(false); }, 280); });
   return $('#stage');
 }
 export function showPane(i) {
   $$('.tabs button').forEach((x, j) => x.classList.toggle('on', i == j));
   $$('.pane').forEach((p, j) => p.hidden = i != j);
+  const side = $('#side'); if (side && !side.classList.contains('open')) $('#hdl').classList.add('ping');   // báo có nội dung mới
 }
+/** mở ngăn hướng dẫn/kết quả (dùng khi cần học sinh đọc ngay) */
+export function openSide(v = true) { $('#side')?.classList.toggle('open', v); }
 export function ready() { setTimeout(() => $('#ld')?.classList.add('hide'), 150); }
 let tt;
 export function toast(msg, ms = 2600) { const t = $('#toast'); t.innerHTML = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), ms); }
