@@ -133,7 +133,7 @@ $('#clr').onclick = () => { rows = []; drawT2(); };
 /* ===== Giao diện ===== */
 const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bMode">Thí nghiệm 2</button><button class="btn" id="bRec">Ghi số liệu</button><button class="btn" id="bNear">Nhìn gần đồng hồ</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+tb.innerHTML = `<button class="btn p" id="bMode">Thí nghiệm 2</button><button class="btn" id="bRec">Ghi số liệu</button><button class="btn" id="bNear">Nhìn gần đồng hồ</button>`;
 function setMode(m) { S.mode = m; $('#bMode').textContent = m == 1 ? 'Thí nghiệm 2' : 'Thí nghiệm 1'; lab.view(...(m == 1 ? H1 : H2)); $('#bRec').style.display = $('#bNear').style.display = m == 2 ? '' : 'none'; m == 1 ? solve1() : solve2(); }
 $('#bMode').onclick = () => setMode(S.mode == 1 ? 2 : 1);
 let near = false;
@@ -144,7 +144,7 @@ $('#bRec').onclick = () => {
   if (rows.some(r => r.R == S.R2 && Math.abs(r.U - U) < .25)) return toast('Giá trị U này đã ghi.');
   rows.push({ R: S.R2, U, I }); drawT2(); showPane(1); toast(`Đã ghi: U = ${fmt(U, 1)} V, I = ${fmt(I, 2)} A`);
 };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 
 quiz($('#qz'), [
   { q: 'Thay điện trở R₁ bằng điện trở lớn hơn trong mạch Hình 11.1 thì đèn', o: ['sáng hơn', 'tối hơn', 'sáng như cũ', 'tắt hẳn ngay lập tức'], a: 1, e: 'Điện trở lớn cản trở dòng điện nhiều hơn → I nhỏ hơn → đèn tối hơn.' },

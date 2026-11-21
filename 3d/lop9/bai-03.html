@@ -123,13 +123,13 @@ lab.onTick((dt0, t) => {
   if (S.maxB > .001) $('#obs').innerHTML = S.air ? `B (${fmt(S.maxB * 100, 1)} cm) <b>thấp hơn</b> A (${fmt(S.hA * 100, 1)} cm): một phần cơ năng đã chuyển hoá thành nhiệt năng do lực cản của không khí. Sau một thời gian, vật dừng lại ở O.` : `B cao bằng A (${fmt(S.hA * 100, 1)} cm): khi bỏ qua lực cản, cơ năng được bảo toàn.`;
 });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bGo">Kéo tới A và thả</button><button class="btn" id="bStop">Giữ vật đứng yên</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="bGo">Kéo tới A và thả</button><button class="btn" id="bStop">Giữ vật đứng yên</button>`;
 $('#bDrop').onclick = () => launch(.5, 0, 0); $('#bUp').onclick = () => launch(.05, 0, 3); $('#bThrow').onclick = () => launch(.05, 1.2, 2.6);
 $('#bGo').onclick = () => { M = 1; Wc0 = .2 * g * Lp * (1 - Math.cos(1.2)); lab.view(...HOME); S.th = -.75; S.w = 0; S.held = false; S.hA = Lp * (1 - Math.cos(S.th)); S.side = -1; S.maxB = 0; S.trail = []; };
 $('#bStop').onclick = () => { S.th = 0; S.w = 0; S.hA = 0; S.maxB = 0; S.trail = []; };
 $('#air').onchange = e => { S.air = e.target.checked; S.maxB = 0; };
 $('#slow').oninput = e => { S.slow = +e.target.value; $('#vs').textContent = fmt(S.slow, 2) + '×'; };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 
 quiz($('#qz'), [
   { q: 'Cơ năng của vật bằng', o: ['hiệu động năng và thế năng', 'tổng động năng và thế năng', 'tích động năng và thế năng', 'chỉ bằng động năng'], a: 1 },

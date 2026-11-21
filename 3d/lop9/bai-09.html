@@ -270,7 +270,7 @@ lab.draggable({ obj: scrG, min: -.5, max: .5, get: () => mx(S.S),
 /* ---------- Thanh công cụ ---------- */
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
 tb.innerHTML = `<button class="btn p" id="bRec">Ghi số liệu</button><button class="btn on" id="bLink">Dịch đồng thời</button><button class="btn" id="bNear">Đặt sát thấu kính</button>
-<button class="btn" id="bMode">Bessel</button><button class="btn" id="bView">Nhìn màn</button><button class="btn" id="bRay">Tia sáng</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+<button class="btn" id="bMode">Bessel</button><button class="btn" id="bView">Nhìn màn</button><button class="btn" id="bRay">Tia sáng</button>`;
 let views = 0, lbl = true;
 $('#bLink').onclick = () => { S.link = !S.link; $('#bLink').classList.toggle('on', S.link); toast(S.link ? 'Vật và màn sẽ dịch đồng thời, cách đều thấu kính' : 'Dịch riêng từng dụng cụ'); };
 $('#bNear').onclick = () => {
@@ -286,7 +286,7 @@ $('#bView').onclick = () => {
   $('#bView').textContent = ['Nhìn màn', 'Nhìn thước', 'Toàn cảnh'][views];
 };
 $('#bRay').onclick = () => { S.rays = !S.rays; $('#bRay').classList.toggle('on', S.rays); drawRays(); };
-$('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 $('#bMode').onclick = () => {
   S.mode = S.mode == 'sil' ? 'bes' : 'sil';
   $('#bMode').classList.toggle('on', S.mode == 'bes');

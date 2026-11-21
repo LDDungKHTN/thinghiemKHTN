@@ -222,7 +222,7 @@ function drawB() {
 /* ================== Giao diện ================== */
 const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bMode">Tạo ảnh (ngọn nến)</button><button class="btn" id="bPeek">Nhìn qua thấu kính</button><button class="btn" id="bRec">Ghi kết quả</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+tb.innerHTML = `<button class="btn p" id="bMode">Tạo ảnh (ngọn nến)</button><button class="btn" id="bPeek">Nhìn qua thấu kính</button><button class="btn" id="bRec">Ghi kết quả</button>`;
 const showB = m => { $('#bPeek').style.display = $('#bRec').style.display = m == 'B' ? '' : 'none'; };
 $('#bMode').onclick = () => {
   S.mode = S.mode == 'A' ? 'B' : 'A'; S.peek = false; $('#bPeek').classList.remove('on');
@@ -243,7 +243,7 @@ $('#bRec').onclick = () => {
   else im = B.k > 0 ? 'Ảo, cùng chiều, lớn hơn vật (không hứng được)' : 'Ảo, cùng chiều, nhỏ hơn vật (không hứng được)';
   rows.push([B.k > 0 ? 'Hội tụ' : 'Phân kì', fmt(o.d / 10, 1), im]); $('#tb').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join(''); toast('Đã ghi vào bảng (tab Kết quả).');
 };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
   S.k = B.k = +b.dataset.k; document.querySelectorAll('[data-k]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); });
   buildLensA(); buildLensB(); drawA(); drawB();

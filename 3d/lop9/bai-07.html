@@ -237,7 +237,7 @@ function setMode(m) {
 /* ---- HUD & thanh công cụ ---- */
 const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn" id="bMode">Màu sắc vật</button><button class="btn" id="bRoom">Tắt đèn phòng</button><button class="btn" id="bView">Nhìn màn</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+tb.innerHTML = `<button class="btn" id="bMode">Màu sắc vật</button><button class="btn" id="bRoom">Tắt đèn phòng</button><button class="btn" id="bView">Nhìn màn</button>`;
 let views = 0, lbl = true;
 $('#bRoom').onclick = () => { if (S.mode == 'color') return; S.dark = !S.dark; lab.roomLight(S.dark ? .22 : 1); $('#bRoom').classList.toggle('on', S.dark); };
 $('#bMode').onclick = () => setMode(S.mode == 'color' ? 'prism' : 'color');
@@ -247,7 +247,7 @@ $('#bView').onclick = () => {
   if (views == 1) lab.view([p.x * .35, Y + .05, p.z * .35 + .03], [p.x, Y, p.z]); else if (views == 2) lab.view([0, .5, .05], [0, 0, -.02]); else lab.view(...HOME);
   $('#bView').textContent = ['Nhìn màn', 'Nhìn từ trên', 'Toàn cảnh'][views];
 };
-$('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { S.filter = +b.dataset.f; document.querySelectorAll('[data-f]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); if (S.mode == 'color') setMode('prism'); update(); toast(S.filter ? 'Đã chắn kính lọc ' + (S.filter == 1 ? 'đỏ' : 'tím') : 'Đã bỏ kính lọc'); });
 document.querySelectorAll('[data-l]').forEach(b => b.onclick = () => { if (S.mode != 'color') setMode('color'); setLight(+b.dataset.l); });
 $('#rot').oninput = e => { S.rot = +e.target.value; $('#vr').textContent = (S.rot + 25) + '°'; update(); };

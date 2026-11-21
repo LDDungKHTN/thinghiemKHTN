@@ -75,10 +75,10 @@ $('#ri').oninput = e => B.setI(+e.target.value);
 document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => B.setI(+b.dataset.a));
 
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bRec">Ghi kết quả</button><button class="btn" id="bView">Nhìn gần</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+tb.innerHTML = `<button class="btn p" id="bRec">Ghi kết quả</button><button class="btn" id="bView">Nhìn gần</button>`;
 let near = false, lbl = true;
 $('#bView').onclick = () => { near = !near; B.lab.view(...(near ? NEAR : HOME)); $('#bView').textContent = near ? 'Toàn cảnh' : 'Nhìn gần'; };
-$('#bLbl').onclick = () => { lbl = !lbl; B.lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 let rows = [];
 $('#bRec').onclick = () => {
   if (!B.S.on) return toast('Hãy bật đèn trước (nút đỏ trên hộp nguồn).');

@@ -127,7 +127,7 @@ const T1 = {}, drawT = () => {
 };
 const T2 = {};
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bRec">Ghi số liệu</button><button class="btn" id="bS">Mạch nối tiếp</button><button class="btn" id="bP">Mạch song song</button><button class="btn" id="bB">Hai bóng đèn</button><button class="btn" id="bRm">Tháo đèn 1</button><button class="btn" id="bLbl">Tên dụng cụ</button>`;
+tb.innerHTML = `<button class="btn p" id="bRec">Ghi số liệu</button><button class="btn" id="bS">Mạch nối tiếp</button><button class="btn" id="bP">Mạch song song</button><button class="btn" id="bB">Hai bóng đèn</button><button class="btn" id="bRm">Tháo đèn 1</button>`;
 function setMode(m) { S.mode = m; ['bS', 'bP', 'bB'].forEach(id => $('#' + id).classList.toggle('on', id == { s: 'bS', p: 'bP', b: 'bB' }[m])); $('#bRm').style.display = m == 'b' ? '' : 'none'; $('#bRec').style.display = m == 'b' ? 'none' : ''; lab.view(...H[m]); solve(); }
 $('#bS').onclick = () => setMode('s'); $('#bP').onclick = () => setMode('p'); $('#bB').onclick = () => setMode('b');
 $('#bRm').onclick = () => { removed = !removed; $('#bRm').textContent = removed ? 'Lắp lại đèn 1' : 'Tháo đèn 1'; solve(); };
@@ -137,7 +137,7 @@ $('#bRec').onclick = () => {
   drawT(); showPane(1); toast('Đã ghi số liệu vào bảng.');
 };
 document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { if (S.mode != 's') setMode('s'); setPair(+b.dataset.p); toast('Đã thay cặp điện trở'); });
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 void glassOf;
 
 quiz($('#qz'), [
