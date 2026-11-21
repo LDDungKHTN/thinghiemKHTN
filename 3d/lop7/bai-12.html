@@ -155,13 +155,13 @@ lab.onTick((dt, t) => {
 
 /* ===== Giao diện ===== */
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bR">Kéo và thả thanh thép</button><button class="btn p" id="bF">Gõ âm thoa</button><button class="btn p" id="bW">Tạo sóng nước</button><button class="btn p" id="bS">Rung lò xo</button><button class="btn" id="bAll">Toàn cảnh</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="bR">Kéo và thả thanh thép</button><button class="btn p" id="bF">Gõ âm thoa</button><button class="btn p" id="bW">Tạo sóng nước</button><button class="btn p" id="bS">Rung lò xo</button><button class="btn" id="bAll">Toàn cảnh</button>`;
 $('#bR').onclick = () => { lab.view(...V.r); R.A = -.035; R.A0 = 0; shapeRuler(R.A); setTimeout(() => { R.A0 = R.A; release(); }, 500); };
 $('#bF').onclick = () => { lab.view(...V.f); strike(); };
 $('#bW').onclick = () => { WV.on = !WV.on; WV.t = WV.on ? .001 : WV.t; $('#bW').textContent = WV.on ? 'Dừng sóng nước' : 'Tạo sóng nước'; if (WV.on) { lab.view(...V.w); say('Vật S dao động làm mặt nước dao động; dao động lan truyền trên mặt nước tạo thành <b>sóng nước hình tròn</b> có tâm S.'); } };
 $('#bS').onclick = () => { SP.on = !SP.on; SP.t = 0; $('#bS').textContent = SP.on ? 'Dừng lò xo' : 'Rung lò xo'; if (SP.on) { lab.view(...V.s); say('Dao động của đầu lò xo truyền đi dọc theo lò xo: xuất hiện những <b>đoạn nén và dãn liên tiếp</b> – sóng trên lò xo.'); } };
 $('#bAll').onclick = () => lab.view(...V.all);
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 $('#L').oninput = e => { R.L = +e.target.value / 100; $('#vL').textContent = e.target.value + ' cm'; R.A0 = 0; shapeRuler(0); };
 quiz($('#qz'), [
   { q: 'Các nguồn âm có đặc điểm chung là', o: ['đều nóng lên', 'đều dao động', 'đều phát sáng', 'đều là chất rắn'], a: 1 },

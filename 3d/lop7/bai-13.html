@@ -98,10 +98,10 @@ lab.onTick((dt, t) => { Object.values(forks).forEach(F => { const a = F.A * Math
 document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { cur = +b.dataset.f; document.querySelectorAll('[data-f]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); placeMic(); toast('Đặt âm thoa ' + cur + ' Hz trước micrô'); });
 document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => hit(forks[cur], +b.dataset.a));
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="b1">Gõ nhẹ</button><button class="btn o" id="b2">Gõ mạnh</button><button class="btn" id="bS">Nhìn màn hình</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="b1">Gõ nhẹ</button><button class="btn o" id="b2">Gõ mạnh</button><button class="btn" id="bS">Nhìn màn hình</button>`;
 $('#b1').onclick = () => hit(forks[cur], .35); $('#b2').onclick = () => hit(forks[cur], 1);
 let nearS = false; $('#bS').onclick = () => { nearS = !nearS; nearS ? lab.view([.12, .15, .2], [.16, .085, -.05]) : lab.view(...HOME); $('#bS').textContent = nearS ? 'Toàn cảnh' : 'Nhìn màn hình'; };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Một dây đàn ghi-ta dao động 880 lần mỗi giây. Tần số của nó là bao nhiêu Hz?', n: 880, u: 'Hz' },
   { q: 'Mặt trống dao động với tần số 100 Hz thực hiện được bao nhiêu dao động trong 1 phút?', n: 6000, u: 'dao động' },

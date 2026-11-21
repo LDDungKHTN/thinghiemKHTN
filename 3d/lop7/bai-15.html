@@ -133,14 +133,14 @@ lab.shadow(C); scr.castShadow = false; scr.receiveShadow = false;
 
 /* ===== Giao diện ===== */
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn" data-v="a">Pin quang điện</button><button class="btn" data-v="b">Chùm sáng</button><button class="btn on" data-v="c">Vùng tối</button><button class="btn" id="bDark">Tắt đèn phòng</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn" data-v="a">Pin quang điện</button><button class="btn" data-v="b">Chùm sáng</button><button class="btn on" data-v="c">Vùng tối</button><button class="btn" id="bDark">Tắt đèn phòng</button>`;
 function setV(v) { S.view = v; tb.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v == v)); lab.view(...V[v]); v == 'a' ? updA() : v == 'b' ? drawB() : drawShadow(); }
 tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => setV(b.dataset.v));
 let dark = true; lab.roomLight(.35);
 $('#bDark').classList.add('on'); $('#bDark').onclick = () => { dark = !dark; lab.roomLight(dark ? .35 : 1); $('#bDark').classList.toggle('on', dark); };
 document.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { beamMode = b.dataset.b; document.querySelectorAll('[data-b]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); setV('b'); });
 document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { S.src = +b.dataset.s; document.querySelectorAll('[data-s]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); setV('c'); });
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Nếu thay điện kế bằng một quạt máy nhỏ rồi bật đèn chiếu vào pin quang điện thì', o: ['quạt không quay', 'quạt quay – năng lượng ánh sáng chuyển hoá thành điện năng rồi thành cơ năng', 'quạt nóng lên', 'đèn tắt'], a: 1 },
   { q: 'Chùm sáng phát ra từ bút laser có thể coi là mô hình tia sáng vì', o: ['nó có màu đỏ', 'nó là chùm sáng song song rất hẹp', 'nó rất sáng', 'nó phân kì'], a: 1 },

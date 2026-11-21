@@ -137,13 +137,13 @@ function setM(i) { S.m = i; document.querySelectorAll('[data-m]').forEach(b => {
   hud.innerHTML = txt; $('#obs').innerHTML = txt; S.rows[i] = txt.replace(/<[^>]+>/g, ''); $('#tb').innerHTML = Object.entries(S.rows).map(([j, r]) => `<tr><td>${MATS[j].n}</td><td>${r.split(':').slice(1).join(':') || r}</td></tr>`).join(''); }
 document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { setM(+b.dataset.m); lab.view(...H1); });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bSea">Đo độ sâu biển</button><button class="btn" id="bH">Thí nghiệm phản xạ âm</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="bSea">Đo độ sâu biển</button><button class="btn" id="bH">Thí nghiệm phản xạ âm</button>`;
 const sonarGo = () => { lab.view(...H2); SO.t = 0; SO.done = false; SO.hitBed = false; sfx('beep'); };
 $('#bSea').onclick = sonarGo; $('#bSea2').onclick = sonarGo;
 $('#dep').oninput = e => { setDepth(+e.target.value); SO.t = -1; [...DOWN, ...UP].forEach(m => m.material.opacity = 0); lab.view(...H2); };
 setDepth(1500);
 $('#bH').onclick = () => lab.view(...H1);
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Vật nào phản xạ âm tốt?', o: ['Ghế đệm mút', 'Mặt gương, tấm kim loại, mặt tường gạch', 'Rèm nhung', 'Tấm xốp'], a: 1 },
   { q: 'Vì sao tường của nhà hát, rạp chiếu phim thường được làm sần sùi hoặc treo rèm nhung?', o: ['Để trang trí', 'Để hấp thụ âm, giảm âm phản xạ (tiếng vang)', 'Để phản xạ âm tốt hơn', 'Để cách nhiệt'], a: 1 },

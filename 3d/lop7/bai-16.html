@@ -98,11 +98,11 @@ $('#ri').oninput = e => { S.i = +e.target.value; draw(); };
 $('#rf').oninput = e => { S.fold = +e.target.value; draw(); };
 document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { S.m = +b.dataset.m; document.querySelectorAll('[data-m]').forEach(x => { x.classList.toggle('on', x == b); x.classList.toggle('g', x != b); }); draw(); });
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn p" id="bRec">Ghi kết quả</button><button class="btn" id="bFold">Quay nửa phải 60°</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn p" id="bRec">Ghi kết quả</button><button class="btn" id="bFold">Quay nửa phải 60°</button>`;
 $('#bRec').onclick = () => { if (S.fold >= 3 || S.m) return toast('Đưa nửa phải về vị trí ban đầu và dùng gương phẳng.'); if (S.rows.includes(S.i)) return toast('Đã ghi góc này.'); S.rows.push(S.i); S.rows.sort((a, b) => a - b); $('#tb').innerHTML = S.rows.map(a => `<tr><td>${a}°</td><td>${a}°</td></tr>`).join(''); showPane(1); };
 $('#bFold').onclick = () => { S.fold = S.fold ? 0 : 60; $('#rf').value = S.fold; $('#bFold').textContent = S.fold ? 'Đưa nửa phải về' : 'Quay nửa phải 60°'; draw(); };
 $('#clr').onclick = () => { S.rows = []; $('#tb').innerHTML = ''; };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Chiếu một tia sáng tới gương phẳng với góc tới 30°. Góc phản xạ bằng bao nhiêu độ?', n: 30, u: '°' },
   { q: 'Chiếu tia sáng vào gương phẳng đặt nằm ngang để tia phản xạ vuông góc với tia tới. Góc tới bằng bao nhiêu độ?', n: 45, u: '°' },

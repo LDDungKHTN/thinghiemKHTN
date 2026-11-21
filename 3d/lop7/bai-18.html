@@ -108,11 +108,11 @@ lab.onTick((dt, t) => {
 document.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { if (T1.who && T1.who != b.dataset.n) { T1.tgt = 0; } setTimeout(() => { T1.k = 0; bring(b.dataset.n); }, T1.who && T1.who != b.dataset.n ? 600 : 0); lab.view(...V.a); say('Nam châm hút <b>đinh sắt và ghim thép</b>; không hút dây đồng, mảnh nhôm, que gỗ. Các vật bị hút tập trung ở <b>hai đầu (hai cực)</b> của nam châm.'); });
 $('#back').onclick = () => { T1.tgt = 0; ITEMS.forEach(it => it.k = 0); };
 const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
-tb.innerHTML = `<button class="btn" data-v="a">TN1: Vật liệu</button><button class="btn" data-v="b">TN2: Kim nam châm</button><button class="btn" data-v="c">Hai nam châm</button><button class="btn p" id="push">Đẩy nhẹ kim</button><button class="btn p" id="flip">Đổi cực nam châm B</button><button class="btn" id="bLbl">Tên</button>`;
+tb.innerHTML = `<button class="btn" data-v="a">TN1: Vật liệu</button><button class="btn" data-v="b">TN2: Kim nam châm</button><button class="btn" data-v="c">Hai nam châm</button><button class="btn p" id="push">Đẩy nhẹ kim</button><button class="btn p" id="flip">Đổi cực nam châm B</button>`;
 tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { lab.view(...V[b.dataset.v]); tb.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x == b)); });
 $('#push').onclick = () => { sfx('swish'); lab.view(...V.b); cp.w += (Math.random() > .5 ? 1 : -1) * (4 + Math.random() * 4); say('Kim nam châm dao động một lúc rồi <b>nằm cân bằng theo hướng Bắc – Nam</b>: đầu đỏ (cực Bắc N) chỉ hướng Bắc địa lí.'); };
 $('#flip').onclick = () => { sfx('snap'); lab.view(...V.c); T3.flip = !T3.flip; T3.x = .1; T3.v = 0; say(T3.flip ? 'Cực <b>Bắc</b> của A gần cực <b>Bắc</b> của B: hai cực cùng tên <b>đẩy nhau</b>, xe lăn chạy ra xa.' : 'Cực <b>Bắc</b> của A gần cực <b>Nam</b> của B: hai cực khác tên <b>hút nhau</b>, xe lăn chạy lại gần.'); };
-let lbl = true; $('#bLbl').onclick = () => { lbl = !lbl; lab.showLabels(lbl); $('#bLbl').classList.toggle('on', !lbl); };
+
 quiz($('#qz'), [
   { q: 'Nam châm hút được vật nào sau đây?', o: ['Đồng xu bằng đồng', 'Chiếc đinh sắt', 'Mẩu gỗ', 'Thìa nhôm'], a: 1 },
   { q: 'Vị trí nào trên thanh nam châm hút sắt mạnh nhất?', o: ['Ở giữa', 'Ở hai đầu (hai cực)', 'Mọi chỗ như nhau', 'Không chỗ nào'], a: 1 },
