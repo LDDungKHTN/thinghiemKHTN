@@ -39,7 +39,7 @@ export function chemBench(lab, opt) {
   let sel = 0;
   const selMark = new THREE.Mesh(new THREE.ConeGeometry(.006, .014, 16), new THREE.MeshBasicMaterial({ color: 0xff7a00 })); selMark.rotation.x = Math.PI; lab.scene.add(selMark);
   // dòng chất lỏng khi rót
-  const stream = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0008, 1, 8), new THREE.MeshPhysicalMaterial({ color: 0xcfe8f3, transparent: true, opacity: .6, roughness: .05 })); stream.visible = false; lab.scene.add(stream);
+  const stream = new THREE.Mesh(new THREE.CylinderGeometry(.0017, .0011, 1, 12), new THREE.MeshPhysicalMaterial({ color: 0xcfe8f3, transparent: true, opacity: .78, roughness: .02, clearcoat: 1, emissive: 0x2a5d78, emissiveIntensity: .25 })); stream.visible = false; lab.scene.add(stream);
   const grains = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.0012, 0), new THREE.MeshStandardMaterial({ color: 0xffffff }), 14); grains.visible = false; lab.scene.add(grains);
   const dummy = new THREE.Object3D();
   let anim = null, busy = false;
@@ -60,7 +60,7 @@ export function chemBench(lab, opt) {
     opt.onObs && opt.onObs(html, t, s);
   }
   function select(i) { sel = i; T.forEach((t, j) => t.tag.element.classList.toggle('read', j == i)); showObs(); api && api.onSelect && api.onSelect(i); }
-  function place() { const t = T[sel]; const p = t.v.g.position; selMark.position.set(p.x, p.y + t.v.H + .03 + Math.sin(performance.now() / 300) * .003, p.z); }
+  function place() { selMark.visible = !anim; const t = T[sel]; const p = t.v.g.position; selMark.position.set(p.x, p.y + t.v.H + .03 + Math.sin(performance.now() / 300) * .003, p.z); }
   T.forEach((t, i) => lab.clickable(t.v.g, () => select(i)));
   B.forEach(b => lab.clickable(b.g, () => add(b)));
   function add(b, toIdx) {
@@ -88,24 +88,33 @@ export function chemBench(lab, opt) {
         if (k >= 1) { s.visible = false; anim = null; busy = false; }
         return;
       }
-      const mouth = t.v.mouth(), side = b.home.x <= mouth.x ? -1 : 1;
-      const over = V3(mouth.x + side * .035, mouth.y + .045, mouth.z);
+      // Rót như thật: miệng lọ đặt sát trên miệng ống nghiệm được chọn, lọ nghiêng về phía ống
+      const mouth = t.v.mouth(), side = b.home.x <= mouth.x ? -1 : 1, Lp = b.lipY || .078;
+      const A = r.k == 'drop' ? 1.55 : r.k == 'sol' ? 1.75 : 1.95, th = side * A;       // góc nghiêng (lọ bên trái nghiêng theo chiều kim đồng hồ)
+      const lipAt = ang => V3(-Lp * Math.sin(ang), Lp * Math.cos(ang), 0);              // vị trí miệng lọ so với đáy lọ khi nghiêng góc ang
+      const lipT = mouth.clone().add(V3(side * .005, .01, 0));                           // miệng lọ: ngay trên vành ống, lệch nhẹ về phía lọ
+      const pourBase = lipT.clone().sub(lipAt(th)), pre = pourBase.clone().add(V3(side * .03, .035, 0));
       const e = x => x < .5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2;
-      if (k < .3) b.g.position.lerpVectors(b.home, over, e(k / .3));
-      else if (k < .7) { b.g.position.copy(over); b.g.rotation.z = side * -1 * Math.sin(Math.min(1, (k - .3) / .12) * Math.PI / 2) * 1.75; }
-      else { b.g.rotation.z = side * -1.75 * (1 - e((k - .7) / .3)); b.g.position.lerpVectors(over, b.home, e((k - .7) / .3)); }
-      const pouring = k > .38 && k < .68;
+      if (b.cap) b.cap.visible = k < .05 || k > .95;                                     // mở nắp lọ khi rót
+      if (k < .28) { const f = e(k / .28); b.g.position.lerpVectors(b.home, pre, f); b.g.position.y += Math.sin(f * Math.PI) * .04; b.g.rotation.z = 0; }
+      else if (k < .4) { const f = e((k - .28) / .12); b.g.position.lerpVectors(pre, pourBase, f); b.g.rotation.z = th * f; }
+      else if (k < .7) { b.g.position.copy(pourBase); b.g.rotation.z = th + Math.sin(k * 40) * .015; }
+      else if (k < .8) { const f = e((k - .7) / .1); b.g.position.lerpVectors(pourBase, pre, f); b.g.rotation.z = th * (1 - f); }
+      else { const f = e((k - .8) / .2); b.g.position.lerpVectors(pre, b.home, f); b.g.position.y += Math.sin(f * Math.PI) * .04; b.g.rotation.z = 0; }
+      const pouring = k > .42 && k < .68;
+      // điểm rơi: mặt chất lỏng hiện có trong ống (hoặc đáy ống)
+      const tb = t.v.g.position, surfY = tb.y + Math.max(.008, (t.v.st.level || 0) * t.v.H * .85), Rin = (t.v.R || .0085) * .6;
       if (!anim.s0) { anim.s0 = 1; sfx('clink', { vol: .4 }); }
       if (r.k == 'liq') mix('pour', 'bench', pouring ? .9 : 0);
       else if (r.k == 'drop') { if (pouring && (anim.dn = (anim.dn || 0) + dt) > .22) { anim.dn = 0; sfx('drip'); } }
       else if (pouring && !anim.spr) { anim.spr = 1; sfx('sprinkle'); }
       if (r.k != 'sol') {
-        stream.visible = pouring; if (pouring) { const lip = b.g.localToWorld(V3(0, .078, 0)), end = mouth.clone().add(V3(0, -.02, 0)), L = lip.distanceTo(end); stream.position.copy(lip).lerp(end, .5); stream.scale.set(r.k == 'drop' ? .6 : 1, L, r.k == 'drop' ? .6 : 1); stream.quaternion.setFromUnitVectors(V3(0, 1, 0), lip.clone().sub(end).normalize()); stream.material.color.set(r.c); }
+        stream.visible = pouring; if (pouring) { const lip = b.g.localToWorld(V3(0, Lp, 0)), end = V3(mouth.x + clamp(lip.x - mouth.x, -Rin, Rin), surfY, mouth.z), L = lip.distanceTo(end); stream.position.copy(lip).lerp(end, .5); stream.scale.set(r.k == 'drop' ? .6 : 1, L, r.k == 'drop' ? .6 : 1); stream.quaternion.setFromUnitVectors(V3(0, 1, 0), lip.clone().sub(end).normalize()); stream.material.color.set(r.c).lerp(new THREE.Color(0x9fd3f0), .35); }
       } else {
-        grains.visible = pouring; if (pouring) { grains.material.color.set(r.solid ? r.solid.c : r.c); const lip = b.g.localToWorld(V3(0, .078, 0)); for (let j = 0; j < 14; j++) { const f = ((performance.now() / 600 + j / 14) % 1); dummy.position.copy(lip).lerp(mouth.clone().add(V3(0, -.03, 0)), f); dummy.position.x += Math.sin(j * 7) * .002; dummy.updateMatrix(); grains.setMatrixAt(j, dummy.matrix); } grains.instanceMatrix.needsUpdate = true; }
+        grains.visible = pouring; if (pouring) { grains.material.color.set(r.solid ? r.solid.c : r.c); const lip = b.g.localToWorld(V3(0, Lp, 0)), endS = V3(mouth.x, surfY, mouth.z); for (let j = 0; j < 14; j++) { const f = ((performance.now() / 600 + j / 14) % 1); dummy.position.copy(lip).lerp(endS, f); dummy.position.x += Math.sin(j * 7) * .002; dummy.updateMatrix(); grains.setMatrixAt(j, dummy.matrix); } grains.instanceMatrix.needsUpdate = true; }
       }
       if (k >= .68 && !anim.done) { anim.done = true; commit(t, r); }
-      if (k >= 1) { b.g.position.copy(b.home); b.g.rotation.z = 0; stream.visible = grains.visible = false; anim = null; busy = false; mix('pour', 'bench', 0); sfx('clink', { vol: .5 }); }
+      if (k >= 1) { b.g.position.copy(b.home); b.g.rotation.z = 0; if (b.cap) b.cap.visible = true; stream.visible = grains.visible = false; anim = null; busy = false; mix('pour', 'bench', 0); sfx('clink', { vol: .5 }); }
     }
   });
   const api = {

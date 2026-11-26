@@ -6,6 +6,15 @@ const V3 = (...a) => new THREE.Vector3(...a);
 const glassM = () => { const m = MAT.glassLite({ color: 0xf2fbff, opacity: .2 }); return m; };
 let _seed = 1; const rnd = () => (_seed = (_seed * 16807) % 2147483647) / 2147483647;
 
+/** Vị trí gốc của dụng cụ khi nghiêng góc th (quanh trục z) để miệng rót (lipLocal) đúng tại lipTarget */
+export function pourBase(lipLocal, lipTarget, th) { return lipTarget.clone().sub(lipLocal.clone().applyAxisAngle(V3(0, 0, 1), th)); }
+/** Dòng chất lỏng chảy từ miệng dụng cụ xuống: set(từ, đến, màu, độ dày) theo toạ độ thế giới */
+export function liquidStream(lab) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(.0017, .0011, 1, 12), new THREE.MeshPhysicalMaterial({ color: 0xcfe8f3, transparent: true, opacity: .78, roughness: .02, clearcoat: 1, emissive: 0x2a5d78, emissiveIntensity: .25 }));
+  m.visible = false; m.renderOrder = 5; lab.scene.add(m);
+  return { m, hide() { m.visible = false; }, set(a, b, c, w = 1) { m.visible = true; m.position.copy(a).lerp(b, .5); m.scale.set(w, Math.max(.001, a.distanceTo(b)), w); m.quaternion.setFromUnitVectors(V3(0, 1, 0), a.clone().sub(b).normalize()); if (c != null) m.material.color.set(c).lerp(new THREE.Color(0x9fd3f0), .35); } };
+}
+
 /* ---- Hình dạng trong (profile bên trong) của các dụng cụ: hàm r(y) ---- */
 const PROF = {
   tube: (R, H) => y => y < R ? Math.sqrt(Math.max(0, R * R - (R - y) ** 2)) : R,
@@ -166,7 +175,7 @@ export function bottle(lab, pos, { name = '', color = 0xdff3ff, liquid = true, s
   const lb = new THREE.Mesh(new THREE.CylinderGeometry(R * 1.005, R * 1.005, .03, 32, 1, true, -.9, 1.8), new THREE.MeshStandardMaterial({ roughness: .7, map: canvasTex(256, 128, (c, w, h) => { c.fillStyle = tag; c.fillRect(0, 0, w, h); c.strokeStyle = '#999'; c.strokeRect(2, 2, w - 4, h - 4); c.fillStyle = '#111'; c.textAlign = 'center'; c.textBaseline = 'middle'; let fs = 46; c.font = `bold ${fs}px Arial`; while (c.measureText(name).width > w - 16 && fs > 18) { fs -= 2; c.font = `bold ${fs}px Arial`; } c.fillText(name, w / 2, h / 2); }) }));
   lb.position.y = H * .45; g.add(lb);
   lab.shadow(g); body.castShadow = false;
-  return { g, name };
+  return { g, name, cap, lipY: H + .018 };
 }
 
 /** Đĩa đựng tập giấy chỉ thị (giấy quỳ, giấy pH…) – không đựng trong lọ */

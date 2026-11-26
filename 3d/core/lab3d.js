@@ -99,6 +99,16 @@ export function createLab(host, o = {}) {
   controls.target.set(...opt.target); controls.enableDamping = true; controls.dampingFactor = .08;
   controls.minDistance = opt.minDist; controls.maxDistance = opt.maxDist; controls.maxPolarAngle = Math.PI * .49;
   controls.screenSpacePanning = true; controls.update();
+  // Lăn chuột: phóng to/thu nhỏ từ từ, tỉ lệ theo độ lăn (thay cho bước nhảy của OrbitControls)
+  let zoomD = null;
+  host.addEventListener('wheel', e => {
+    if (e.target != renderer.domElement && !lr.domElement.contains(e.target)) return;
+    e.preventDefault(); e.stopPropagation(); if (!controls.enabled) return;
+    let d = e.deltaY * (e.deltaMode == 1 ? 33 : e.deltaMode == 2 ? 400 : 1); if (e.ctrlKey) d *= 3;
+    d = clamp(d, -120, 120); tween = null;
+    const cur = zoomD ?? camera.position.distanceTo(controls.target);
+    zoomD = clamp(cur * Math.exp(d * .0007), controls.minDistance, controls.maxDistance);
+  }, { capture: true, passive: false });
 
   const hemi = new THREE.HemisphereLight(0xffffff, 0x8a7a66, .45); scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff6ea, 1.5);
@@ -151,6 +161,10 @@ export function createLab(host, o = {}) {
       tween.k = Math.min(1, tween.k + dt / tween.dur); const e = tween.k < .5 ? 2 * tween.k * tween.k : 1 - (-2 * tween.k + 2) ** 2 / 2;
       camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.t0, tween.t1, e);
       if (tween.k >= 1) tween = null;
+    }
+    if (zoomD != null) {
+      const off = camera.position.clone().sub(controls.target), cur = off.length(), nd = cur + (zoomD - cur) * Math.min(1, dt * 9);
+      camera.position.copy(controls.target).addScaledVector(off.normalize(), nd); if (Math.abs(zoomD - nd) < 1e-4) zoomD = null;
     }
     for (const f of ticks) f(dt, t);
     controls.update();
@@ -216,7 +230,7 @@ export function createLab(host, o = {}) {
     draggable(d) { d.axis = d.axis || V(1, 0, 0); drags.push(d); return d; },
     clickable(obj, fn, handles) { const d = { obj, fn, handles }; clicks.push(d); return d; },
     unregister(d) { for (const L of [drags, clicks]) { const i = L.indexOf(d); if (i >= 0) L.splice(i, 1); } },
-    view(pos, target, dur = .9) { tween = { p0: camera.position.clone(), p1: fitPos(pos, target), t0: controls.target.clone(), t1: V(...target), k: 0, dur }; },
+    view(pos, target, dur = .9) { zoomD = null; tween = { p0: camera.position.clone(), p1: fitPos(pos, target), t0: controls.target.clone(), t1: V(...target), k: 0, dur }; },
     label(obj, text, off = [0, .05, 0], cls = '') {
       const d = document.createElement('div'); d.className = 'tag3d ' + cls; d.innerHTML = text;
       const l = new CSS2DObject(d); l.position.set(...off); obj.add(l); labels.push(l); return l;
@@ -227,7 +241,7 @@ export function createLab(host, o = {}) {
     pump(sec = 1, dt = 1 / 30) { for (let i = 0; i < sec / dt; i++) frame(dt); return 'ok'; },
     shot(p, t) {
       let im = host.querySelector('#shotimg'); if (!p) { im && im.remove(); return; }
-      tween = null; camera.position.set(...p); controls.target.set(...t); controls.update(); renderer.render(scene, camera);
+      tween = null; zoomD = null; camera.position.set(...p); controls.target.set(...t); controls.update(); renderer.render(scene, camera);
       if (!im) { im = document.createElement('img'); im.id = 'shotimg'; im.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:9;pointer-events:none'; host.appendChild(im); }
       im.src = renderer.domElement.toDataURL(); return 'ok';
     },
