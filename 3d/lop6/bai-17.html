@@ -29,7 +29,7 @@
 
 <script type="module">
 import { createLab, THREE, MAT, lathe, clamp, lerp } from '../core/lab3d.js';
-import { vessel, burner } from '../core/chem.js';
+import { vessel, burner, pourBase, liquidStream } from '../core/chem.js';
 import { shell, ready, toast, quiz, $, fmt, showPane } from '../core/ui.js';
 import { sfx, level, mix } from '../core/sfx.js';
 
@@ -65,6 +65,7 @@ const inF = new THREE.Mesh(new THREE.ConeGeometry(.03, .035, 32), new THREE.Mesh
 const drip = new THREE.Mesh(new THREE.SphereGeometry(.0018, 10, 8), new THREE.MeshPhysicalMaterial({ color: 0xd8eef8, transparent: true, opacity: .8 })); drip.visible = false; scene.add(drip);
 const bB = vessel(lab, { kind: 'beaker', R: .035, H: .09 }); bB.g.position.set(X1, 0, funnel.position.z); scene.add(bB.g);
 const bA = vessel(lab, { kind: 'beaker', R: .035, H: .09 }); bA.g.position.set(X1 + .13, 0, .08); scene.add(bA.g); bA.set({ level: .7, color: 0xd8eef8, op: .4 });
+const AH = bA.g.position.clone(), ATH = 1.45, ABASE = pourBase(new THREE.Vector3(-.035, .09, 0), new THREE.Vector3(X1 + .022, funnel.position.y + .053, funnel.position.z), ATH), APRE = ABASE.clone().add(new THREE.Vector3(.03, .03, 0)), aStream = liquidStream(lab);
 lab.label(bA.g, 'Cốc nước + đất', [0, .12, 0]); lab.label(bB.g, 'Cốc hứng nước lọc', [-.05, .06, .04]); lab.label(funnel, 'Phễu + giấy lọc', [-.06, .03, 0]);
 const F = { step: 0, settle: 0, pour: 0, mixed: false, settling: false, pouring: false, filt: 0 };
 $('#a1').onclick = () => { sfx('swish'); sfx('swish', { delay: .3 }); sfx('swish', { delay: .6 }); F.mixed = true; F.settle = 0; F.step = Math.max(F.step, 1); bA.set({ cloud: .9, cloudC: 0x9c7a4c, color: 0xb5946a, op: .6, ppt: { c: 0x6e5132, amt: .05, settle: 1 } }); mark1(); toast('Hỗn hợp nước – đất bị đục.'); };
@@ -119,9 +120,14 @@ lab.onTick((dt, t) => {
   // lắng
   if (F.settling) { F.settle = Math.min(1, F.settle + dt / 10); const k = F.settle; bA.set({ cloud: .9 * (1 - k) ** 1.5, ppt: { c: 0x6e5132, amt: .05 + .2 * k, settle: 1 }, color: new THREE.Color(0xb5946a).lerp(new THREE.Color(0xd2c6a6), k).getHex(), op: .6 - .15 * k }); if (k >= 1) { F.settling = false; toast('Đất đã lắng, lớp nước phía trên trong hơn (vẫn hơi đục).'); } }
   // gạn + lọc
-  if (F.pouring) { F.pour = Math.min(1, F.pour + dt / 8); const k = F.pour; bA.g.rotation.z = k < .9 ? .9 * Math.min(1, k * 5) : .9 * (1 - (k - .9) * 10); bA.g.position.set(X1 + .13 - Math.min(1, k * 5) * .07, Math.min(1, k * 5) * .17, .08 - Math.min(1, k * 5) * .07);
-    if (k >= 1) { bA.g.rotation.z = 0; bA.g.position.set(X1 + .13, 0, .08); }
-    bA.set({ level: .7 - .45 * k }); inF.visible = k > .1 && k < 1; mudOnPaper.visible = k > .2;
+  if (F.pouring) { F.pour = Math.min(1, F.pour + dt / 8); const k = F.pour, e = x => x < .5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2, kp = clamp((k - .2) / .65, 0, 1);
+    if (k < .12) { const f = e(k / .12); bA.g.position.lerpVectors(AH, APRE, f); bA.g.rotation.z = 0; }
+    else if (k < .2) { const f = e((k - .12) / .08); bA.g.position.lerpVectors(APRE, ABASE, f); bA.g.rotation.z = ATH * f; }
+    else if (k < .85) { bA.g.position.copy(ABASE); bA.g.rotation.z = ATH + Math.sin(t * 25) * .01; }
+    else if (k < .92) { const f = e((k - .85) / .07); bA.g.position.lerpVectors(ABASE, APRE, f); bA.g.rotation.z = ATH * (1 - f); }
+    else { bA.g.position.lerpVectors(APRE, AH, e(clamp((k - .92) / .08, 0, 1))); bA.g.rotation.z = 0; }
+    if (k > .19 && k < .86) { const lip = bA.g.localToWorld(new THREE.Vector3(-.035, .09, 0)); aStream.set(lip, new THREE.Vector3(funnel.position.x + clamp(lip.x - funnel.position.x, -.012, .012), funnel.position.y + .022, funnel.position.z), 0xc7a876, 1.4); } else aStream.hide();
+    bA.set({ level: .7 - .45 * kp }); inF.visible = k > .1 && k < 1; mudOnPaper.visible = k > .2;
     F.filt = Math.min(1, F.filt + dt / 9); bB.set({ level: .45 * F.filt, color: 0xdcecf3, op: .4 });
     drip.visible = true; const ph = (t * 3) % 1; if (ph < (F.lph ?? 1)) sfx('drip', { vol: .5 }); F.lph = ph; level('pour', k > .05 && k < .9 ? .5 : 0); drip.position.set(X1, .12 - ph * (.12 - .45 * F.filt * .09 * .85), funnel.position.z);
     if (k >= 1) { F.pouring = false; level('pour', 0); drip.visible = false; inF.visible = false; F.step = 4; mark1(); $('#r1').textContent = 'Nước gạn còn hơi đục; nước lọc trong suốt, đất được giữ lại trên giấy lọc'; toast('Nước lọc thu được trong suốt; đất bị giữ lại trên giấy lọc.'); } }
