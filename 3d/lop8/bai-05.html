@@ -28,7 +28,7 @@
 
 <script type="module">
 import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
-import { vessel } from '../core/chem.js';
+import { vessel, pourBase, liquidStream } from '../core/chem.js';
 import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
 
 const stage = shell({
@@ -63,16 +63,20 @@ const B1 = vessel(lab, { kind: 'beaker', R: .028, H: .07 }), B2 = vessel(lab, { 
 scene.add(B1.g, B2.g);
 lab.label(B1.g, 'Cốc (1): dd BaCl₂', [0, .1, 0]); lab.label(B2.g, 'Cốc (2): dd Na₂SO₄', [0, .11, 0]);
 const P1 = new THREE.Vector3(-.04, .049, -.01), P2 = new THREE.Vector3(.04, .049, -.01);
+const TH = -1.9, BASE = pourBase(new THREE.Vector3(.028, .07, 0), new THREE.Vector3(.02, P2.y + .088, P2.z), TH), PRE = BASE.clone().add(new THREE.Vector3(-.03, .03, 0)), flow = liquidStream(lab);
 const MASS = { b1: 52.36, b2: 58.11, s1: 25.0, s2: 30.0 }, TOTAL = MASS.b1 + MASS.b2 + MASS.s1 + MASS.s2 + .0;
 const S = { st: 0, t: -1, ppt: 0 };
 function reset() { S.st = 0; S.t = -1; S.ppt = 0; B1.g.position.copy(P1); B1.g.rotation.z = 0; B2.g.position.copy(P2); B1.set({ level: .55, color: 0xf3f8fa, op: .3 }); B2.set({ level: .5, color: 0xf3f8fa, op: .3, ppt: null, cloud: 0 }); shown = TOTAL; drawDisp(shown); $('#m1').textContent = '?'; $('#m2').textContent = '?'; say('Hai cốc dung dịch trong suốt, không màu đặt trên cân. Bấm “Ghi khối lượng ban đầu”.'); }
 lab.onTick(dt => {
   if (S.t < 0) return; S.t += dt; const t = S.t;
-  const up = new THREE.Vector3(-.0, .17, -.01), over = new THREE.Vector3(.0, .15, -.01);
-  if (t < 1) { B1.g.position.lerpVectors(P1, up, t); shown = MASS.b2 + MASS.s2; }
-  else if (t < 3.2) { B1.g.position.copy(over); B1.g.rotation.z = -Math.min(1, (t - 1) / .5) * 1.9; const k = clamp((t - 1.3) / 1.6, 0, 1); B1.set({ level: .55 * (1 - k) }); B2.set({ level: .5 + .45 * k, cloud: .9 * k, cloudC: 0xffffff, op: .3 + .35 * k }); }
-  else if (t < 4.3) { const k = (t - 3.2) / 1.1; B1.g.rotation.z = -1.9 * (1 - k); B1.g.position.lerpVectors(over, P1, k); }
-  else { if (!S.d) { S.d = 1; S.t = -1; say('Hai dung dịch trộn lẫn: xuất hiện <b>chất rắn màu trắng</b> không tan (kết tủa barium sulfate). Đặt 2 cốc trở lại mặt cân rồi bấm “Đặt lại lên cân, ghi khối lượng”.'); } }
+  const e = x => x < .5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2;
+  if (t < 1) { const f = e(t); B1.g.position.lerpVectors(P1, PRE, f); B1.g.position.y += Math.sin(f * Math.PI) * .03; B1.g.rotation.z = 0; shown = MASS.b2 + MASS.s2; }
+  else if (t < 1.5) { const f = e((t - 1) / .5); B1.g.position.lerpVectors(PRE, BASE, f); B1.g.rotation.z = TH * f; }
+  else if (t < 3.2) { B1.g.position.copy(BASE); B1.g.rotation.z = TH + Math.sin(t * 30) * .01; const k = clamp((t - 1.5) / 1.6, 0, 1); B1.set({ level: .55 * (1 - k) }); B2.set({ level: .5 + .45 * k, cloud: .9 * k, cloudC: 0xffffff, op: .3 + .35 * k }); }
+  else if (t < 3.6) { const f = e((t - 3.2) / .4); B1.g.position.lerpVectors(BASE, PRE, f); B1.g.rotation.z = TH * (1 - f); }
+  else if (t < 4.3) { const f = e((t - 3.6) / .7); B1.g.position.lerpVectors(PRE, P1, f); B1.g.rotation.z = 0; }
+  else if (!S.d) { S.d = 1; S.t = -1; flow.hide(); say('Hai dung dịch trộn lẫn: xuất hiện <b>chất rắn màu trắng</b> không tan (kết tủa barium sulfate). Đặt 2 cốc trở lại mặt cân rồi bấm “Đặt lại lên cân, ghi khối lượng”.'); }
+  if (t > 1.45 && t < 3.05) { const lip = B1.g.localToWorld(new THREE.Vector3(.028, .07, 0)), lv = clamp((t - 1.5) / 1.6, 0, 1); flow.set(lip, new THREE.Vector3(lip.x, P2.y + .08 * (.5 + .45 * lv) * .97, P2.z), 0xf3f8fa, 1.3); } else flow.hide();
   if (t > 4.3) { }
   drawDisp(shown);
 });
