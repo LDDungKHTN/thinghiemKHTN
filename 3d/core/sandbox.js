@@ -24,8 +24,10 @@ export const KHO = [
   { id: 'rack', cat: 'hoa', n: 'Giá (khay) ống nghiệm', ic: '🗄' },
   { id: 'b100', cat: 'hoa', n: 'Cốc thuỷ tinh 100 mL', ic: '🥛' },
   { id: 'b250', cat: 'hoa', n: 'Cốc thuỷ tinh 250 mL', ic: '🥛' },
-  { id: 'flask', cat: 'hoa', n: 'Bình cầu', ic: '⚗️' },
+  { id: 'flask', cat: 'hoa', n: 'Bình cầu (có nút)', ic: '⚗️' },
+  { id: 'erlen', cat: 'hoa', n: 'Bình tam giác (có nút)', ic: '⚗️' },
   { id: 'burner', cat: 'hoa', n: 'Đèn cồn', ic: '🔥' },
+  { id: 'spoon', cat: 'hoa', n: 'Muỗng đốt hoá chất (có nút cao su)', ic: '🥄' },
   { id: 'tripod', cat: 'hoa', n: 'Kiềng sắt + lưới thép', ic: '🔩' },
   { id: 'stand', cat: 'hoa', n: 'Giá sắt có kẹp', ic: '🏗' },
   { id: 'thermo', cat: 'hoa', n: 'Nhiệt kế', ic: '🌡' },
@@ -48,7 +50,25 @@ export const KHO = [
   { id: 'petri', cat: 'sinh', n: 'Đĩa petri', ic: '🧫' },
   { id: 'plant', cat: 'sinh', n: 'Chậu cây non', ic: '🪴' },
 ];
-const VES = { tube: { kind: 'tube', R: .0085, H: .15, cap: 8, heat: 3, mass: 15, n: 'Ống nghiệm' }, b100: { kind: 'beaker', R: .025, H: .06, cap: 20, heat: 2.5, mass: 55, n: 'Cốc 100 mL' }, b250: { kind: 'beaker', R: .035, H: .09, cap: 40, heat: 1.5, mass: 95, n: 'Cốc 250 mL' }, flask: { kind: 'flask', R: .04, H: .15, neck: .012, cap: 30, heat: 2, mass: 80, n: 'Bình cầu' } };
+const RUBBER = new THREE.MeshStandardMaterial({ color: 0x3b3b3e, roughness: .85 });
+const STOP_GEO = new THREE.CylinderGeometry(.0145, .011, .018, 24);
+// Đốt hoá chất trong muỗng: theo môi trường không khí (air), oxygen (o2), chlorine (cl2)
+// on: cháy được; fc: màu lửa; fs: độ lớn lửa; glow: chỉ nóng đỏ; sparks: tia lửa; smoke: màu khói/sản phẩm trong bình
+const BURN = {
+  s: { air: { on: 1, fc: 0x7d8cff, fs: .6, t: 'Lưu huỳnh nóng chảy rồi cháy với <b>ngọn lửa nhỏ màu xanh nhạt</b>, có mùi hắc.' }, o2: { on: 1, fc: 0x4b55ff, fs: 1.3, t: 'Lưu huỳnh cháy mạnh với <b>ngọn lửa màu xanh lam</b>, sáng hơn hẳn khi cháy trong không khí; tạo khí sulfur dioxide (SO₂) không màu, mùi hắc.', eq: 'S + O₂ → SO₂ (t°)' }, cl2: { on: 0, t: 'Lưu huỳnh hầu như không cháy trong khí chlorine ở điều kiện thí nghiệm.' } },
+  p: { air: { on: 1, fc: 0xfff0b0, fs: 1, smoke: 0xffffff, t: 'Phosphorus đỏ cháy với ngọn lửa sáng, tạo <b>khói trắng</b>.' }, o2: { on: 1, fc: 0xffffff, fs: 1.6, smoke: 0xffffff, t: 'Phosphorus cháy <b>mãnh liệt</b>, ngọn lửa sáng chói, tạo nhiều <b>khói trắng</b> (P₂O₅) bám vào thành bình.', eq: '4P + 5O₂ → 2P₂O₅ (t°)' }, cl2: { on: 1, fc: 0xfff4c0, fs: 1, smoke: 0xf4f4ea, t: 'Phosphorus cháy trong khí chlorine tạo <b>khói trắng</b>; màu vàng lục của khí nhạt dần.', eq: '2P + 3Cl₂ → 2PCl₃ (t°)' } },
+  c: { air: { on: 1, glow: 1, fc: 0xff6a20, fs: .35, t: 'Than nóng đỏ, cháy âm ỉ.' }, o2: { on: 1, glow: 1, fc: 0xffb070, fs: .8, t: 'Than <b>cháy sáng rực</b>, không có ngọn lửa, không khói; tạo khí carbon dioxide (CO₂).', eq: 'C + O₂ → CO₂ (t°)' }, cl2: { on: 0, glow: 1, t: 'Than không cháy trong khí chlorine.' } },
+  na: { air: { on: 1, fc: 0xffa800, fs: 1, smoke: 0xf2f2ee, t: 'Natri nóng chảy rồi cháy với <b>ngọn lửa màu vàng</b>.' }, o2: { on: 1, fc: 0xffa800, fs: 1.35, smoke: 0xf2f2ee, t: 'Natri cháy mạnh với <b>ngọn lửa màu vàng</b>, tạo chất rắn màu trắng (sodium oxide).', eq: '4Na + O₂ → 2Na₂O (t°)' }, cl2: { on: 1, fc: 0xffa800, fs: 1.35, smoke: 0xf6f6f0, t: 'Natri cháy sáng với <b>ngọn lửa vàng</b> trong khí chlorine, tạo <b>khói trắng</b> (muối ăn NaCl); màu vàng lục của khí nhạt dần.', eq: '2Na + Cl₂ → 2NaCl (t°)' } },
+  mg: { air: { on: 1, fc: 0xffffff, fs: 1.4, smoke: 0xffffff, t: 'Magnesium cháy với ánh sáng <b>trắng chói</b>, tạo khói trắng (MgO).', eq: '2Mg + O₂ → 2MgO (t°)' }, o2: { on: 1, fc: 0xffffff, fs: 1.9, smoke: 0xffffff, t: 'Magnesium cháy <b>sáng chói</b> mãnh liệt, tạo bột trắng magnesium oxide.', eq: '2Mg + O₂ → 2MgO (t°)' }, cl2: { on: 1, fc: 0xffffff, fs: 1.5, smoke: 0xf6f6f0, t: 'Magnesium cháy sáng trong khí chlorine tạo khói trắng (MgCl₂).', eq: 'Mg + Cl₂ → MgCl₂ (t°)' } },
+  fe: { air: { on: 0, glow: 1, sparks: .15, t: 'Sắt nóng đỏ trên ngọn lửa, có vài tia lửa nhỏ; không cháy thành ngọn lửa trong không khí.' }, o2: { on: 1, fc: 0xfff4dc, fs: 1, sparks: 1, smoke: 0x7a3b1c, t: 'Dây sắt <b>cháy sáng</b>, nhiều tia lửa bắn ra, tạo thành <b>khói màu nâu đỏ</b> (Fe₃O₄) – SGK KHTN 9, Hình 18.2.', eq: '3Fe + 2O₂ → Fe₃O₄ (t°)' }, cl2: { on: 1, fc: 0xffe0b0, fs: .9, smoke: 0x8a3a12, t: 'Sắt cháy sáng trong khí chlorine tạo <b>khói màu nâu đỏ</b> (iron(III) chloride); màu vàng lục của khí nhạt dần.', eq: '2Fe + 3Cl₂ → 2FeCl₃ (t°)' } },
+  cu: { air: { on: 0, glow: 1, black: 1, t: 'Đồng nóng đỏ, không cháy; bề mặt chuyển <b>màu đen</b> (CuO).', eq: '2Cu + O₂ → 2CuO (t°)' }, o2: { on: 0, glow: 1, black: 1, t: 'Đồng nóng đỏ, không cháy thành ngọn lửa; bề mặt chuyển <b>màu đen</b> (copper(II) oxide).', eq: '2Cu + O₂ → 2CuO (t°)' }, cl2: { on: 1, fc: 0xffd080, fs: .6, smoke: 0x9a7a30, t: 'Đồng nóng đỏ cháy trong khí chlorine tạo <b>khói màu nâu vàng</b> (CuCl₂).', eq: 'Cu + Cl₂ → CuCl₂ (t°)' } },
+  al: { air: { on: 0, t: 'Lá nhôm không cháy trên ngọn lửa đèn cồn (có lớp oxide bảo vệ).' }, o2: { on: 1, fc: 0xffffff, fs: 1.2, smoke: 0xffffff, t: 'Nhôm cháy sáng trong oxygen tạo bột trắng aluminium oxide.', eq: '4Al + 3O₂ → 2Al₂O₃ (t°)' }, cl2: { on: 1, fc: 0xffffff, fs: 1, smoke: 0xf6f6f0, t: 'Nhôm cháy trong khí chlorine tạo khói trắng (AlCl₃).', eq: '2Al + 3Cl₂ → 2AlCl₃ (t°)' } },
+};
+let _glow = null;
+const GLOW = () => _glow || (_glow = canvasTex(64, 64, (c, w, h) => { const g = c.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.35, 'rgba(255,255,255,.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); }));
+BURN.albot = { air: { on: 1, fc: 0xffffff, fs: 1.3, sparks: .5, smoke: 0xffffff, t: 'Bột nhôm rắc trên ngọn lửa đèn cồn <b>cháy sáng</b>, tạo chất rắn màu trắng (Al₂O₃) – SGK KHTN 9.', eq: '4Al + 3O₂ → 2Al₂O₃ (t°)' }, o2: { on: 1, fc: 0xffffff, fs: 1.8, sparks: 1, smoke: 0xffffff, t: 'Bột nhôm cháy <b>sáng chói</b> trong oxygen, tạo bột trắng Al₂O₃.', eq: '4Al + 3O₂ → 2Al₂O₃ (t°)' }, cl2: BURN.al.cl2 };
+const BURN_OF = id => BURN[{ fe: 'fe', febot: 'fe', fewire: 'fe' }[id] || id] || null;
+const VES = { tube: { kind: 'tube', R: .0085, H: .15, cap: 8, heat: 3, mass: 15, n: 'Ống nghiệm' }, b100: { kind: 'beaker', R: .025, H: .06, cap: 20, heat: 2.5, mass: 55, n: 'Cốc 100 mL' }, b250: { kind: 'beaker', R: .035, H: .09, cap: 40, heat: 1.5, mass: 95, n: 'Cốc 250 mL' }, flask: { kind: 'flask', R: .04, H: .15, neck: .012, cap: 30, heat: 2, mass: 80, n: 'Bình cầu' }, erlen: { kind: 'erlen', R: .042, H: .14, neck: .012, cap: 30, heat: 2, mass: 85, n: 'Bình tam giác' } };
 
 export function sandbox(lab, stage, { panel, onSelect } = {}) {
   const scene = lab.scene, items = [];
@@ -100,12 +120,23 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
     if (it.on) { const h = it.on; if (h.slots) h.slots[it.slot] = null; if (h.held === it) h.held = null; if (h.loads) h.loads.delete(it); it.on = null; }
     if (it.inV) { it.inV.thermo = it.inV.thermo === it ? null : it.inV.thermo; it.inV.rodIn = it.inV.rodIn === it ? null : it.inV.rodIn; it.inV = null; }
     if (it.overB) { it.overB = null; it.g.rotation.z = 0; if (it.clampM) it.clampM.visible = false; }
+    if (it.inFlask) { it.inFlask.spoonIn = null; it.inFlask = null; }
+    if (it.type == 'spoon') it.up();
     if (it.inverted) { it.inverted = null; it.g.rotation.x = 0; }
     if (it.look || it.lookFrom) { it.look = null; it.lookFrom = null; it.lk = 0; if (it.clampM) it.clampM.visible = false; }
   }
   function drop(it) {
     const p = it.g.position;
     const near = (type, r, f) => items.filter(o => o !== it && !o.hidden && o.type == type && xz(o.g.position, p) < r && (!f || f(o))).sort((a, b) => xz(a.g.position, p) - xz(b.g.position, p))[0];
+    if (it.type == 'spoon') {
+      // đưa muỗng vào bình cầu: mở nút bình, nút cao su trên cán muỗng đậy kín miệng bình
+      const f = items.filter(o => o.stopper && !o.hidden && !o.spoonIn && xz(o.g.position, p) < .07).sort((a, b) => xz(a.g.position, p) - xz(b.g.position, p))[0];
+      if (f) { if (f.stopped) f.setStop(false); f.spoonIn = it; it.inFlask = f; it.up(); p.set(f.g.position.x, f.g.position.y + f.ves.H + .006 - .109, f.g.position.z); it.lastEnv = null; sfx('clink', { vol: .4 });
+        const R = it.info(); toast(!it.chem ? 'Muỗng chưa có hoá chất.' : it.hot < .5 ? 'Hoá chất chưa được đốt nóng – hãy hơ muỗng trên đèn cồn trước.' : R ? R.t : 'Chất này không cháy.', 5000); select(it); return; }
+      // hơ muỗng trên ngọn lửa đèn cồn
+      const b = near('burner', .07); if (b) { it.overB = b; it.up(); p.set(b.g.position.x, .087, b.g.position.z); toast(!it.chem ? 'Muỗng chưa có hoá chất – chọn muỗng rồi bấm vào đĩa hoá chất để lấy.' : b.lit ? 'Đang đốt nóng hoá chất trong muỗng trên ngọn lửa đèn cồn…' : 'Hãy châm lửa đèn cồn.'); return; }
+      it.lie(); return;
+    }
     if (it.ves) {
       // ống nghiệm → lỗ trống gần nhất trên giá ống nghiệm
       if (it.type == 'tube') { for (const r of items.filter(o => o.type == 'rack')) { const i = r.slotPos.findIndex((s, k) => !r.slots[k] && xz(s, p) < .03); if (i >= 0) { r.slots[i] = it; it.on = r; it.slot = i; p.copy(r.slotPos[i]); toast('Đã cắm ống nghiệm vào giá.'); return; } } }
@@ -131,6 +162,10 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
   function select(it) { sel = it; renderPanel(); onSelect && onSelect(it); }
   function tap(it) {
     if (it.onTap && it.onTap() === true) return;     // thao tác riêng của dụng cụ (đèn cồn, nến, công tắc…)
+    if (it.cont && sel && sel.type == 'spoon') {   // lấy hoá chất rắn vào muỗng đốt
+      if (it.chem.k != 'sol' || it.chem.paper) { toast('Muỗng đốt dùng để đốt <b>chất rắn</b> (lưu huỳnh, phosphorus, than, natri, magnesium, dây sắt…).'); return; }
+      sel.load(it.chem); return;
+    }
     if (it.cont) { const v = sel && sel.ves ? sel : null; if (!v) { select(it); toast('Hãy bấm chọn ống nghiệm / cốc / bình cần cho hoá chất vào trước.'); return; } transfer(it, v); return; }
     select(it);
   }
@@ -141,7 +176,22 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
     const it = { type, name: nameOf(d.n), g: v.g, R: d.kind == 'tube' ? .012 : d.R + .006, ves: d, kind: d.kind, v, items: [], age: 0, T: 25, mass: d.mass, lbY: d.H + .03 };
     // kẹp gỗ (hiện khi hơ ống trên đèn cồn hoặc cầm lên quan sát)
     const w = new THREE.MeshStandardMaterial({ color: 0xc9a06a, roughness: .6 }); const cm = new THREE.Group(); const a = new THREE.Mesh(new THREE.BoxGeometry(.12, .005, .01), w); a.position.x = -.07; cm.add(a); const rg = new THREE.Mesh(new THREE.TorusGeometry(.0105, .002, 8, 20), MAT.metal(0x999999, .3)); rg.rotation.x = Math.PI / 2; cm.add(rg); cm.position.y = d.H * .8; cm.visible = false; v.g.add(cm); it.clampM = cm;
-    return add(it, pos);
+    if (d.kind == 'flask' || d.kind == 'erlen') {
+      // nút cao su đậy miệng bình (bấm vào nút để mở / đậy) + khối khí bên trong bình (khí có màu thì thấy màu)
+      const sm = new THREE.Mesh(STOP_GEO, RUBBER); sm.castShadow = true; v.g.add(sm); it.stopper = sm;
+      it.setStop = on => { it.stopped = on; if (on) { sm.position.set(0, d.H + .007, 0); sm.rotation.set(0, 0, 0); } else { sm.position.set(d.R + .03, .0145, .02); sm.rotation.set(0, 0, Math.PI / 2); } };
+      it.setStop(true);
+      const gm = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
+      const er = d.kind == 'erlen', yN = er ? d.H * .62 : d.R * 1.8;
+      const gb = new THREE.Mesh(er ? new THREE.CylinderGeometry(d.neck * .92, d.R * .94, yN - .004, 32) : new THREE.SphereGeometry(d.R * .94, 24, 16), gm); gb.position.y = er ? yN / 2 + .003 : d.R; gb.renderOrder = 3; v.g.add(gb);
+      const gn = new THREE.Mesh(new THREE.CylinderGeometry(d.neck * .9, d.neck * .9, d.H - yN, 16), gm); gn.position.y = yN + (d.H - yN) / 2; gn.renderOrder = 3; v.g.add(gn);
+      it.gasM = gm; it.gasFill = null; it.gasAmt = 0; it.smoke = 0; it.smokeC = new THREE.Color(0xffffff);
+      it.drawGas = () => { const c = it.gasFill && findChem(it.gasFill), col = new THREE.Color(c ? c.c : 0xffffff), tinted = c && col.getHSL({}).s > .2; gm.color.copy(tinted ? col : new THREE.Color(0xffffff)).lerp(it.smokeC, clamp(it.smoke * 1.5, 0, 1)); gm.opacity = Math.max(tinted ? .32 * it.gasAmt : 0, .55 * it.smoke); };
+      it.setGas = id => { it.gasFill = id; it.gasAmt = id ? 1 : 0; it.smoke = 0; it.drawGas(); };
+    }
+    add(it, pos);
+    if (it.stopper) it.clk = [lab.clickable(it.stopper, () => { if (it.spoonIn) { toast('Muỗng đốt đang đậy kín miệng bình.'); return; } it.setStop(!it.stopped); sfx('clink', { vol: .4 }); toast(it.stopped ? 'Đã đậy nút cao su.' : 'Đã mở nút bình.' + (it.gasFill ? ' Để mở lâu, khí trong bình sẽ thoát ra ngoài!' : '')); renderPanel(); })];
+    return it;
   }
   const rd = id => findChem(id);
   const levelOf = v => v.items.reduce((s, x) => { const c = rd(x.id); return s + (c && (c.k == 'liq' || c.k == 'drop') ? x.amt : 0); }, 0) / v.ves.cap;
@@ -170,12 +220,21 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
   // rót / gắp / sục hoá chất vào bình chứa
   function transfer(cont, ves) {
     if (anim) return; const c = cont.chem;
-    if (c.k == 'gas' && !(levelOf(ves) > 0)) { toast('Hãy cho dung dịch vào trước rồi mới sục khí.'); return; }
+    let fill = false;
+    if (c.k == 'gas' && !(levelOf(ves) > 0)) {
+      if (!ves.stopper) { toast('Muốn thu khí vào bình, hãy dùng <b>bình cầu</b>. Muốn sục khí, hãy cho dung dịch vào ống / cốc trước.'); return; }
+      if (ves.spoonIn) { toast('Hãy lấy muỗng đốt ra khỏi bình trước.'); return; }
+      fill = true;
+    }
+    if (ves.stopper && ves.stopped && !fill) { toast('Bình đang đậy nút – bấm vào nút cao su để mở trước.'); return; }
+    if (ves.spoonIn && !fill) { toast('Hãy lấy muỗng đốt ra khỏi bình trước.'); return; }
     if ((c.k == 'liq') && levelOf(ves) > .95) { toast('Đã đầy. Hãy đổ bỏ bớt hoặc dùng dụng cụ khác.'); return; }
     if (ves.look || ves.overB || ves.inverted) { /* vẫn cho phép */ }
-    anim = { cont, ves, k: 0, dur: c.k == 'gas' ? 3 : c.k == 'drop' ? 1.3 : 1.7, home: cont.g.position.clone() };
+    anim = { cont, ves, fill, k: 0, dur: c.k == 'gas' ? 3 : c.k == 'drop' ? 1.3 : 1.7, home: cont.g.position.clone() };
+    if (fill) { if (ves.stopped) ves.setStop(false); toast(`Mở nút bình, dẫn ${c.n.toLowerCase()} vào bình cầu (đẩy hết không khí ra)…`); }
   }
-  function commit(ves, c) {
+  function commit(ves, c, fill) {
+    if (fill) { ves.setGas(c.id); if (sel === ves) renderPanel(); return; }
     const it = ves.items.find(x => x.id == c.id), dose = c.k == 'drop' ? Math.max(.3, ves.ves.cap * .04) : ves.ves.cap * .25;
     if (c.k == 'gas') { if (!it) ves.items.push({ id: c.id, amt: 1 }); }
     else if (c.k == 'sol') { if (it) it.amt = Math.min(it.amt + 1, c.max || 3); else ves.items.push({ id: c.id, amt: 1 }); }
@@ -186,9 +245,11 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
     if (!anim) return; const { cont, ves } = anim, b = cont.cont, c = cont.chem; anim.k += dt / anim.dur; const k = Math.min(1, anim.k);
     const mouth = ves.v.mouth();
     if (b.gas) {
-      const top = cont.g.position.clone().add(V3(0, b.topY, 0)), lvl = ves.g.position.y + Math.max(.006, Math.min(1, levelOf(ves)) * ves.ves.H * .85 * .5);
+      const top = cont.g.position.clone().add(V3(0, b.topY, 0)), lvl = anim.fill ? ves.g.position.y + ves.ves.R * .5 : ves.g.position.y + Math.max(.006, Math.min(1, levelOf(ves)) * ves.ves.H * .85 * .5);
+      if (anim.fill && k > .2 && k < .68) { ves.gasFill = c.id; ves.gasAmt = clamp((k - .2) / .45, 0, 1); ves.drawGas(); }
+      if (anim.fill && k >= .97 && !anim.closed) { anim.closed = 1; ves.setStop(true); sfx('clink', { vol: .4 }); toast(`Đã thu đầy ${c.n.toLowerCase()} vào bình cầu và đậy nút cao su.`); }
       if (!anim.pipe) { anim.pipe = 1; const hi = Math.max(top.y, mouth.y) + .04; pipe.geometry.dispose(); pipe.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([top.clone().add(V3(0, -.02, 0)), top.clone().add(V3(0, .03, 0)), V3(top.x, hi, top.z), V3(mouth.x, hi, mouth.z), mouth.clone(), V3(mouth.x + .002, lvl, mouth.z)], false, 'catmullrom', .1), 80, .0022, 8); }
-      b.lid.position.x = k > .1 && k < .95 ? .03 : 0; pipe.visible = k > .12 && k < .95; if (k > .25 && k < .9) ves.v.set({ bubbles: .7 });
+      b.lid.position.x = k > .1 && k < .95 ? .03 : 0; pipe.visible = k > .12 && k < .95; if (k > .25 && k < .9 && !anim.fill) ves.v.set({ bubbles: .7 });
     } else if (b.dish) {
       const P = b.piece, Tl = b.tool, from = anim.home.clone().add(V3(0, .005, 0)), over = mouth.clone().add(V3(0, .035, 0)), atM = mouth.clone().add(V3(0, .004, 0)), bot = ves.g.position.y + .006, pw = b.kind == 'powder';
       P.visible = k < .7 && !(pw && k > .62); Tl.visible = k < .98; let tip;
@@ -212,7 +273,7 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
       if (pouring) { const lip = cont.g.localToWorld(V3(0, Lp, 0)), sy = ves.g.position.y + Math.max(.008, Math.min(1, levelOf(ves)) * ves.ves.H * .85); stream.set(lip, V3(mouth.x + clamp(lip.x - mouth.x, -ves.ves.R * .6, ves.ves.R * .6), sy, mouth.z), c.c, c.k == 'drop' ? .6 : 1); } else stream.hide();
       if (c.k == 'drop' && pouring && (anim.dn = (anim.dn || 0) + dt) > .22) { anim.dn = 0; sfx('drip'); }
     }
-    if (k >= .68 && !anim.done) { anim.done = true; commit(ves, c); sfx(c.k == 'sol' ? 'clink' : 'drip', { vol: .5 }); }
+    if (k >= .68 && !anim.done) { anim.done = true; commit(ves, c, anim.fill); sfx(c.k == 'sol' ? 'clink' : 'drip', { vol: .5 }); }
     if (k >= 1) { if (!b.gas && !b.dish && !b.paper) { cont.g.position.copy(anim.home); cont.g.rotation.z = 0; if (b.cap) b.cap.visible = true; } pipe.visible = false; if (b.lid) b.lid.position.x = 0; stream.hide(); mix('pour', 'sb', 0); anim = null; }
   }
 
@@ -220,7 +281,7 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
   const MAKE = {
     tube(p) {   // ống nghiệm không tự đứng được: cắm vào giá (chưa có giá thì lấy giá ra trước)
       let r = items.find(o => o.type == 'rack' && !o.hidden && o.slots.some(s => !s)); if (!r) r = MAKE.rack();
-      const it = makeVessel('tube', p), i = r.slots.findIndex(s => !s); r.slots[i] = it; it.on = r; it.slot = i; it.g.position.copy(r.slotPos[i]); return it; }, b100: p => makeVessel('b100', p), b250: p => makeVessel('b250', p), flask: p => makeVessel('flask', p),
+      const it = makeVessel('tube', p), i = r.slots.findIndex(s => !s); r.slots[i] = it; it.on = r; it.slot = i; it.g.position.copy(r.slotPos[i]); return it; }, b100: p => makeVessel('b100', p), b250: p => makeVessel('b250', p), flask: p => makeVessel('flask', p), erlen: p => makeVessel('erlen', p),
     rack(p) { const r = rack(lab, [0, 0, 0], 6, .045); return add({ type: 'rack', name: 'Giá ống nghiệm', g: r.g, R: .17, slots: Array(6).fill(null), lbY: .1, get slotPos() { return [0, 1, 2, 3, 4, 5].map(i => r.slot(i).add(this.g.position)); } }, p); },
     burner(p) {
       const b = burner(lab, [0, 0, 0]); const it = { type: 'burner', name: nameOf('Đèn cồn'), g: b.g, R: .045, api: b, capOn: true, lit: false, lbY: .12, mass: 150 };
@@ -237,6 +298,52 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
       const mt = new THREE.Group(); const st = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0012, .045, 6), new THREE.MeshStandardMaterial({ color: 0xe0c08a })); st.rotation.z = 1.2; mt.add(st); const hd = new THREE.Mesh(new THREE.SphereGeometry(.0025, 8, 6), new THREE.MeshStandardMaterial({ color: 0xff7a30, emissive: 0xff5a10, emissiveIntensity: 2 })); hd.position.set(-.02, -.008, 0); mt.add(hd); mt.visible = false; b.g.add(mt);
       it.tick = dt => { if (it.match == null) return; it.match += dt; mt.visible = it.match < 1; mt.position.set(.06 - .04 * Math.min(1, it.match / .7), .085, .0); if (it.match > .7 && !it.lit) { it.lit = true; b.set(true); renderPanel(); } if (it.match >= 1) it.match = null; };
       return add(it, p);
+    },
+    spoon(p) {
+      // muỗng sắt cán dài, đầu là muỗng nhỏ đựng hoá chất; trên cán gắn sẵn nút cao su để đậy kín bình khi đưa vào đốt
+      const g = new THREE.Group(); scene.add(g); const inner = new THREE.Group(); g.add(inner); const steel = MAT.metal(0x8a8f95, .4);
+      const rodM = new THREE.Mesh(new THREE.CylinderGeometry(.0015, .0015, .2, 8), steel); rodM.position.y = .1; inner.add(rodM);
+      const cup = new THREE.Mesh(new THREE.SphereGeometry(.008, 18, 8, 0, 6.3, Math.PI / 2, Math.PI / 2), steel); cup.rotation.x = Math.PI; cup.position.y = .007; inner.add(cup);
+      const st = new THREE.Mesh(STOP_GEO, RUBBER); st.position.y = .109; inner.add(st);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(.004, 10, 8), MAT.plastic(0x222222, .5)); knob.position.y = .2; inner.add(knob);
+      const smM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .7, emissive: 0xff5a10, emissiveIntensity: 0 });
+      const sample = new THREE.Mesh(new THREE.SphereGeometry(.0058, 14, 10), smM); sample.scale.y = .55; sample.position.y = .0035; sample.visible = false; inner.add(sample);
+      const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW(), color: 0xffa800, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); flame.renderOrder = 7; inner.add(flame);
+      const fl = new THREE.PointLight(0xffc070, 0, .6, 2); fl.position.y = .015; inner.add(fl);
+      const NS = 60, spk = new Float32Array(NS * 3), sv = []; const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(spk, 3));
+      const sparks = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffd36a, size: .004, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); sparks.visible = false; scene.add(sparks);
+      for (let i = 0; i < NS; i++) sv.push({ p: V3(), v: V3(), life: 0 });
+      const it = add({ type: 'spoon', name: 'Muỗng đốt hoá chất', g, R: .03, lbY: .03, mass: 45, inner, chem: null, hot: 0, burnT: 0, burning: false }, p);
+      const lie = () => { inner.rotation.set(0, 0, Math.PI / 2); inner.position.set(.1, .009, 0); it.lbY = .03; }; const up = () => { inner.rotation.set(0, 0, 0); inner.position.set(0, 0, 0); };
+      it.lie = lie; it.up = up; lie();
+      it.load = c => { if (it.burning) { toast('Muỗng đang cháy.'); return; } it.chem = c; it.hot = 0; it.burnT = 0; it.done = false; sample.visible = true; smM.color.set(c.solid ? c.solid.c : c.c); smM.metalness = c.solid && c.solid.metal ? .8 : 0; sfx('sprinkle', { vol: .5 }); toast(`Đã lấy một ít ${c.n.toLowerCase()} vào muỗng đốt. Kéo muỗng thả lên đèn cồn đang cháy để đốt nóng.`); renderPanel(); };
+      it.env = () => it.inFlask ? (it.inFlask.gasFill && it.inFlask.gasAmt > .15 ? it.inFlask.gasFill : 'air') : 'air';
+      it.info = () => { const B = it.chem && BURN_OF(it.chem.id), e = it.env(), r = B && (B[e] || B.air); return r ? r : null; };
+      it.tick = (dt, t) => {
+        const B = it.chem && BURN_OF(it.chem.id), env = it.env(), R = B && (B[env] || B.air);
+        const onFire = it.overB && it.overB.lit;
+        if (it.chem && !it.done) { if (onFire) it.hot = Math.min(1, it.hot + dt / 2.5); else if (!it.burning) it.hot = Math.max(0, it.hot - dt / 8); }
+        // bắt cháy khi đủ nóng (trong không khí trên đèn cồn, hoặc khi đưa vào bình khí)
+        if (it.chem && !it.done && !it.burning && R && R.on && it.hot > .85) { it.burning = true; toast(R.t, 4500); renderPanel(); }
+        if (it.burning && R && !R.on) { it.burning = false; it.hot = .9; toast(R.t, 4000); renderPanel(); }
+        if (it.inFlask && it.lastEnv != env) { it.lastEnv = env; if (R && it.hot > .5) { toast(R.t, 5000); renderPanel(); } }
+        if (it.burning) { const rate = env == 'air' ? 1 / 14 : 1 / 9; it.burnT += dt * rate; if (it.burnT >= 1) { it.burning = false; it.done = true; sample.visible = !!(R && (R.black || R.glow)); if (!sample.visible) it.chem = null; toast('Phản ứng kết thúc.' + (it.inFlask ? ' Bình chứa sản phẩm của phản ứng.' : '')); renderPanel(); } }
+        if (R && R.black && it.hot > .6 && it.chem) smM.color.lerp(new THREE.Color(0x1c1c1c), dt * .3);
+        // hình ảnh lửa / nóng đỏ / tia lửa
+        const live = it.burning ? 1 - it.burnT * .6 : 0, fs = R ? (R.fs || .4) : .4;
+        const glowK = it.chem ? clamp((it.hot - .3) / .7, 0, 1) * (it.done ? 0 : 1) : 0;
+        smM.emissiveIntensity = glowK * (R && R.glow ? 2.5 : 1.2); sample.scale.set(1 - .5 * it.burnT, .55 * (1 - .5 * it.burnT), 1 - .5 * it.burnT);
+        const fk = live * (.85 + .15 * Math.sin(t * 37) * Math.sin(t * 13));
+        flame.material.color.set(R && R.fc || 0xffa800); flame.material.opacity = (R && !R.glow ? fk : fk * .5) * .9; flame.material.blending = R && (R.fc == 0xffa800 || R.fc == 0x4b55ff || R.fc == 0x7d8cff) ? THREE.NormalBlending : THREE.AdditiveBlending;
+        flame.position.y = .018 * fs + .006; flame.scale.set(.03 * fs, .05 * fs, 1);
+        fl.color.set(R && R.fc || 0xffa800); fl.intensity = live * fs * .8 + glowK * .1;
+        const sp = R && R.sparks && (it.burning || (glowK > .5 && it.overB)) ? R.sparks : 0; sparks.visible = sp > 0;
+        if (sp) { const o = it.inner.localToWorld(V3(0, .006, 0)); sv.forEach((s, i) => { if (s.life <= 0 && Math.random() < sp) { s.p.copy(o); s.v.set((Math.random() - .5) * .3, Math.random() * .2 - .05, (Math.random() - .5) * .3); s.life = .2 + Math.random() * .4; } s.life -= dt; s.v.y -= .6 * dt; s.p.addScaledVector(s.v, dt); spk.set(s.life > 0 ? [s.p.x, s.p.y, s.p.z] : [0, -1, 0], i * 3); }); sg.attributes.position.needsUpdate = true; }
+        // trong bình khí: khói sản phẩm dày dần, khí chlorine nhạt dần
+        const f = it.inFlask; if (f && it.burning && env != 'air') { f.gasAmt = Math.max(0, f.gasAmt - dt / 12); if (R.smoke != null) { f.smokeC.set(R.smoke); f.smoke = Math.min(1, f.smoke + dt / 10); } f.drawGas(); }
+        if (f && it.burning && env == 'air' && it.burnT > .25) { it.burning = false; it.done = true; it.chem = null; sample.visible = false; toast('Bình không chứa oxygen hay chlorine: oxygen trong không khí của bình nhanh chóng hết, ngọn lửa tắt.'); renderPanel(); }
+      };
+      return it;
     },
     tripod(p) {
       const g = new THREE.Group(); scene.add(g); const m = MAT.metal(0x3a3f45, .5);
@@ -307,6 +414,8 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
         if (it.cur && it.tg) { const k = 1 - Math.exp(-dt / 1.6); const before = it.cur.c.getHex(); it.cur.c.lerp(it.tg.c, k); it.cur.op += (it.tg.op - it.cur.op) * k; if (before != it.cur.c.getHex()) applyV(it); }
         if (it.rodIn) { const r = it.rodIn, a = t * 4; r.g.position.set(it.g.position.x + Math.cos(a) * it.ves.R * .4, it.g.position.y + .004, it.g.position.z + Math.sin(a) * it.ves.R * .4); r.g.rotation.set(Math.sin(a) * .15, 0, Math.cos(a) * .15); }
         if (it.thermo) { const r = it.thermo; r.g.position.set(it.g.position.x + it.ves.R * .45, it.g.position.y + .004, it.g.position.z); r.g.rotation.set(0, 0, -.08); }
+        if (it.stopper && !it.stopped && !it.spoonIn && it.gasFill && !(anim && anim.ves === it)) { it.gasAmt -= dt / 40; if (it.gasAmt <= 0) { it.gasFill = null; it.gasAmt = 0; if (sel === it) renderPanel(); } it.drawGas(); }
+        if (it.spoonIn) { const s = it.spoonIn; s.g.position.set(it.g.position.x, it.g.position.y + it.ves.H + .006 - .109, it.g.position.z); }
         if (it.on && it.on.type == 'stand') { const c = it.on.clampPt(); it.g.position.set(c.x, c.y - it.ves.H * .78, c.z); }
         if (it.look) { it.lk = Math.min(1, (it.lk || 0) + dt / .8); } else if (it.lk > 0) it.lk = 0;
         if (it.shake > 0) { it.shake -= dt; it.g.rotation.z = Math.sin(it.shake * 30) * .12 * Math.min(1, it.shake * 2); if (it.shake <= 0) it.g.rotation.z = it.overB ? -.35 : 0; }
@@ -331,6 +440,11 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
     let h = `<h3>${it.name}</h3>`;
     if (it.ves) { const s = it.s || {}; h += `<p>Nhiệt độ: <b>${Math.round(it.T)} °C</b> · Chứa: ${it.items.length ? it.items.map(x => findChem(x.id)?.n || x.id).join(', ') : '<i>trống</i>'}</p>${it.items.length ? `<div class="note">${(s.notes || []).join('<br>')}${s.eq && s.eq.length ? `<div class="eq">${s.eq.join('<br>')}</div>` : ''}</div>` : '<p class="sm">Mở <b>Tủ hoá chất</b>, lấy hoá chất ra bàn rồi bấm vào lọ/đĩa để cho vào.</p>'}
       <div class="row"><button class="btn" data-a="look">${it.look ? '✋ Đặt xuống' : '🔍 Cầm lên quan sát'}</button><button class="btn g" data-a="shake">〰 Lắc nhẹ</button><button class="btn g" data-a="empty">🚿 Đổ bỏ & rửa</button></div>`; }
+    if (it.stopper) { const gc = it.gasFill && findChem(it.gasFill); h += `<p>Nút cao su: <b>${it.spoonIn ? 'muỗng đốt đang đậy bình' : it.stopped ? 'đang đậy' : 'đang mở'}</b> · Khí trong bình: <b>${gc ? gc.n.toLowerCase() : 'không khí'}</b>${it.smoke > .05 ? ' (có sản phẩm cháy)' : ''}</p>
+      <p class="sm">Thu khí: chọn bình cầu (đang trống) rồi bấm vào bình khí trên bàn (lấy từ Tủ hoá chất → Khí). Bấm vào nút cao su trên bình để mở / đậy.</p>${it.spoonIn ? '' : `<div class="row"><button class="btn g" data-a="stop">${it.stopped ? 'Mở nút' : 'Đậy nút'}</button></div>`}`; }
+    if (it.type == 'spoon') { const R = it.info(); h += `<p>Trong muỗng: <b>${it.chem ? it.chem.n : 'chưa có hoá chất'}</b>${it.chem ? ` · ${it.burning ? '<b style="color:#e8590c">đang cháy</b>' : it.hot > .85 ? 'nóng đỏ' : it.hot > .1 ? 'đang nóng lên ' + Math.round(it.hot * 100) + '%' : 'nguội'}` : ''}${it.inFlask ? ' · đang ở trong bình cầu' : it.overB ? ' · đang hơ trên đèn cồn' : ''}</p>
+      ${R && it.hot > .5 ? `<div class="note">${R.t}${R.eq ? `<div class="eq">${R.eq}</div>` : ''}</div>` : ''}
+      <ol class="sm"><li>Bấm chọn muỗng, rồi bấm vào đĩa hoá chất rắn trên bàn để lấy hoá chất vào muỗng.</li><li>Kéo muỗng thả lên đèn cồn đang cháy để đốt nóng (đến khi hoá chất cháy / nóng đỏ).</li><li>Kéo nhanh muỗng thả vào bình cầu chứa khí: nút cao su trên cán muỗng đậy kín miệng bình.</li></ol>`; }
     if (it.type == 'burner') h += `<p>Đèn cồn ${it.state()}.</p><p class="sm">Châm lửa bằng diêm, <b>không</b> châm từ đèn cồn khác; tắt đèn bằng cách <b>đậy nắp</b>, không thổi.</p>`;
     if (it.type == 'candle') h += `<p>Bấm vào nến để thắp/tắt. Kéo một cốc thuỷ tinh thả lên nến để <b>úp cốc</b> lên ngọn nến.</p>`;
     if (it.type == 'tripod') h += `<p>Kéo cốc / bình thả lên kiềng; kéo đèn cồn đặt vào giữa ba chân kiềng rồi châm lửa để đun.</p>`;
@@ -346,6 +460,7 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
     panel.innerHTML = h;
     const A = a => panel.querySelector(`[data-a="${a}"]`);
     A('look') && (A('look').onclick = () => { if (it.overB || it.on) detach(it); it.look = it.look ? 0 : 1; it.lk = 0; if (it.look) { const p = it.g.position; lab.view([p.x + .02, .18, .5], [p.x, .13, .22], 1); } renderPanel(); });
+    A('stop') && (A('stop').onclick = () => { it.setStop(!it.stopped); sfx('clink', { vol: .4 }); renderPanel(); });
     A('shake') && (A('shake').onclick = () => { it.shake = 1; it.age += 3; sfx('swish'); });
     A('empty') && (A('empty').onclick = () => { it.items = []; it.age = 0; it.cur = null; drawV(it); sfx('splash'); renderPanel(); });
     A('store') && (A('store').onclick = () => { if (it.type == 'scope' && it.slideItem) { remove(it.slideItem); } remove(it); });
@@ -357,7 +472,7 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
   const api = {
     items, get sel() { return sel; }, select,
     take(id) { const p = null; if (id.startsWith('slide:')) return makeSlide(id.slice(6), p); const f = MAKE[id]; if (!f) return; const it = f(p); if (it.circuit) rebuildCircuit(); select(it); return it; },
-    takeChem: id => makeContainer(id), remove, transfer, drop,
+    takeChem: id => makeContainer(id), remove, transfer, drop, tap,
     clear() { [...items].forEach(remove); },
     pump: s => lab.pump(s),
   };

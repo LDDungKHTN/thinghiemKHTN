@@ -34,6 +34,11 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
     outer = lathe(p, 40); rIn = PROF.tube(R, H);
   } else if (kind == 'beaker') {
     outer = lathe([[0, 0], [R + wt - .002, 0], [R + wt, .002], [R + wt, H], [R + wt * 2.5, H + .002], [R, H + .002], [R, wt + .001], [R - .002, wt], [0, wt]], 48); rIn = PROF.beaker(R);
+  } else if (kind == 'erlen') {   // bình tam giác (bình nón, Erlenmeyer)
+    const yN = H * .62, ri = y => y < yN ? R - (R - neck) * (y / yN) : neck;
+    const p = [[0, 0], [R + wt - .002, 0], [R + wt, .002]]; for (let i = 1; i <= 10; i++) { const y = yN * i / 10; p.push([ri(y) + wt, y]); }
+    p.push([neck + wt, H], [neck + wt * 2.5, H + .002], [neck, H + .002]); for (let i = 10; i >= 1; i--) { const y = yN * i / 10; p.push([ri(y), y]); } p.push([R - .002, wt + .001], [0, wt + .001]);
+    outer = lathe(p, 48); rIn = ri;
   } else {   // bình cầu / bình tam giác đáy tròn
     const p = [], N = 24; for (let i = 0; i <= N; i++) { const a = -Math.PI / 2 + Math.PI * .86 * i / N; p.push([Math.cos(a) * (R + wt), R + Math.sin(a) * (R + wt)]); }
     const yN = R + Math.sin(-Math.PI / 2 + Math.PI * .86) * R; p.push([neck + wt, yN + .006], [neck + wt, H], [neck + wt * 2.5, H + .002], [neck, H + .002], [neck, yN + .006]);
@@ -91,7 +96,7 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
     /** cập nhật trạng thái: level (0..1 phần thể tích), color, op, ppt {c, amt, settle}, cloud, bubbles 0..1, gas {c, amt}, solid {kind, c, amt, metal} */
     set(s) {
       Object.assign(st, s);
-      const L = st.level * H * (kind == 'flask' ? .55 : .85) + (st.level > 0 ? wt : 0);
+      const L = st.level * H * (kind == 'flask' || kind == 'erlen' ? .55 : .85) + (st.level > 0 ? wt : 0);
       if (Math.abs(L - (P.L ?? -1)) > 1e-5) buildLiq(L); P.L = L;
       mix('fizz', P.id || (P.id = 'v' + (++VID)), L > .002 ? st.bubbles * .7 : 0);
       const c = new THREE.Color(st.color); liqM.color.copy(c); surfM.color.copy(c);
