@@ -1,6 +1,6 @@
 // Bàn thí nghiệm hoá học: giá ống nghiệm + lọ hoá chất + đèn cồn; phản ứng do từng bài định nghĩa
 import { THREE, MAT, roundBox, clamp } from './lab3d.js';
-import { vessel, rack, bottle, burner, paperPack } from './chem.js';
+import { vessel, rack, bottle, burner, paperPack, solidDish } from './chem.js';
 import { $, toast } from './ui.js';
 import { sfx, mix } from './sfx.js';
 const V3 = (...a) => new THREE.Vector3(...a);
@@ -20,8 +20,9 @@ export function chemBench(lab, opt) {
   });
   // lọ hoá chất xếp hàng phía sau
   const nb = R.length, gap = Math.min(.075, .6 / nb);
-  const isPaper = r => r.paper || (r.solid && r.solid.kind == 'strip');
-  const B = R.map((r, i) => { const b = isPaper(r) ? paperPack(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, color: r.solid ? r.solid.c : r.c }) : bottle(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, color: r.c, liquid: r.k != 'sol', solidColor: r.solid ? r.solid.c : r.c, tag: r.tag || '#fffdf5' }); b.r = r; b.home = b.g.position.clone(); return b; });
+  const isPaper = r => r.paper || (r.solid && r.solid.kind == 'strip' && !r.solid.metal);
+  const B = R.map((r, i) => { const b = isPaper(r) ? paperPack(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, color: r.solid ? r.solid.c : r.c })
+    : r.k == 'sol' && r.solid ? solidDish(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, kind: r.solid.kind, color: r.solid.c, metal: !!r.solid.metal }) : bottle(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, color: r.c, liquid: r.k != 'sol', solidColor: r.solid ? r.solid.c : r.c, tag: r.tag || '#fffdf5' }); b.r = r; b.home = b.g.position.clone(); return b; });
   // đèn cồn + kẹp gỗ
   const lamp = opt.heat !== false ? burner(lab, [.3, 0, .06]) : null;
   if (lamp) lab.label(lamp.g, 'Đèn cồn', [0, .12, 0]);
@@ -79,7 +80,7 @@ export function chemBench(lab, opt) {
   }
   function select(i) { sel = i; T.forEach((t, j) => t.tag.element.classList.toggle('read', j == i)); showObs(); api && api.onSelect && api.onSelect(i); }
   function place() { selMark.visible = !anim; const t = T[sel]; const p = t.v.g.position; selMark.position.set(p.x, p.y + t.v.H + .03 + Math.sin(performance.now() / 300) * .003, p.z); }
-  T.forEach((t, i) => lab.clickable(t.v.g, () => select(i)));
+  T.forEach((t, i) => lab.clickable(t.v.g, () => { if (sel == i && api) api.inspect(); else select(i); }));   // bấm ống đang chọn: nhấc lên quan sát
   B.forEach(b => lab.clickable(b.g, () => add(b)));
   function add(b, toIdx) {
     if (busy) return; const t = T[toIdx ?? sel], r = b.r;
@@ -104,6 +105,24 @@ export function chemBench(lab, opt) {
         if (k < .35) s.position.lerpVectors(from, over, k / .35); else s.position.lerpVectors(over, inT, Math.min(1, (k - .35) / .3));
         if (k >= .68 && !anim.done) { anim.done = true; commit(t, r); sfx('drip', { vol: .4 }); }
         if (k >= 1) { s.visible = false; anim = null; busy = false; }
+        return;
+      }
+      if (b.dish) {   // chất rắn: dùng panh gắp (hoặc thìa xúc bột) lấy một mẫu từ mặt kính, đưa tới miệng ống rồi thả vào
+        const mouth = t.v.mouth(), from = b.home.clone().add(V3(0, .005, 0)), over = mouth.clone().add(V3(0, .035, 0)), atM = mouth.clone().add(V3(0, .004, 0));
+        const bottomY = t.v.g.position.y + .006, e = x => x < .5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2, P = b.piece, Tl = b.tool, pw = b.kind == 'powder';
+        P.visible = k < .7 && !(pw && k > .62); Tl.visible = k < .98;
+        let tip;
+        if (k < .12) tip = from.clone().add(V3(0, .03 * (1 - k / .12), 0));
+        else if (k < .45) { const f = e((k - .12) / .33); tip = from.clone().lerp(over, f); tip.y += Math.sin(f * Math.PI) * .05; }
+        else if (k < .55) tip = over.clone().lerp(atM, e((k - .45) / .1));
+        else if (k < .7) tip = atM.clone();
+        else { const f = e((k - .7) / .3); tip = atM.clone().lerp(from.clone().add(V3(0, .04, 0)), f); }
+        Tl.position.copy(tip); Tl.rotation.z = pw && k > .55 && k < .7 ? -1.2 * Math.sin((k - .55) / .15 * Math.PI) : 0;
+        if (k < .55 || pw) { P.position.copy(tip); P.rotation.set(0, 0, b.kind == 'nail' || b.kind == 'wire' || b.kind == 'strip' ? (k > .12 ? Math.PI / 2 : 0) : 0); if (pw) { P.scale.setScalar(.35); P.position.y += .002; } }
+        else { const f = clamp((k - .55) / .13, 0, 1); P.position.set(mouth.x, atM.y + (bottomY - atM.y) * f * f, mouth.z); }
+        if (!anim.s0 && k > .12) { anim.s0 = 1; sfx('clink', { vol: .3 }); }
+        if (k >= .68 && !anim.done) { anim.done = true; P.visible = false; commit(t, r); sfx(pw ? 'sprinkle' : 'clink', { vol: .5 }); }
+        if (k >= 1) { P.visible = Tl.visible = false; P.scale.setScalar(1); anim = null; busy = false; }
         return;
       }
       // Rót như thật: miệng lọ đặt sát trên miệng ống nghiệm được chọn, lọ nghiêng về phía ống
@@ -142,14 +161,34 @@ export function chemBench(lab, opt) {
     heat() {
       if (!lamp) return; const t = T[sel];
       if (!t.heat && T.some(x => x.heat)) { toast('Đèn cồn đang đun ống khác.'); return; }
+      if (t.look) { t.look = 0; t.lk = 0; if (lookCam) { lab.view(lookCam[0], lookCam[1], 1); lookCam = null; } }
       t.heat = t.heat ? 0 : 1; t.age = 0;
       if (t.heat && bath) { t.v.g.position.set(.3, .106, .06); lamp.set(true); bath.set({ bubbles: .25 }); }
       else if (t.heat) { t.v.g.position.set(.3, .12, .06); t.v.g.rotation.z = -.35; holder.visible = true; holder.position.set(.3 + Math.sin(.35) * .1, .12 + Math.cos(.35) * .1, .06); holder.rotation.z = -.35; lamp.set(true); }
       else { t.v.g.position.copy(t.home); t.v.g.rotation.z = 0; holder.visible = false; lamp.set(false); bath && bath.set({ bubbles: 0 }); }
       draw(sel); return t.heat;
     },
+    /** Nhấc ống nghiệm đang chọn ra khỏi giá, đưa lên trước mắt để quan sát (bấm lần nữa để đặt lại) */
+    inspect() {
+      const t = T[sel]; if (t.heat) { toast('Hãy thôi đun trước.'); return; }
+      const on = !T.some(x => x.look && x === t);
+      T.forEach(x => { if (x.look && x !== t) x.look = 0; });
+      t.look = on ? 1 : 0; sfx('clink', { vol: .3 });
+      if (on) { lookCam = lookCam || [lab.camera.position.toArray(), lab.controls.target.toArray()]; const p = t.home; lab.view([p.x + .03, .15, .32], [p.x, .1, .13], 1.1); }
+      else if (lookCam) { lab.view(lookCam[0], lookCam[1], 1); lookCam = null; }
+      return on;
+    },
     draw, redraw() { T.forEach((_, i) => draw(i)); },
   };
+  let lookCam = null;
+  const lookE = x => x < .5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2;
+  lab.onTick(dt => T.forEach(t => {
+    if (t.heat) return; const goal = t.look ? 1 : 0; t.lk = t.lk ?? 0; if (t.lk == goal) return;
+    t.lk = clamp(t.lk + (goal ? dt : -dt) / 1.1, 0, 1); const f = t.lk, up = t.home.clone().add(V3(0, .16, 0)), front = V3(t.home.x, .1, .13);
+    if (f < .5) t.v.g.position.copy(t.home).add(V3(0, .16 * lookE(f * 2), 0)); else t.v.g.position.lerpVectors(up, front, lookE((f - .5) * 2));
+    // kẹp gỗ giữ ống khi nhấc lên
+    holder.visible = f > 0; holder.rotation.z = 0; holder.position.copy(t.v.g.position).add(V3(0, .12, 0));
+  }));
   T.forEach((_, i) => draw(i)); select(0);
   return api;
 }
@@ -158,7 +197,8 @@ export function chemBench(lab, opt) {
 export function benchUI(bench, host, opt) {
   host.innerHTML = `<div class="row">${opt.tubes.map((t, i) => `<button class="btn ${i ? 'g' : 'on'}" data-t="${i}">${t}</button>`).join('')}</div>
   <div class="row">${opt.reagents.map(r => `<button class="btn g" data-r="${r.id}" title="${r.n}"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#${new THREE.Color(r.c).getHexString()};border:1px solid #888"></i>${r.n}</button>`).join('')}</div>
-  <div class="row">${opt.heat !== false ? '<button class="btn o" data-h="1">Đun nóng / thôi đun</button>' : ''}<button class="btn g" data-c="1">Rửa ống nghiệm</button></div>`;
+  <div class="row">${opt.heat !== false ? '<button class="btn o" data-h="1">Đun nóng / thôi đun</button>' : ''}<button class="btn g" data-l="1">🔍 Đưa ống lên quan sát / đặt lại</button><button class="btn g" data-c="1">Rửa ống nghiệm</button></div>`;
+  host.querySelector('[data-l]').onclick = () => bench.inspect();
   const sync = () => host.querySelectorAll('[data-t]').forEach(b => { b.classList.toggle('on', +b.dataset.t == bench.sel); b.classList.toggle('g', +b.dataset.t != bench.sel); });
   host.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { bench.select(+b.dataset.t); sync(); });
   host.querySelectorAll('[data-r]').forEach(b => b.onclick = () => bench.add(b.dataset.r));

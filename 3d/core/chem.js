@@ -208,6 +208,35 @@ export function bottle(lab, pos, { name = '', color = 0xdff3ff, liquid = true, s
   return { g, name, cap, lipY: H + .018 };
 }
 
+/** Mẫu chất rắn (đinh, viên kẽm, dây đồng, băng Mg, bột…) để trên mặt kính đồng hồ – không đựng trong lọ.
+ *  Trả về piece (một mẫu nhỏ để gắp/xúc cho vào ống) và tool (panh gắp hoặc thìa xúc). */
+function solidMesh(kind, c, metal, s = 1) {
+  const m = new THREE.MeshStandardMaterial({ color: c, metalness: metal ? .85 : 0, roughness: metal ? .35 : .85 });
+  const g = new THREE.Group();
+  if (kind == 'nail') { const sh = new THREE.Mesh(new THREE.CylinderGeometry(.0011, .0011, .026 * s, 10), m); sh.rotation.z = Math.PI / 2; g.add(sh); const hd = new THREE.Mesh(new THREE.CylinderGeometry(.0024, .0024, .001, 14), m); hd.rotation.z = Math.PI / 2; hd.position.x = .013 * s; g.add(hd); const tp = new THREE.Mesh(new THREE.ConeGeometry(.0011, .004, 10), m); tp.rotation.z = Math.PI / 2; tp.position.x = -.015 * s; g.add(tp); }
+  else if (kind == 'wire') { const pts = []; for (let i = 0; i <= 80; i++) { const a = i / 80 * Math.PI * 8; pts.push(V3(-.01 + i / 80 * .02, Math.sin(a) * .004, Math.cos(a) * .004)); } g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 160, .0007, 6), m)); }
+  else if (kind == 'strip' || kind == 'sheet') { const o = new THREE.Mesh(new THREE.BoxGeometry(.03 * s, .0006, kind == 'sheet' ? .012 : .004), m); g.add(o); }
+  else if (kind == 'powder') { const o = new THREE.Mesh(new THREE.SphereGeometry(.011 * s, 20, 10, 0, 6.29, 0, Math.PI / 2), m); o.scale.y = .45; g.add(o); }
+  else { for (let i = 0; i < (s < 1 ? 1 : 6); i++) { const o = new THREE.Mesh(new THREE.DodecahedronGeometry(.0032, 0), m); const a = i * 1.05; o.position.set(s < 1 ? 0 : Math.cos(a) * .006, 0, s < 1 ? 0 : Math.sin(a) * .006); o.rotation.set(i, i * 2, 0); g.add(o); } }
+  g.traverse(o => o.castShadow = true); return g;
+}
+export function solidDish(lab, pos, { name = '', kind = 'chunk', color = 0xcccccc, metal = false } = {}) {
+  const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);
+  const dish = new THREE.Mesh(lathe([[0, 0], [.022, .0005], [.028, .006], [.027, .006], [.021, .0016], [0, .0012]], 32), new THREE.MeshPhysicalMaterial({ color: 0xf2fbff, transparent: true, opacity: .45, roughness: .05, clearcoat: 1, depthWrite: false }));
+  dish.renderOrder = 4; g.add(dish);
+  const heap = solidMesh(kind, color, metal); heap.position.y = kind == 'powder' ? .0014 : .0035; if (kind == 'nail') { const n2 = solidMesh('nail', color, metal); n2.position.z = .007; n2.rotation.y = .35; heap.add(n2); } g.add(heap);
+  const lb = new THREE.Mesh(new THREE.PlaneGeometry(.05, .014), new THREE.MeshStandardMaterial({ map: canvasTex(256, 72, (c, w, h) => { c.fillStyle = '#fffdf3'; c.fillRect(0, 0, w, h); c.strokeStyle = '#999'; c.strokeRect(2, 2, w - 4, h - 4); c.fillStyle = '#111'; c.textAlign = 'center'; c.textBaseline = 'middle'; let fs = 40; c.font = `bold ${fs}px Arial`; while (c.measureText(name).width > w - 12 && fs > 16) { fs -= 2; c.font = `bold ${fs}px Arial`; } c.fillText(name, w / 2, h / 2); }) }));
+  lb.rotation.x = -Math.PI / 2.6; lb.position.set(0, .008, .036); g.add(lb);
+  // mẫu nhỏ được lấy ra + dụng cụ lấy (panh gắp cho mẩu rắn, thìa xúc cho bột)
+  const piece = solidMesh(kind, color, metal, kind == 'chunk' ? .5 : 1); piece.visible = false; lab.scene.add(piece);
+  const tool = new THREE.Group(); tool.visible = false; lab.scene.add(tool);
+  const steel = MAT.metal(0xb9bec4, .3);
+  if (kind == 'powder') { const h = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0012, .11, 8), steel); h.position.y = .056; tool.add(h); const sp = new THREE.Mesh(new THREE.SphereGeometry(.004, 14, 8, 0, 6.29, Math.PI / 2, Math.PI / 2), steel); tool.add(sp); }
+  else for (const sx of [-1, 1]) { const a = new THREE.Mesh(new THREE.BoxGeometry(.0012, .1, .003), steel); a.position.set(sx * .0025, .05, 0); a.rotation.z = -sx * .03; tool.add(a); }
+  lab.shadow(g);
+  return { g, name, dish: true, piece, tool, kind };
+}
+
 /** Đĩa đựng tập giấy chỉ thị (giấy quỳ, giấy pH…) – không đựng trong lọ */
 export function paperPack(lab, pos, { name = '', color = 0x8e5bd6 } = {}) {
   const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);
