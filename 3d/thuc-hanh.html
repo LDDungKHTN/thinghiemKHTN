@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phòng thực hành tự do – Thí nghiệm 3D KHTN</title>
+<meta name="description" content="Phòng thí nghiệm ảo 3D tự do: bàn thực hành trống, kho dụng cụ Hoá – Lý – Sinh và tủ hoá chất vô cơ, hữu cơ. Tự lấy dụng cụ, châm đèn cồn, đun, rót hoá chất, quan sát hiện tượng như làm thật.">
+<link rel="canonical" href="https://lddungkhtn.github.io/thinghiemKHTN/3d/thuc-hanh.html">
+<link rel="stylesheet" href="core/ui.css">
+<script src="core/boot.js"></script>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z9HMXNJYEN"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-Z9HMXNJYEN');</script>
+<style>
+.kho .btn{margin:2px}.kho .btn small{opacity:.7}
+.kho h4{margin:10px 0 4px;font-size:13px;opacity:.8}
+</style>
+</head><body>
+<script type="module">
+import { createLab, THREE } from './core/lab3d.js';
+import { sandbox, KHO } from './core/sandbox.js';
+import { CAT } from './core/chemdb.js';
+import { shell, ready, toast, showPane, openSide, $ } from './core/ui.js';
+
+const stage = shell({ title: 'Phòng thực hành tự do', sub: 'Hoá – Lý – Sinh', back: 'index.html', panes: [
+  { id: 'pk', title: '🧰 Kho dụng cụ', html: `<div class="kho" id="kho"></div>` },
+  { id: 'pt', title: '🧪 Tủ hoá chất', html: `<div class="kho" id="tu"></div>` },
+  { id: 'ps', title: 'Đang chọn', html: `<div id="selp"></div>` },
+  { id: 'ph', title: 'Hướng dẫn', html: `<ul>
+<li>Bàn thực hành ban đầu để trống. Mở <b>Kho dụng cụ</b> hoặc <b>Tủ hoá chất</b>, bấm vào thứ cần dùng để lấy ra bàn.</li>
+<li><b>Kéo</b> dụng cụ để di chuyển; <b>bấm</b> vào dụng cụ để thao tác hoặc chọn. Kéo vùng trống để xoay bàn, lăn chuột / chụm hai ngón để phóng to.</li>
+<li><b>Đèn cồn</b>: bấm lần 1 mở nắp → bấm lần 2 quẹt diêm châm lửa → bấm lần 3 đậy nắp để tắt.</li>
+<li><b>Ống nghiệm</b>: thả vào lỗ của giá ống nghiệm; thả lên đèn cồn để kẹp bằng kẹp gỗ và hơ nóng; chọn ống rồi bấm “Cầm lên quan sát”.</li>
+<li><b>Đun cốc / bình</b>: đặt kiềng, kéo đèn cồn vào giữa kiềng, thả cốc lên lưới, châm lửa. Thả nhiệt kế vào cốc để đo nhiệt độ.</li>
+<li><b>Cho hoá chất</b>: bấm chọn ống / cốc / bình trước, rồi bấm vào lọ, đĩa hoặc bình khí trên bàn (dung dịch được rót, chất rắn gắp bằng panh, chất khí sục qua ống dẫn).</li>
+<li><b>Điện</b>: lấy nguồn điện, bóng đèn (thêm công tắc, ampe kế nếu cần) – dây nối được nối tiếp tự động; bấm nút đỏ trên nguồn và bấm công tắc.</li>
+<li><b>Kính hiển vi</b>: lấy kính và một tiêu bản, kéo tiêu bản thả lên kính, bật đèn, chỉnh ốc rồi nhìn vào thị kính.</li>
+<li>Vật không dùng nữa: chọn rồi bấm “Cất vào kho”.</li></ul>` }] });
+const lab = createLab(stage, { cam: [0, .42, .78], target: [0, .05, -.02], table: 'bench', tableSize: [1.6, .9], minDist: .06 });
+const sb = sandbox(lab, stage, { panel: $('#selp'), onSelect: it => { if (it) showPane(2); } });
+
+// ----- Kho dụng cụ -----
+const KC = { hoa: 'Hoá học', ly: 'Vật lý', sinh: 'Sinh học' }; let kc = 'hoa';
+function drawKho() {
+  const L = KHO.filter(k => k.cat == kc);
+  $('#kho').innerHTML = `<div class="row">${Object.keys(KC).map(c => `<button class="btn ${kc == c ? 'on' : 'g'}" data-kc="${c}" data-keep>${KC[c]}</button>`).join('')}</div>
+  <div class="row">${L.map(k => `<button class="btn g" data-k="${k.id}">${k.ic} ${k.n}</button>`).join('')}</div><p class="sm">Bấm để lấy dụng cụ ra bàn thực hành.</p>`;
+  $('#kho').querySelectorAll('[data-kc]').forEach(b => b.onclick = () => { kc = b.dataset.kc; drawKho(); });
+  $('#kho').querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const it = sb.take(b.dataset.k); if (it) toast('Đã lấy <b>' + it.name + '</b> ra bàn.'); });
+}
+// ----- Tủ hoá chất -----
+const TS = { g: 'vc', st: 'l' }, GN = { vc: 'Vô cơ', hc: 'Hữu cơ' }, SN = { r: 'Rắn', l: 'Lỏng', k: 'Khí' };
+function drawTu() {
+  const L = CAT.filter(c => c.g == TS.g && c.st == TS.st);
+  $('#tu').innerHTML = `<div class="row">${Object.keys(GN).map(g => `<button class="btn ${TS.g == g ? 'on' : 'g'}" data-tg="${g}" data-keep>${GN[g]}</button>`).join('')}</div>
+  <div class="row">${Object.keys(SN).map(k => `<button class="btn ${TS.st == k ? 'on' : 'g'}" data-ts="${k}" data-keep>${SN[k]}</button>`).join('')}</div>
+  <div class="row">${L.map(c => `<button class="btn g" data-c="${c.id}" title="${c.f}"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#${new THREE.Color(c.c).getHexString()};border:1px solid #888"></i> ${c.n} <small>${c.f}</small></button>`).join('')}</div>
+  <p class="sm">Bấm để lấy lọ / đĩa / bình khí ra bàn. Sau đó chọn ống nghiệm hoặc cốc, rồi bấm vào lọ hoá chất để cho vào.</p>`;
+  $('#tu').querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { TS.g = b.dataset.tg; drawTu(); });
+  $('#tu').querySelectorAll('[data-ts]').forEach(b => b.onclick = () => { TS.st = b.dataset.ts; drawTu(); });
+  $('#tu').querySelectorAll('[data-c]').forEach(b => b.onclick = () => { const it = sb.takeChem(b.dataset.c); if (it) toast('Đã lấy <b>' + it.name + '</b> ra bàn.'); });
+}
+drawKho(); drawTu();
+// thanh công cụ nổi
+const tb = document.createElement('div'); tb.className = 'tb'; stage.appendChild(tb);
+tb.innerHTML = `<button class="btn p" id="oK">🧰 Kho dụng cụ</button><button class="btn p" id="oT">🧪 Tủ hoá chất</button><button class="btn g" id="oC">🧹 Dọn bàn</button>`;
+$('#oK').onclick = () => { showPane(0); openSide(true); };
+$('#oT').onclick = () => { showPane(1); openSide(true); };
+$('#oC').onclick = () => { if (confirm('Cất tất cả dụng cụ, hoá chất trên bàn vào kho?')) sb.clear(); };
+ready(); toast('Bàn thực hành đang trống – mở Kho dụng cụ hoặc Tủ hoá chất để lấy đồ.', 4000);
+window.dbg = { lab, sb };
+</script>
+</body></html>
