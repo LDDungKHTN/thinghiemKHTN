@@ -43,10 +43,10 @@ function react(it, heat, age) {
   const tot = it.filter(x => x.id != 'fe').reduce((a, x) => a + x.amt, 0) || 1;
   if (Cu) { s.color = mix(0xf3f8fa, 0x1f74d6, Cu.amt / tot); s.op = .5 + .25 * Cu.amt / tot; }
   if (Fe) s.solid = { kind: 'nail', c: 0x8f969c, metal: true, amt: 1 };
-  const k = clamp(age / 2, 0, 1), st = clamp((age - 3) / 25, 0, .7);
-  if (Fe && Cu) { const q = clamp(age / 20, 0, 1); s.solid.c = mix(0x8f969c, 0xb4532a, clamp(age / 6, 0, 1)); s.solid.metal = age < 5; s.color = mix(s.color, 0xcde9c8, q); s.op = .55 - .25 * q; s.notes.push('Có lớp <b>kim loại màu đỏ</b> (Cu) bám ngoài đinh sắt; màu xanh của dung dịch nhạt dần.'); s.eq.push('Fe + CuSO₄ → FeSO₄ + Cu'); }
+  const k = clamp(age / 5, 0, 1), st = clamp((age - 5) / 25, 0, .7);
+  if (Fe && Cu) { const q = clamp(age / 20, 0, 1); s.solid.c = mix(0x8f969c, 0xb4532a, clamp(age / 6, 0, 1)); s.solid.metal = age < 5; s.color = mix(s.color, 0xa8d8a0, q); s.op = .55 - .12 * q; s.notes.push('Có lớp <b>kim loại màu đỏ</b> (Cu) bám ngoài đinh sắt; màu xanh của dung dịch nhạt dần.'); s.eq.push('Fe + CuSO₄ → FeSO₄ + Cu'); }
   if (Ba && (H || N)) { s.ppt = { c: 0xffffff, amt: .9 * k, settle: st }; s.notes.push('Xuất hiện <b>kết tủa trắng</b> (BaSO₄).'); s.eq.push(H ? 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl' : 'BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl'); }
-  if (Cu && B) { s.ppt = { c: 0x3f8fd6, amt: .9 * k, settle: st }; s.color = mix(s.color, 0xf3f8fa, k * .7); s.notes.push('Xuất hiện <b>kết tủa màu xanh lam</b> (Cu(OH)₂).'); s.eq.push('CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄'); }
+  if (Cu && B) { s.ppt = { c: 0x2f7fd0, amt: .9 * k, settle: st }; s.cloud = .9 * k * (1 - st); s.cloudC = 0x2f7fd0; s.color = mix(mix(s.color, 0x6fa8e6, k), 0xeaf3fa, st * 1.2); s.op = .45 + .25 * k * (1 - st); s.notes.push('Xuất hiện <b>kết tủa màu xanh lam</b> (Cu(OH)₂).'); s.eq.push('CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄'); }
   if (!s.notes.length) s.notes.push(Cu ? 'Dung dịch CuSO₄ màu xanh lam.' : Fe ? 'Đinh sắt sạch.' : 'Dung dịch không màu.');
   return s;
 }

@@ -41,7 +41,7 @@ function react(it, heat, age) {
   const s = { notes: [], eq: [] }; if (!it.length) return s; s.color = 0xf2f8fa; s.op = .28;
   const A = has(it, 'hcl'), sol = ['q', 'fe', 'zn'].find(x => has(it, x)), r = sol && REAG.find(x => x.id == sol); if (r) s.solid = { ...r.solid, amt: has(it, sol).amt };
   if (sol == 'q') { if (A) { s.solid.c = 0xd6334c; s.notes.push('Giấy quỳ tím chuyển sang <b>màu đỏ</b>.'); } else s.notes.push('Giấy quỳ tím.'); }
-  if ((sol == 'fe' || sol == 'zn') && A) { s.bubbles = sol == 'zn' ? .55 : .3; s.notes.push(`Có <b>bọt khí</b> không màu thoát ra trên bề mặt ${sol == 'fe' ? 'đinh sắt' : 'viên kẽm'}; kim loại tan dần.`); s.eq.push(sol == 'fe' ? 'Fe + 2HCl → FeCl₂ + H₂↑' : 'Zn + 2HCl → ZnCl₂ + H₂↑'); if (sol == 'fe') s.color = new THREE.Color(0xf2f8fa).lerp(new THREE.Color(0xd8efd0), clamp(age / 25, 0, .8)).getHex(); }
+  if ((sol == 'fe' || sol == 'zn') && A) { s.bubbles = sol == 'zn' ? .55 : .3; s.notes.push(`Có <b>bọt khí</b> không màu thoát ra trên bề mặt ${sol == 'fe' ? 'đinh sắt' : 'viên kẽm'}; kim loại tan dần.`); s.eq.push(sol == 'fe' ? 'Fe + 2HCl → FeCl₂ + H₂↑' : 'Zn + 2HCl → ZnCl₂ + H₂↑'); if (sol == 'fe') { const g = clamp(age / 15, 0, 1); s.color = new THREE.Color(0xf2f8fa).lerp(new THREE.Color(0x9fd49a), g).getHex(); s.op = .28 + .22 * g; s.notes.push('Dung dịch chuyển dần sang <b>màu lục nhạt</b> (iron(II) chloride).'); } }
   if (!s.notes.length) s.notes.push(A ? 'Dung dịch HCl không màu.' : 'Chưa có dung dịch acid.');
   return s;
 }
