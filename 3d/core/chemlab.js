@@ -1,6 +1,7 @@
 // Bàn thí nghiệm hoá học: giá ống nghiệm + lọ hoá chất + đèn cồn; phản ứng do từng bài định nghĩa
 import { THREE, MAT, roundBox, clamp } from './lab3d.js';
-import { vessel, rack, bottle, burner, paperPack, solidDish } from './chem.js';
+import { vessel, rack, bottle, burner, paperPack, solidDish, gasJar } from './chem.js';
+import { CAT, findChem, genericReact } from './chemdb.js';
 import { $, toast } from './ui.js';
 import { sfx, mix } from './sfx.js';
 const V3 = (...a) => new THREE.Vector3(...a);
@@ -29,8 +30,14 @@ export function chemBench(lab, opt) {
     if (flat(r)) { const i = frontR.indexOf(r); return [-rackHalf - .06 - (i % 2) * .066, 0, -.05 + Math.floor(i / 2) * .085]; }
     const n = backR.length, gp = Math.min(.075, .6 / Math.max(n, 1)), i = backR.indexOf(r); return [-(n - 1) * gp / 2 + i * gp, 0, -.13];
   };
-  const B = R.map((r, i) => { const b = isPaper(r) ? paperPack(lab, rowPos(r), { name: r.n, color: r.solid ? r.solid.c : r.c })
-    : r.k == 'sol' && r.solid ? solidDish(lab, rowPos(r), { name: r.n, kind: r.solid.kind, color: r.solid.c, metal: !!r.solid.metal }) : bottle(lab, rowPos(r), { name: r.n, color: r.c, liquid: r.k != 'sol', solidColor: r.solid ? r.solid.c : r.c, tag: r.tag || '#fffdf5' }); b.r = r; b.home = b.g.position.clone(); return b; });
+  const makeB = (r, pos) => { const b = isPaper(r) ? paperPack(lab, pos, { name: r.n, color: r.solid ? r.solid.c : r.c })
+    : r.k == 'gas' ? gasJar(lab, pos, { name: r.n, color: r.c })
+    : r.k == 'sol' && r.solid ? solidDish(lab, pos, { name: r.n, kind: r.solid.kind, color: r.solid.c, metal: !!r.solid.metal }) : bottle(lab, pos, { name: r.n, color: r.c, liquid: r.k != 'sol', solidColor: r.solid ? r.solid.c : r.c, tag: r.tag || '#fffdf5' }); b.r = r; b.home = b.g.position.clone(); return b; };
+  const B = R.map(r => makeB(r, rowPos(r)));
+  const own = new Set(R.map(r => r.id));   // hoá chất của bài; hoá chất lấy thêm từ tủ dùng bộ phản ứng chung
+  let nExtra = 0;
+  // khí: ống dẫn thuỷ tinh từ bình khí sục vào ống nghiệm
+  const gasPipe = new THREE.Mesh(new THREE.BufferGeometry(), MAT.glassLite({ opacity: .45 })); gasPipe.renderOrder = 4; gasPipe.visible = false; lab.scene.add(gasPipe);
   // đèn cồn + kẹp gỗ
   const lamp = opt.heat !== false ? burner(lab, [.3, 0, .06]) : null;
   if (lamp) lab.label(lamp.g, 'Đèn cồn', [0, .12, 0]);
@@ -54,9 +61,10 @@ export function chemBench(lab, opt) {
   let anim = null, busy = false;
 
   const rd = id => R.find(r => r.id == id);
-  const level = t => t.items.reduce((s, x) => s + (rd(x.id).k != 'sol' ? x.amt : 0), 0) / cap;
+  const level = t => t.items.reduce((s, x) => s + (rd(x.id).k != 'sol' && rd(x.id).k != 'gas' ? x.amt : 0), 0) / cap;
   function draw(i) {
-    const t = T[i], s = opt.react(t.items, t.heat, t.age, i, R) || {};
+    const t = T[i], fromCab = t.items.some(x => !own.has(x.id));
+    const s = (fromCab ? genericReact(t.items, t.heat, t.age) : opt.react(t.items, t.heat, t.age, i, R)) || {};
     if (s.level == null) s.level = level(t);
     t.s = s;
     // màu đích; màu hiển thị đổi DẦN tới màu đích (xem fade() trong vòng lặp)
@@ -92,13 +100,14 @@ export function chemBench(lab, opt) {
   B.forEach(b => lab.clickable(b.g, () => add(b)));
   function add(b, toIdx) {
     if (busy) return; const t = T[toIdx ?? sel], r = b.r;
-    if (r.k != 'sol' && level(t) + vol / cap > 1.0001) { toast('Ống nghiệm đã đầy. Hãy rửa ống hoặc chọn ống khác.'); return; }
-    busy = true; anim = { b, t, k: 0, dur: r.k == 'drop' ? 1.2 : 1.6 };
+    if (r.k != 'sol' && r.k != 'gas' && level(t) + vol / cap > 1.0001) { toast('Ống nghiệm đã đầy. Hãy rửa ống hoặc chọn ống khác.'); return; }
+    busy = true; anim = { b, t, k: 0, dur: r.k == 'drop' ? 1.2 : r.k == 'gas' ? 3 : 1.6 };
   }
   function commit(t, r) {
     let it = t.items.find(x => x.id == r.id);
     const a = r.k == 'sol' ? 1 : r.k == 'drop' ? 1 : vol;
-    if (r.k == 'sol') { if (it) it.amt = Math.min(it.amt + 1, r.max || 3); else t.items.push({ id: r.id, amt: 1 }); }
+    if (r.k == 'gas') { if (!it) t.items.push({ id: r.id, amt: 1 }); }
+    else if (r.k == 'sol') { if (it) it.amt = Math.min(it.amt + 1, r.max || 3); else t.items.push({ id: r.id, amt: 1 }); }
     else if (it) it.amt += r.k == 'drop' ? .5 : vol; else t.items.push({ id: r.id, amt: r.k == 'drop' ? .5 : vol });
     void a; t.age = 0; draw(T.indexOf(t));
   }
@@ -113,6 +122,15 @@ export function chemBench(lab, opt) {
         if (k < .35) s.position.lerpVectors(from, over, k / .35); else s.position.lerpVectors(over, inT, Math.min(1, (k - .35) / .3));
         if (k >= .68 && !anim.done) { anim.done = true; commit(t, r); sfx('drip', { vol: .4 }); }
         if (k >= 1) { s.visible = false; anim = null; busy = false; }
+        return;
+      }
+      if (b.gas) {   // khí: mở nắp bình khí, ống dẫn thuỷ tinh sục khí vào dung dịch trong ống nghiệm
+        const mouth = t.v.mouth(), top = b.g.position.clone().add(V3(0, b.topY, 0)), lvl = t.v.g.position.y + Math.max(.006, (t.v.st.level || 0) * t.v.H * .85 * .5);
+        if (!anim.pipe) { anim.pipe = 1; const hi = Math.max(top.y, mouth.y) + .04; gasPipe.geometry.dispose(); gasPipe.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([top.clone().add(V3(0, -.02, 0)), top.clone().add(V3(0, .03, 0)), V3(top.x, hi, top.z), V3(mouth.x, hi, mouth.z), V3(mouth.x, mouth.y, mouth.z), V3(mouth.x + .002, lvl, mouth.z)], false, 'catmullrom', .1), 80, .0022, 8); sfx('clink', { vol: .3 }); }
+        b.lid.position.x = k > .1 && k < .95 ? .03 : 0; gasPipe.visible = k > .12 && k < .95;
+        if (k > .25 && k < .9) t.v.set({ bubbles: .7 });
+        if (k >= .68 && !anim.done) { anim.done = true; commit(t, r); }
+        if (k >= 1) { gasPipe.visible = false; b.lid.position.x = 0; anim = null; busy = false; draw(T.indexOf(t)); }
         return;
       }
       if (b.dish) {   // chất rắn: dùng panh gắp (hoặc thìa xúc bột) lấy một mẫu từ mặt kính, đưa tới miệng ống rồi thả vào
@@ -165,6 +183,15 @@ export function chemBench(lab, opt) {
   const api = {
     T, B, lamp, select, get sel() { return sel; },
     add: (id, i) => add(B.find(b => b.r.id == id), i),
+    /** Lấy hoá chất từ tủ: đặt lọ/đĩa/bình khí lên bàn (nếu chưa có) rồi cho vào ống đang chọn */
+    addCat(id) {
+      let b = B.find(x => x.r.id == id);
+      if (!b) { const c = findChem(id); if (!c) return; const r = { id: c.id, n: c.n, c: c.c, k: c.k, solid: c.solid, max: c.max, tag: c.tag, paper: c.paper };
+        const j = nExtra++, pos = [-rackHalf - .2 - (j % 4) * .068, 0, -.14 - Math.floor(j / 4) * .085];
+        R.push(r); b = makeB(r, pos); B.push(b); lab.clickable(b.g, () => add(b)); sfx('clink', { vol: .3 }); }
+      if (b.r.k == 'gas' && !(level(T[sel]) > 0)) { toast('Hãy cho dung dịch vào ống nghiệm trước rồi mới sục khí.'); return; }
+      add(b);
+    },
     clean() { sfx('splash'); const t = T[sel]; t.items = []; t.age = 0; if (t.heat) api.heat(); draw(sel); },
     heat() {
       if (!lamp) return; const t = T[sel];
@@ -205,8 +232,23 @@ export function chemBench(lab, opt) {
 export function benchUI(bench, host, opt) {
   host.innerHTML = `<div class="row">${opt.tubes.map((t, i) => `<button class="btn ${i ? 'g' : 'on'}" data-t="${i}">${t}</button>`).join('')}</div>
   <div class="row">${opt.reagents.map(r => `<button class="btn g" data-r="${r.id}" title="${r.n}"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#${new THREE.Color(r.c).getHexString()};border:1px solid #888"></i>${r.n}</button>`).join('')}</div>
-  <div class="row">${opt.heat !== false ? '<button class="btn o" data-h="1">Đun nóng / thôi đun</button>' : ''}<button class="btn g" data-l="1">🔍 Đưa ống lên quan sát / đặt lại</button><button class="btn g" data-c="1">Rửa ống nghiệm</button></div>`;
+  <div class="row">${opt.heat !== false ? '<button class="btn o" data-h="1">Đun nóng / thôi đun</button>' : ''}<button class="btn g" data-l="1">🔍 Đưa ống lên quan sát / đặt lại</button><button class="btn g" data-c="1">Rửa ống nghiệm</button></div>
+  <div class="row"><button class="btn p" data-tu="1">🧪 Tủ hoá chất</button></div><div class="tuhc" hidden></div>`;
   host.querySelector('[data-l]').onclick = () => bench.inspect();
+  // Tủ hoá chất: Vô cơ / Hữu cơ → Rắn / Lỏng / Khí
+  const tu = host.querySelector('.tuhc'), TS = { g: 'vc', st: 'l' };
+  const GN = { vc: 'Vô cơ', hc: 'Hữu cơ' }, SN = { r: 'Rắn', l: 'Lỏng', k: 'Khí' };
+  const drawTu = () => {
+    const list = CAT.filter(c => c.g == TS.g && c.st == TS.st);
+    tu.innerHTML = `<div class="row">${Object.keys(GN).map(g => `<button class="btn ${TS.g == g ? 'on' : 'g'}" data-tg="${g}">${GN[g]}</button>`).join('')}</div>
+    <div class="row">${Object.keys(SN).map(k => `<button class="btn ${TS.st == k ? 'on' : 'g'}" data-ts="${k}">${SN[k]}</button>`).join('')}</div>
+    <div class="row">${list.map(c => `<button class="btn g" data-cat="${c.id}" title="${c.f}"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#${new THREE.Color(c.c).getHexString()};border:1px solid #888"></i>${c.n} <small style="opacity:.7">${c.f}</small></button>`).join('') || '<i>Chưa có</i>'}</div>
+    <p class="sm">Bấm vào hoá chất để lấy ra bàn và cho vào <b>ống đang chọn</b>. Chất khí được <b>sục</b> vào dung dịch qua ống dẫn.</p>`;
+    tu.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { TS.g = b.dataset.tg; drawTu(); });
+    tu.querySelectorAll('[data-ts]').forEach(b => b.onclick = () => { TS.st = b.dataset.ts; drawTu(); });
+    tu.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => bench.addCat(b.dataset.cat));
+  };
+  host.querySelector('[data-tu]').onclick = () => { tu.hidden = !tu.hidden; if (!tu.hidden) drawTu(); };
   const sync = () => host.querySelectorAll('[data-t]').forEach(b => { b.classList.toggle('on', +b.dataset.t == bench.sel); b.classList.toggle('g', +b.dataset.t != bench.sel); });
   host.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { bench.select(+b.dataset.t); sync(); });
   host.querySelectorAll('[data-r]').forEach(b => b.onclick = () => bench.add(b.dataset.r));

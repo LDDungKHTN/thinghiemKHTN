@@ -107,19 +107,33 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
       parts.material.color.set(pp ? pp.c : st.cloudC || 0xffffff);
       gasSp.forEach(sp => sp.material.color.set(st.gas ? st.gas.c : 0xffffff));
       // chất rắn
-      const sd = st.solid, key = sd ? sd.kind + (sd.metal ? 'm' : '') + Math.round(sd.amt * 20) : '';
+      const sd = st.solid, part = sd && (sd.kind == 'wire' || sd.kind == 'strip' || sd.kind == 'sheet');   // vật dài: chỉ phần ngâm trong dung dịch bị biến đổi
+      const key = sd ? sd.kind + (sd.metal ? 'm' : '') + Math.round(sd.amt * 20) + (part ? ':' + Math.round(L * 400) : '') : '';
+      if (sd && P.k0 != sd.kind) { P.k0 = sd.kind; P.c0 = sd.c0 ?? sd.c; } if (!sd) P.k0 = null;
       if (key != P.sk) {
         P.sk = key; while (solids.children.length) { const o = solids.children.pop(); o.traverse(x => x.geometry && x.geometry.dispose()); }
         if (sd && sd.amt > .02) {
           _seed = 7; const m = P.sm = new THREE.MeshStandardMaterial({ color: sd.c, metalness: sd.metal ? .9 : 0, roughness: sd.metal ? .35 : .8 });
-          if (sd.kind == 'wire') { const pts = []; for (let i = 0; i <= 160; i++) { const a = i / 160 * Math.PI * 14, y = wt + .004 + i / 160 * H * .45; pts.push(V3(Math.cos(a) * R * .5, y, Math.sin(a) * R * .5)); } pts.push(V3(R * .5, H * .7, 0), V3(R * .3, H * 1.05, 0)); solids.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 220, .0008, 6), m)); }
+          const m0 = new THREE.MeshStandardMaterial({ color: P.c0, metalness: sd.metal ? .9 : 0, roughness: sd.metal ? .35 : .8 });   // phần ở trên mặt chất lỏng giữ màu cũ
+          const Lw = L > .002 ? L : 0;
+          if (sd.kind == 'wire') {   // dây đồng quấn lò xo ở đầu dưới (~3 cm), tổng dài ~8 cm
+            const pts = []; for (let i = 0; i <= 120; i++) { const a = i / 120 * Math.PI * 12, y = wt + .003 + i / 120 * .03; pts.push(V3(Math.cos(a) * R * .5, y, Math.sin(a) * R * .5)); }
+            for (let i = 1; i <= 12; i++) pts.push(V3(R * .5 - i / 12 * R * .2, wt + .033 + i / 12 * .05, 0));
+            const below = pts.filter(p => p.y <= Lw), above = pts.filter(p => p.y >= Lw);
+            if (below.length > 1) solids.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(below), below.length * 2, .0008, 6), m));
+            if (above.length > 1) { if (below.length) above.unshift(below[below.length - 1]); solids.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(above), above.length * 2, .0008, 6), m0)); }
+          }
           else if (sd.kind == 'nail') { // đinh dài ~4,5 cm, nằm nghiêng tựa thành ống, mũi nhọn ở đáy
             const nl = Math.min(.03, H * .25), o = new THREE.Group(), tilt = Math.min(.18, Math.asin(Math.min(1, R * 1.1 / nl)));
             const sh = new THREE.Mesh(new THREE.CylinderGeometry(.0011, .0011, nl * .88, 10), m); sh.position.y = nl * .06; o.add(sh);
             const tip = new THREE.Mesh(new THREE.ConeGeometry(.0011, nl * .12, 10), m); tip.rotation.x = Math.PI; tip.position.y = -nl * .44; o.add(tip);
             const hd = new THREE.Mesh(new THREE.CylinderGeometry(.0024, .0024, .001, 16), m); hd.position.y = nl * .5; o.add(hd);
             o.rotation.z = tilt; o.position.set(-Math.sin(tilt) * nl * .02, wt + .0015 + Math.cos(tilt) * nl * .5, 0); solids.add(o); }
-          else if (sd.kind == 'sheet' || sd.kind == 'strip') { const o = new THREE.Mesh(new THREE.BoxGeometry(R * .9, H * .6, .0008), m); o.position.set(0, H * .32, 0); o.rotation.y = .4; o.rotation.z = .08; solids.add(o); }
+          else if (sd.kind == 'sheet' || sd.kind == 'strip') {   // mảnh/băng dài ~6 cm dựng nghiêng; phần trên mặt chất lỏng giữ màu cũ
+            const h = Math.min(.06, H * .4), y0 = wt + .001, cut = clamp(Lw - y0, 0, h), g = new THREE.Group();
+            if (cut > .0005) { const a = new THREE.Mesh(new THREE.BoxGeometry(R * .9, cut, .0008), m); a.position.y = y0 + cut / 2; g.add(a); }
+            if (h - cut > .0005) { const b = new THREE.Mesh(new THREE.BoxGeometry(R * .9, h - cut, .0008), m0); b.position.y = y0 + cut + (h - cut) / 2; g.add(b); }
+            g.rotation.y = .4; g.rotation.z = .06; solids.add(g); }
           else { const n = Math.round(4 + sd.amt * (sd.kind == 'powder' ? 30 : 6)), sz = sd.kind == 'powder' ? R * .1 : R * .3;
             for (let i = 0; i < n; i++) { const o = new THREE.Mesh(sd.kind == 'powder' ? new THREE.IcosahedronGeometry(sz * (.6 + rnd() * .6), 0) : new THREE.DodecahedronGeometry(sz * (.6 + rnd() * .5), 0), m); const a = rnd() * 6.28, r = rnd() * (R * .6); o.position.set(Math.cos(a) * r, wt + sz * .8 + (i / n) * sz * (sd.kind == 'powder' ? 1.5 : 1.2), Math.sin(a) * r); o.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); solids.add(o); } }
           solids.children.forEach(o => o.castShadow = true);
@@ -138,7 +152,7 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
         if (!b.born || b.y > L) {
           // bọt sinh ra trên bề mặt chất rắn (đinh, viên kẽm…) nếu có, nếu không thì ở đáy
           const sd = st.solid, onS = sd && sd.amt > .02 && solids.children.length;
-          if (onS) { const o = solids.children[(i * 7) % solids.children.length]; const hgt = sd.kind == 'nail' ? Math.min(.03, H * .25) : sd.kind == 'wire' || sd.kind == 'sheet' || sd.kind == 'strip' ? H * .45 : .004; const f = rnd(); b.x = o.position.x + (rnd() - .5) * (sd.kind == 'nail' ? .004 : R * .6) - (sd.kind == 'nail' ? Math.sin(o.rotation.z) * (f - .5) * hgt : 0); b.z = (rnd() - .5) * (sd.kind == 'nail' ? .003 : R * .6); b.y = sd.kind == 'nail' ? wt + .002 + f * hgt * .95 : o.position.y + rnd() * hgt; if (b.born && b.y > L) b.y = wt + .002; }
+          if (onS) { const o = solids.children[(i * 7) % solids.children.length]; const hgt = sd.kind == 'nail' ? Math.min(.03, H * .25) : sd.kind == 'wire' ? .03 : sd.kind == 'sheet' || sd.kind == 'strip' ? Math.min(.06, H * .4, Math.max(.004, L - wt)) : .004; const f = rnd(); b.x = o.position.x + (rnd() - .5) * (sd.kind == 'nail' ? .004 : R * .6) - (sd.kind == 'nail' ? Math.sin(o.rotation.z) * (f - .5) * hgt : 0); b.z = (rnd() - .5) * (sd.kind == 'nail' ? .003 : R * .6); b.y = sd.kind == 'nail' ? wt + .002 + f * hgt * .95 : o.position.y + rnd() * hgt; if (b.born && b.y > L) b.y = wt + .002; }
           else { const a = rnd() * 6.28, rr = rnd() * rAt(wt + .002) * .7; b.x = Math.cos(a) * rr; b.z = Math.sin(a) * rr; b.y = wt + .002 + rnd() * (b.born ? .002 : L); }
           b.y = Math.min(b.y, Math.max(wt + .002, L - .001)); b.v = .02 + rnd() * .035; b.r = (.0004 + rnd() * .0008) * (kind == 'tube' ? 1 : 1.5); b.born = true;
         }
@@ -235,6 +249,20 @@ export function solidDish(lab, pos, { name = '', kind = 'chunk', color = 0xccccc
   else for (const sx of [-1, 1]) { const a = new THREE.Mesh(new THREE.BoxGeometry(.0012, .1, .003), steel); a.position.set(sx * .0025, .05, 0); a.rotation.z = -sx * .03; tool.add(a); }
   lab.shadow(g);
   return { g, name, dish: true, piece, tool, kind };
+}
+
+/** Bình (lọ) đựng khí: lọ thuỷ tinh cao, đậy tấm kính, khí có màu thì thấy màu (Cl₂ vàng lục, NO₂ nâu đỏ) */
+export function gasJar(lab, pos, { name = '', color = 0xf4fbff } = {}) {
+  const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);
+  const R = .017, H = .075;
+  const body = new THREE.Mesh(lathe([[0, 0], [R, 0], [R, H], [R + .0015, H + .002], [R - .001, H + .002], [R - .001, .002], [0, .002]], 32), MAT.glassLite({ color: 0xf4fbff, opacity: .22, side: THREE.FrontSide })); body.renderOrder = 4; g.add(body);
+  const tinted = new THREE.Color(color).getHSL({}).s > .2;
+  const gasV = new THREE.Mesh(new THREE.CylinderGeometry(R * .95, R * .95, H - .003, 24), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: tinted ? .38 : .04, depthWrite: false })); gasV.position.y = H / 2 + .001; gasV.renderOrder = 3; g.add(gasV);
+  const lid = new THREE.Mesh(new THREE.CylinderGeometry(R + .004, R + .004, .0015, 28), MAT.glassLite({ opacity: .35 })); lid.position.y = H + .003; g.add(lid);
+  const lb = new THREE.Mesh(new THREE.CylinderGeometry(R * 1.005, R * 1.005, .026, 32, 1, true, -.9, 1.8), new THREE.MeshStandardMaterial({ roughness: .7, map: canvasTex(256, 128, (c, w, h) => { c.fillStyle = '#eef7ff'; c.fillRect(0, 0, w, h); c.strokeStyle = '#999'; c.strokeRect(2, 2, w - 4, h - 4); c.fillStyle = '#111'; c.textAlign = 'center'; c.textBaseline = 'middle'; let fs = 46; c.font = `bold ${fs}px Arial`; while (c.measureText(name).width > w - 16 && fs > 18) { fs -= 2; c.font = `bold ${fs}px Arial`; } c.fillText(name, w / 2, h / 2); }) }));
+  lb.position.y = H * .35; g.add(lb);
+  lab.shadow(g);
+  return { g, name, gas: true, lid, topY: H + .004 };
 }
 
 /** Đĩa đựng tập giấy chỉ thị (giấy quỳ, giấy pH…) – không đựng trong lọ */
