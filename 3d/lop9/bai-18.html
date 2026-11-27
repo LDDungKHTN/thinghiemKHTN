@@ -36,7 +36,7 @@
 
 <script type="module">
 import { createLab, THREE, MAT, roundBox, canvasTex, clamp } from '../core/lab3d.js';
-import { vessel, burner } from '../core/chem.js';
+import { vessel, burner, spoonBowl } from '../core/chem.js';
 import { chemBench, benchUI } from '../core/chemlab.js';
 import { shell, ready, toast, quiz, $, fmt } from '../core/ui.js';
 
@@ -143,8 +143,9 @@ const sRod = new THREE.Mesh(new THREE.CylinderGeometry(.0015, .0015, .2, 8), MAT
 const coilPts = []; for (let i = 0; i <= 120; i++) { const a = i / 120 * Math.PI * 10; coilPts.push(new THREE.Vector3(Math.cos(a) * .006, -i / 120 * .04, Math.sin(a) * .006)); }
 const feM = new THREE.MeshStandardMaterial({ color: 0x777c82, metalness: .8, roughness: .4, emissive: 0xff6a00, emissiveIntensity: 0 });
 const feCoil = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(coilPts), 120, .0008, 6), feM); spoon.add(feCoil);
-const cup = new THREE.Mesh(new THREE.SphereGeometry(.008, 16, 8, 0, 6.3, Math.PI / 2, Math.PI / 2), MAT.metal(0x8a8f95, .4)); cup.position.y = -.002; spoon.add(cup);
-const naBall = new THREE.Mesh(new THREE.SphereGeometry(.004, 12, 10), naM.clone()); naBall.position.y = .0; spoon.add(naBall);
+// lòng muỗng ngửa lên, gắn vào đầu dưới của cán (cán nối vào mép muỗng)
+const cup = spoonBowl(MAT.metal(0x8a8f95, .4)); cup.position.set(.0095, -.008, 0); spoon.add(cup);
+const naBall = new THREE.Mesh(new THREE.SphereGeometry(.004, 12, 10), naM.clone()); naBall.position.set(.0095, -.004, 0); spoon.add(naBall);
 const fireL = new THREE.PointLight(0xffe0a0, 0, .6, 2); spoon.add(fireL);
 // quầng lửa: natri – ngọn lửa VÀNG đặc trưng; sắt – cháy sáng chói trắng vàng (không có ngọn lửa)
 const glowT = canvasTex(64, 64, (c, w, h) => { const g = c.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.35, 'rgba(255,255,255,.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); });
@@ -186,7 +187,7 @@ lab.onTick((dt, t) => {
       fireL.intensity = on ? (S.met == 'na' ? .7 : 1.1) * (1 - life * .5) : 0; fireL.color.set(S.met == 'na' ? 0xffc21a : 0xfff2d0);
       const isNa = S.met == 'na', fk = on ? (1 - life * .6) * (.8 + .2 * Math.sin(t * 37) * Math.sin(t * 13)) : 0;
       flame.material.color.set(isNa ? 0xffa800 : 0xfff4dc); flame.material.blending = isNa ? THREE.NormalBlending : THREE.AdditiveBlending; flame.material.opacity = fk * (isNa ? .8 : .8);
-      flame.position.set(0, isNa ? .008 : -.02, 0); flame.scale.set(isNa ? .04 : .035, isNa ? .06 : .035, 1);
+      flame.position.set(isNa ? .0095 : 0, isNa ? .008 : -.02, 0); flame.scale.set(isNa ? .04 : .035, isNa ? .06 : .035, 1);
       // khí chlorine (vàng lục) nhạt dần vì bị tiêu thụ
       if (S.gas == 'cl2') fl.gasM.opacity = .32 * (1 - life * .75);
       feM.emissiveIntensity = on ? 3 : 0; naBall.material.emissiveIntensity = on ? 3 : 0; sparks.visible = on && S.met == 'fe';
