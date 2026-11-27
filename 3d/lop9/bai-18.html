@@ -61,7 +61,7 @@ const stage = shell({
     { id: 'p3', title: 'Câu hỏi', html: `<div id="qz"></div>` },
   ]
 });
-const H = { bench: [[0, .32, .55], [0, .08, -.02]], na: [[-.62, .25, .32], [-.62, .03, 0]], burn: [[.68, .28, .42], [.68, .12, 0]] };
+const H = { bench: [[0, .32, .55], [0, .08, -.02]], na: [[-.62, .25, .32], [-.62, .03, 0]], burn: [[.66, .3, .5], [.67, .11, 0]] };
 const lab = createLab(stage, { cam: H.bench[0], target: H.bench[1], table: 'bench', tableSize: [1.9, .8], minDist: .06 });
 const { scene } = lab;
 const hud = document.createElement('div'); hud.className = 'hud'; stage.appendChild(hud);
@@ -129,7 +129,15 @@ lab.label(knife, 'Mẩu natri', [0, .015, 0]);
 const pink = { k: 0 };
 
 /* ===== Bình khí + đốt kim loại ===== */
-const fl = vessel(lab, { kind: 'flask', R: .055, H: .2, neck: .016 }); fl.g.position.set(.68, 0, 0); scene.add(fl.g);
+// hai bình cầu chứa khí đặt sẵn: oxygen (không màu) và chlorine (vàng lục)
+const FX = { o2: .6, cl2: .78 }, gx = () => FX[S.gas];
+const FLS = {};
+for (const g of ['o2', 'cl2']) { const v = vessel(lab, { kind: 'flask', R: .055, H: .2, neck: .016 }); v.g.position.set(FX[g], 0, 0); scene.add(v.g); FLS[g] = v; lab.label(v.g, g == 'o2' ? 'Bình khí oxygen (O₂)' : 'Bình khí chlorine (Cl₂)', [0, .24, 0]);
+  // khối khí bên trong bình (Cl₂ màu vàng lục)
+  const gm = new THREE.MeshBasicMaterial({ color: g == 'cl2' ? 0xb8d84a : 0xffffff, transparent: true, opacity: g == 'cl2' ? .32 : 0, depthWrite: false });
+  const gb = new THREE.Mesh(new THREE.SphereGeometry(.052, 24, 16), gm); gb.position.y = .055; gb.renderOrder = 3; v.g.add(gb);
+  const gn = new THREE.Mesh(new THREE.CylinderGeometry(.0145, .0145, .1, 16), gm); gn.position.y = .15; gn.renderOrder = 3; v.g.add(gn); v.gasM = gm; }
+let fl = FLS.o2;
 const spoon = new THREE.Group(); scene.add(spoon);
 const sRod = new THREE.Mesh(new THREE.CylinderGeometry(.0015, .0015, .2, 8), MAT.metal(0x8a8f95, .4)); sRod.position.y = .1; spoon.add(sRod);
 const coilPts = []; for (let i = 0; i <= 120; i++) { const a = i / 120 * Math.PI * 10; coilPts.push(new THREE.Vector3(Math.cos(a) * .006, -i / 120 * .04, Math.sin(a) * .006)); }
@@ -144,18 +152,17 @@ const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowT, color: 0xf
 const NS = 120, spk = new Float32Array(NS * 3), spkV = []; const spG = new THREE.BufferGeometry(); spG.setAttribute('position', new THREE.BufferAttribute(spk, 3));
 const sparks = new THREE.Points(spG, new THREE.PointsMaterial({ color: 0xffd36a, size: .004, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); scene.add(sparks); sparks.visible = false;
 for (let i = 0; i < NS; i++) spkV.push({ p: new THREE.Vector3(), v: new THREE.Vector3(), life: 0 });
-const lamp = burner(lab, [.55, 0, .08]); lab.label(lamp.g, 'Đèn cồn', [0, .12, 0]);
-// nút cao su: một nút đậy kín bình khí; một nút gắn trên cán muỗng đốt để đậy kín bình khi đưa kim loại vào
+const LX = .5, LZ = .11;   // đèn cồn
+const lamp = burner(lab, [LX, 0, LZ]); lab.label(lamp.g, 'Đèn cồn', [0, .12, 0]);
+// nút cao su: mỗi bình có nút đậy kín; một nút gắn trên cán muỗng đốt để đậy kín bình khi đưa kim loại vào
 const rubber = new THREE.MeshStandardMaterial({ color: 0x3b3b3e, roughness: .85 });
 const stopGeo = new THREE.CylinderGeometry(.0185, .0148, .02, 28);
-const flStop = new THREE.Mesh(stopGeo, rubber); flStop.castShadow = true; scene.add(flStop);
-const FL_STOP = new THREE.Vector3(.68, .209, 0), FL_ASIDE = new THREE.Vector3(.77, .01, .06);
+const STOPS = {}; for (const g of ['o2', 'cl2']) { const m = new THREE.Mesh(stopGeo, rubber); m.castShadow = true; scene.add(m); m.position.set(FX[g], .209, 0); STOPS[g] = m; }
+lab.label(STOPS.o2, 'Nút cao su', [-.035, .01, 0]);
 const spStop = new THREE.Mesh(stopGeo, rubber); spStop.position.y = .109; spoon.add(spStop);
-lab.label(flStop, 'Nút cao su', [.03, .01, 0]);
-lab.label(fl.g, 'Bình khí', [0, .23, 0]);
-const smoke = new THREE.Mesh(new THREE.SphereGeometry(.05, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })); smoke.position.set(.68, .055, 0); smoke.renderOrder = 3; scene.add(smoke);
-function setGas() { fl.set({ level: 0, gas: null }); fl.g.children[0].material.color.set(S.gas == 'cl2' ? 0xa8d040 : 0xf2fbff); fl.g.children[0].material.opacity = S.gas == 'cl2' ? .4 : .2; }
-function resetBurn() { S.burn = null; flStop.position.copy(FL_STOP); flStop.rotation.x = 0; spoon.position.set(.55, .18, .08); feCoil.visible = S.met == 'fe'; naBall.visible = cup.visible = S.met == 'na'; feM.emissiveIntensity = 0; naBall.material.emissiveIntensity = 0; fireL.intensity = 0; flame.material.opacity = 0; smoke.material.opacity = 0; sparks.visible = false; lamp.set(false); setGas(); }
+const smoke = new THREE.Mesh(new THREE.SphereGeometry(.05, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })); smoke.position.set(FX.o2, .055, 0); smoke.renderOrder = 3; scene.add(smoke);
+function setGas() { fl = FLS[S.gas]; smoke.position.x = gx(); for (const g of ['o2', 'cl2']) { const v = FLS[g]; v.set({ level: 0, gas: null }); v.gasM.opacity = g == 'cl2' ? .32 : 0; v.gasM.color.set(g == 'cl2' ? 0xb8d84a : 0xffffff); STOPS[g].position.set(FX[g], .209, 0); STOPS[g].rotation.x = 0; } }
+function resetBurn() { S.burn = null; spoon.position.set(LX, .18, LZ); feCoil.visible = S.met == 'fe'; naBall.visible = cup.visible = S.met == 'na'; feM.emissiveIntensity = 0; naBall.material.emissiveIntensity = 0; fireL.intensity = 0; flame.material.opacity = 0; smoke.material.opacity = 0; sparks.visible = false; lamp.set(false); setGas(); }
 
 lab.onTick((dt, t) => {
   // natri chạy trên mặt nước
@@ -171,17 +178,17 @@ lab.onTick((dt, t) => {
   if (S.burn) {
     const b = S.burn; b.t += dt;
     // mở nút bình (đặt ngửa trên bàn) ngay trước khi đưa muỗng vào; nút trên cán muỗng sẽ đậy kín miệng bình
-    { const k = clamp((b.t - 2.1) / .4, 0, 1); flStop.position.lerpVectors(FL_STOP, FL_ASIDE, k); flStop.position.y += Math.sin(k * Math.PI) * .05; flStop.rotation.x = Math.PI * k; }
-    if (b.t < 2.5) { spoon.position.set(.55, .18, .08); feM.emissiveIntensity = b.t / 2.5 * 1.5; naBall.material.emissiveIntensity = b.t / 2.5; }
-    else if (b.t < 3.4) { const k = (b.t - 2.5) / .9; spoon.position.set(.55 + .13 * k, .18 + .06 * Math.sin(k * Math.PI) - .08 * k * k, .08 - .08 * k); }
+    { const k = clamp((b.t - 2.1) / .4, 0, 1), st = STOPS[S.gas], X = gx(); st.position.lerpVectors(new THREE.Vector3(X, .209, 0), new THREE.Vector3(X + .02, .01, .085), k); st.position.y += Math.sin(k * Math.PI) * .05; st.rotation.x = Math.PI * k; }
+    if (b.t < 2.5) { spoon.position.set(LX, .18, LZ); feM.emissiveIntensity = b.t / 2.5 * 1.5; naBall.material.emissiveIntensity = b.t / 2.5; }
+    else if (b.t < 3.4) { const k = (b.t - 2.5) / .9; spoon.position.set(LX + (gx() - LX) * k, .18 + .06 * Math.sin(k * Math.PI) - .08 * k * k, LZ - LZ * k); }
     else {
-      spoon.position.set(.68, .1, 0); const life = clamp((b.t - 3.4) / 10, 0, 1), on = life < 1;
+      spoon.position.set(gx(), .1, 0); const life = clamp((b.t - 3.4) / 10, 0, 1), on = life < 1;
       fireL.intensity = on ? (S.met == 'na' ? .7 : 1.1) * (1 - life * .5) : 0; fireL.color.set(S.met == 'na' ? 0xffc21a : 0xfff2d0);
       const isNa = S.met == 'na', fk = on ? (1 - life * .6) * (.8 + .2 * Math.sin(t * 37) * Math.sin(t * 13)) : 0;
       flame.material.color.set(isNa ? 0xffa800 : 0xfff4dc); flame.material.blending = isNa ? THREE.NormalBlending : THREE.AdditiveBlending; flame.material.opacity = fk * (isNa ? .8 : .8);
       flame.position.set(0, isNa ? .008 : -.02, 0); flame.scale.set(isNa ? .04 : .035, isNa ? .06 : .035, 1);
       // khí chlorine (vàng lục) nhạt dần vì bị tiêu thụ
-      if (S.gas == 'cl2') { const gm = fl.g.children[0].material; gm.color.set(0xf2fbff).lerp(new THREE.Color(0xa8d040), 1 - life * .7); gm.opacity = .2 + .2 * (1 - life * .7); }
+      if (S.gas == 'cl2') fl.gasM.opacity = .32 * (1 - life * .75);
       feM.emissiveIntensity = on ? 3 : 0; naBall.material.emissiveIntensity = on ? 3 : 0; sparks.visible = on && S.met == 'fe';
       smoke.material.color.set(S.gas == 'cl2' ? (S.met == 'fe' ? 0x8a3a12 : 0xf2f2ee) : (S.met == 'fe' ? 0x3a2a22 : 0xf2f2ee)); smoke.material.opacity = Math.min(.55, life * .8);
       if (sparks.visible) { const o = feCoil.getWorldPosition(new THREE.Vector3()); spkV.forEach((s, i) => { if (s.life <= 0) { s.p.copy(o).add(new THREE.Vector3(0, -.02 * Math.random(), 0)); s.v.set((Math.random() - .5) * .3, Math.random() * .2 - .05, (Math.random() - .5) * .3); s.life = .2 + Math.random() * .4; } s.life -= dt; s.v.y -= .6 * dt; s.p.addScaledVector(s.v, dt); spk.set([s.p.x, s.p.y, s.p.z], i * 3); }); spG.attributes.position.needsUpdate = true; }
