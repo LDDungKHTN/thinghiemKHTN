@@ -5,6 +5,9 @@ import { RoomEnvironment } from '../lib/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from '../lib/CSS2DRenderer.js';
 import { sfx } from './sfx.js';
 export { THREE, CSS2DObject };
+// InstancedMesh (bọt khí, hạt, tia lửa…): vùng bao được tính một lần lúc chưa có hạt nào → bị cắt bỏ vĩnh viễn.
+// Tắt cắt bỏ cho mọi InstancedMesh để hạt luôn được vẽ.
+Object.defineProperty(THREE.InstancedMesh.prototype, 'frustumCulled', { get() { return false; }, set() { }, configurable: true });
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export const lerp = (a, b, t) => a + (b - a) * t;

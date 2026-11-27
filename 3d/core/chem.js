@@ -2,8 +2,9 @@
 import { THREE, MAT, lathe, canvasTex, roundBox, clamp } from './lab3d.js';
 import { sfx, mix } from './sfx.js';
 let VID = 0;
-const V3 = (...a) => new THREE.Vector3(...a);
-const glassM = () => { const m = MAT.glassLite({ color: 0xf2fbff, opacity: .2 }); return m; };
+const V3 = (...a) => new THREE.Vector3(...a), _q = new THREE.Quaternion();
+// thuỷ tinh trong: chỉ vẽ mặt trước (tránh 4 lớp chồng nhau làm ống bị đục mờ)
+const glassM = () => { const m = MAT.glassLite({ color: 0xffffff, opacity: .2, side: THREE.FrontSide, envMapIntensity: 1.5 }); return m; };
 let _seed = 1; const rnd = () => (_seed = (_seed * 16807) % 2147483647) / 2147483647;
 
 /** Vị trí gốc của dụng cụ khi nghiêng góc th (quanh trục z) để miệng rót (lipLocal) đúng tại lipTarget */
@@ -53,9 +54,10 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
   const pptB = new THREE.Mesh(new THREE.BufferGeometry(), pptM); pptB.renderOrder = 1; g.add(pptB);
   // hạt lơ lửng (kết tủa / vẩn đục) và bọt khí
   const NP = 160, dummy = new THREE.Object3D();
-  const parts = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .9, transparent: true, opacity: .85 }), NP); parts.count = 0; parts.renderOrder = 2; g.add(parts);
+  const parts = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .9, transparent: true, opacity: .85 }), NP); parts.count = 0; parts.renderOrder = 2; parts.frustumCulled = false; g.add(parts);
   const NB = 70;
-  const bub = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: .55, roughness: 0, clearcoat: 1, depthWrite: false }), NB); bub.count = 0; bub.renderOrder = 3; g.add(bub);
+  // bọt khí: ảnh tròn luôn quay về phía camera (viền tối + điểm sáng) để nhìn rõ trong dung dịch nhạt màu
+  const bub = new THREE.InstancedMesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: bubbleTex(), transparent: true, depthWrite: false, toneMapped: false }), NB); bub.count = 0; bub.renderOrder = 3; bub.frustumCulled = false; g.add(bub);
   // lớp chất lỏng phía trên (dầu, ester…) và lớp gương bạc trên thành ống
   const layM = new THREE.MeshPhysicalMaterial({ color: 0xf2e2a0, transparent: true, opacity: .6, roughness: .05, clearcoat: 1, depthWrite: false, side: THREE.DoubleSide });
   const lay = new THREE.Mesh(new THREE.BufferGeometry(), layM); lay.renderOrder = 2.5; lay.visible = false; g.add(lay);
@@ -107,11 +109,16 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
       // chất rắn
       const sd = st.solid, key = sd ? sd.kind + sd.c + Math.round(sd.amt * 20) : '';
       if (key != P.sk) {
-        P.sk = key; while (solids.children.length) { const o = solids.children.pop(); o.geometry.dispose(); }
+        P.sk = key; while (solids.children.length) { const o = solids.children.pop(); o.traverse(x => x.geometry && x.geometry.dispose()); }
         if (sd && sd.amt > .02) {
           _seed = 7; const m = new THREE.MeshStandardMaterial({ color: sd.c, metalness: sd.metal ? .9 : 0, roughness: sd.metal ? .35 : .8 });
           if (sd.kind == 'wire') { const pts = []; for (let i = 0; i <= 160; i++) { const a = i / 160 * Math.PI * 14, y = wt + .004 + i / 160 * H * .45; pts.push(V3(Math.cos(a) * R * .5, y, Math.sin(a) * R * .5)); } pts.push(V3(R * .5, H * .7, 0), V3(R * .3, H * 1.05, 0)); solids.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 220, .0008, 6), m)); }
-          else if (sd.kind == 'nail') { const o = new THREE.Mesh(new THREE.CylinderGeometry(.0012, .0005, H * .7, 10), m); o.position.set(R * .3, H * .38, 0); o.rotation.z = .12; const hd = new THREE.Mesh(new THREE.CylinderGeometry(.0028, .0028, .0012, 14), m); hd.position.y = H * .35; o.add(hd); solids.add(o); }
+          else if (sd.kind == 'nail') { // đinh dài ~4,5 cm, nằm nghiêng tựa thành ống, mũi nhọn ở đáy
+            const nl = Math.min(.03, H * .25), o = new THREE.Group(), tilt = Math.min(.18, Math.asin(Math.min(1, R * 1.1 / nl)));
+            const sh = new THREE.Mesh(new THREE.CylinderGeometry(.0011, .0011, nl * .88, 10), m); sh.position.y = nl * .06; o.add(sh);
+            const tip = new THREE.Mesh(new THREE.ConeGeometry(.0011, nl * .12, 10), m); tip.rotation.x = Math.PI; tip.position.y = -nl * .44; o.add(tip);
+            const hd = new THREE.Mesh(new THREE.CylinderGeometry(.0024, .0024, .001, 16), m); hd.position.y = nl * .5; o.add(hd);
+            o.rotation.z = tilt; o.position.set(-Math.sin(tilt) * nl * .02, wt + .0015 + Math.cos(tilt) * nl * .5, 0); solids.add(o); }
           else if (sd.kind == 'sheet' || sd.kind == 'strip') { const o = new THREE.Mesh(new THREE.BoxGeometry(R * .9, H * .6, .0008), m); o.position.set(0, H * .32, 0); o.rotation.y = .4; o.rotation.z = .08; solids.add(o); }
           else { const n = Math.round(4 + sd.amt * (sd.kind == 'powder' ? 30 : 6)), sz = sd.kind == 'powder' ? R * .1 : R * .3;
             for (let i = 0; i < n; i++) { const o = new THREE.Mesh(sd.kind == 'powder' ? new THREE.IcosahedronGeometry(sz * (.6 + rnd() * .6), 0) : new THREE.DodecahedronGeometry(sz * (.6 + rnd() * .5), 0), m); const a = rnd() * 6.28, r = rnd() * (R * .6); o.position.set(Math.cos(a) * r, wt + sz * .8 + (i / n) * sz * (sd.kind == 'powder' ? 1.5 : 1.2), Math.sin(a) * r); o.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); solids.add(o); } }
@@ -125,12 +132,20 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
       const nb = L > .002 ? Math.round(st.bubbles * NB) : 0;
       while (P.B.length < nb) P.B.push({ x: 0, y: 0, z: 0, v: 0, r: 0, born: false });
       P.B.length = nb; bub.count = nb;
+      if (nb) { g.getWorldQuaternion(_q).invert().multiply(lab.camera.quaternion); dummy.quaternion.copy(_q); }
       P.B.forEach((b, i) => {
-        if (!b.born || b.y > L) { const a = rnd() * 6.28, rr = rnd() * rAt(wt + .002) * .7; b.x = Math.cos(a) * rr; b.z = Math.sin(a) * rr; b.y = wt + .002 + rnd() * (b.born ? .002 : L); b.v = .015 + rnd() * .03; b.r = (.0004 + rnd() * .0009) * (kind == 'tube' ? 1 : 1.6); b.born = true; }
-        b.y += b.v * dt; b.x += Math.sin(t * 9 + i) * .0003 * dt * 60 * .02;
+        if (!b.born || b.y > L) {
+          // bọt sinh ra trên bề mặt chất rắn (đinh, viên kẽm…) nếu có, nếu không thì ở đáy
+          const sd = st.solid, onS = sd && sd.amt > .02 && solids.children.length;
+          if (onS) { const o = solids.children[(i * 7) % solids.children.length]; const hgt = sd.kind == 'nail' ? Math.min(.03, H * .25) : sd.kind == 'wire' || sd.kind == 'sheet' || sd.kind == 'strip' ? H * .45 : .004; const f = rnd(); b.x = o.position.x + (rnd() - .5) * (sd.kind == 'nail' ? .004 : R * .6) - (sd.kind == 'nail' ? Math.sin(o.rotation.z) * (f - .5) * hgt : 0); b.z = (rnd() - .5) * (sd.kind == 'nail' ? .003 : R * .6); b.y = sd.kind == 'nail' ? wt + .002 + f * hgt * .95 : o.position.y + rnd() * hgt; if (b.born && b.y > L) b.y = wt + .002; }
+          else { const a = rnd() * 6.28, rr = rnd() * rAt(wt + .002) * .7; b.x = Math.cos(a) * rr; b.z = Math.sin(a) * rr; b.y = wt + .002 + rnd() * (b.born ? .002 : L); }
+          b.y = Math.min(b.y, Math.max(wt + .002, L - .001)); b.v = .02 + rnd() * .035; b.r = (.0004 + rnd() * .0008) * (kind == 'tube' ? 1 : 1.5); b.born = true;
+        }
+        b.y += b.v * dt; b.x += Math.sin(t * 9 + i) * .00002;
+        const rlim = rAt(b.y) - b.r; const rd = Math.hypot(b.x, b.z); if (rd > rlim && rd > 0) { b.x *= rlim / rd; b.z *= rlim / rd; }
         dummy.position.set(b.x, b.y, b.z); dummy.scale.setScalar(b.r * (1 + (b.y / Math.max(L, .001)) * .4)); dummy.updateMatrix(); bub.setMatrixAt(i, dummy.matrix);
       });
-      bub.instanceMatrix.needsUpdate = true;
+      bub.instanceMatrix.needsUpdate = true; dummy.quaternion.identity();
       // hạt lơ lửng
       const pp = st.ppt, cloud = pp ? pp.amt * (1 - pp.settle) : st.cloud || 0, np = L > .002 ? Math.round(clamp(cloud, 0, 1) * NP) : 0;
       while (P.pp.length < np) { const a = rnd() * 6.28, y = wt + rnd() * L; P.pp.push({ a, r: rnd() * rAt(y) * .9, y, s: .00035 + rnd() * .0005 }); }
@@ -147,6 +162,16 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
   api.set({});
   return api;
 }
+let _bubT = null;
+function bubbleTex() {
+  return _bubT || (_bubT = canvasTex(64, 64, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    const g = c.createRadialGradient(32, 32, 18, 32, 32, 30); g.addColorStop(0, 'rgba(255,255,255,0.08)'); g.addColorStop(.7, 'rgba(120,150,170,0.55)'); g.addColorStop(.92, 'rgba(60,80,95,0.85)'); g.addColorStop(1, 'rgba(60,80,95,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(32, 32, 30, 0, 6.29); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.95)'; c.beginPath(); c.ellipse(23, 22, 7, 5, -.6, 0, 6.29); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.6)'; c.beginPath(); c.arc(41, 43, 3, 0, 6.29); c.fill();
+  }, { srgb: true }));
+}
 function smokeTex() {
   return canvasTex(64, 64, (c, w, h) => { const g = c.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); }, { srgb: false });
 }
@@ -156,9 +181,11 @@ export function rack(lab, pos, n = 4, gap = .04) {
   const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);
   const wood = new THREE.MeshStandardMaterial({ color: 0xb07a45, roughness: .6 }), W = n * gap + .02;
   const base = roundBox(W, .01, .07, .003, wood); base.position.y = .005; g.add(base);
-  const top = roundBox(W, .008, .05, .002, wood); top.position.y = .022; g.add(top);
-  for (const x of [-W / 2 + .006, W / 2 - .006]) { const s = new THREE.Mesh(new THREE.BoxGeometry(.008, .022, .05), wood); s.position.set(x, .016, 0); g.add(s); }
-  for (let i = 0; i < n; i++) { const h = new THREE.Mesh(new THREE.CylinderGeometry(.0105, .0105, .0085, 20), new THREE.MeshStandardMaterial({ color: 0x3a2412 })); h.position.set(-((n - 1) * gap) / 2 + i * gap, .0262, 0); g.add(h); }
+  // tấm trên cao ~7 cm như giá thật: phần đáy ống (chất lỏng, chất rắn) nhìn thấy qua khoảng trống phía trước
+  const TY = .066;
+  const top = roundBox(W, .008, .05, .002, wood); top.position.y = TY; g.add(top);
+  for (const x of [-W / 2 + .006, W / 2 - .006]) { const s = new THREE.Mesh(new THREE.BoxGeometry(.008, TY - .006, .05), wood); s.position.set(x, .01 + (TY - .006) / 2, 0); g.add(s); }
+  for (let i = 0; i < n; i++) { const h = new THREE.Mesh(new THREE.CylinderGeometry(.0105, .0105, .0012, 20), new THREE.MeshStandardMaterial({ color: 0x3a2412 })); h.position.set(-((n - 1) * gap) / 2 + i * gap, TY + .0042, 0); g.add(h); }
   lab.shadow(g);
   return { g, slot: i => new THREE.Vector3(pos[0] - ((n - 1) * gap) / 2 + i * gap, pos[1] + .012, pos[2]) };
 }
