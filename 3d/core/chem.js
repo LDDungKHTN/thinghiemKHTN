@@ -296,7 +296,7 @@ export function burner(lab, pos) {
   const pl = new THREE.PointLight(0xffa860, 0, .5, 2); pl.position.y = .085; g.add(pl);
   lab.shadow(g);
   const bid = 'b' + (++VID);
-  const api = { g, lit: false, set(v) { if (v != api.lit && api.ready) sfx(v ? 'match' : 'puff'); api.lit = v; fl.visible = v; pl.intensity = v ? .15 : 0; mix('burner', bid, v ? 1 : 0); } };
+  const api = { g, cap, wick, lit: false, set(v) { if (v != api.lit && api.ready) sfx(v ? 'match' : 'puff'); api.lit = v; fl.visible = v; pl.intensity = v ? .15 : 0; mix('burner', bid, v ? 1 : 0); } };
   lab.onTick((dt, t) => { if (!api.lit) return; const k = 1 + Math.sin(t * 15) * .05 + Math.sin(t * 27) * .03; fl.scale.set(1, k, 1); });
   api.set(false); api.ready = true; return api;
 }
