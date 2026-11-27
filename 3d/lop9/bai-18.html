@@ -90,14 +90,14 @@ function react(it, heat, age) {
     const rate = { mg: 1, zn: .55, fe: .45 }[met] * (heat ? 1.4 : 1), left = met == 'mg' ? 1 - clamp(age / 12, 0, 1) : 1;
     s.bubbles = rate * (met == 'mg' ? left : 1);
     if (met == 'mg') { s.solid.amt = Math.max(0, left); s.gas = { c: 0xffffff, amt: .15 * left }; }
-    if (met == 'fe') s.color = mix(s.color, 0xd8efd0, k * .8);
+    if (met == 'fe') { const g = clamp(age / 15, 0, 1); s.color = mix(s.color, 0x9fd49a, g); s.op = .35 + .2 * g; }   // FeCl₂: lục nhạt
     s.notes.push(`Có <b>bọt khí không màu</b> thoát ra ${met == 'mg' ? 'rất mạnh, mảnh magnesium tan dần, ống nghiệm nóng lên' : met == 'zn' ? 'nhiều trên bề mặt viên kẽm' : 'trên bề mặt đinh sắt; dung dịch chuyển dần sang màu lục nhạt'}.`, 'Khí thoát ra là hydrogen (H₂).');
     s.eq.push({ fe: 'Fe + 2HCl → FeCl₂ + H₂↑', zn: 'Zn + 2HCl → ZnCl₂ + H₂↑', mg: 'Mg + 2HCl → MgCl₂ + H₂↑' }[met]);
   }
   if (hcl && met == 'cu') s.notes.push('Dây đồng <b>không có hiện tượng</b>: đồng không tác dụng với dung dịch HCl.');
   if (cu2 && met != 'cu') {
     const f = cu2.amt / liq;
-    s.color = mix(mix(0xeef6f8, 0x1f74d6, f), met == 'fe' ? 0xcde9c8 : 0xeef6f8, k); s.op = .5 + .25 * f - .3 * k;
+    s.color = mix(mix(0xeef6f8, 0x1f74d6, f), met == 'fe' ? 0xa8d8a0 : 0xeef6f8, k); s.op = .5 + .25 * f - (met == 'fe' ? .15 : .3) * k;
     s.solid.c = mix(mr.solid.c, 0xb4532a, clamp(age / 8, 0, 1)); s.solid.metal = age < 6;
     s.notes.push(`Có <b>lớp chất rắn màu đỏ</b> (đồng) bám trên bề mặt ${mr.n.toLowerCase()}; màu xanh lam của dung dịch <b>nhạt dần</b>.`);
     s.eq.push({ fe: 'Fe + CuSO₄ → FeSO₄ + Cu', zn: 'Zn + CuSO₄ → ZnSO₄ + Cu', mg: 'Mg + CuSO₄ → MgSO₄ + Cu' }[met]);
@@ -130,14 +130,17 @@ const feCoil = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(
 const cup = new THREE.Mesh(new THREE.SphereGeometry(.008, 16, 8, 0, 6.3, Math.PI / 2, Math.PI / 2), MAT.metal(0x8a8f95, .4)); cup.position.y = -.002; spoon.add(cup);
 const naBall = new THREE.Mesh(new THREE.SphereGeometry(.004, 12, 10), naM.clone()); naBall.position.y = .0; spoon.add(naBall);
 const fireL = new THREE.PointLight(0xffe0a0, 0, .6, 2); spoon.add(fireL);
+// quầng lửa: natri – ngọn lửa VÀNG đặc trưng; sắt – cháy sáng chói trắng vàng (không có ngọn lửa)
+const glowT = canvasTex(64, 64, (c, w, h) => { const g = c.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.35, 'rgba(255,255,255,.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); });
+const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowT, color: 0xffc21a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); flame.renderOrder = 7; spoon.add(flame);
 const NS = 120, spk = new Float32Array(NS * 3), spkV = []; const spG = new THREE.BufferGeometry(); spG.setAttribute('position', new THREE.BufferAttribute(spk, 3));
 const sparks = new THREE.Points(spG, new THREE.PointsMaterial({ color: 0xffd36a, size: .004, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); scene.add(sparks); sparks.visible = false;
 for (let i = 0; i < NS; i++) spkV.push({ p: new THREE.Vector3(), v: new THREE.Vector3(), life: 0 });
 const lamp = burner(lab, [.55, 0, .08]); lab.label(lamp.g, 'Đèn cồn', [0, .12, 0]);
 lab.label(fl.g, 'Bình khí', [0, .23, 0]);
 const smoke = new THREE.Mesh(new THREE.SphereGeometry(.05, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })); smoke.position.set(.68, .055, 0); smoke.renderOrder = 3; scene.add(smoke);
-function setGas() { fl.set({ level: 0, gas: null }); fl.g.children[0].material.color.set(S.gas == 'cl2' ? 0xe6f2a8 : 0xf2fbff); fl.g.children[0].material.opacity = S.gas == 'cl2' ? .35 : .2; }
-function resetBurn() { S.burn = null; spoon.position.set(.55, .18, .08); feCoil.visible = S.met == 'fe'; naBall.visible = cup.visible = S.met == 'na'; feM.emissiveIntensity = 0; naBall.material.emissiveIntensity = 0; fireL.intensity = 0; smoke.material.opacity = 0; sparks.visible = false; lamp.set(false); setGas(); }
+function setGas() { fl.set({ level: 0, gas: null }); fl.g.children[0].material.color.set(S.gas == 'cl2' ? 0xa8d040 : 0xf2fbff); fl.g.children[0].material.opacity = S.gas == 'cl2' ? .4 : .2; }
+function resetBurn() { S.burn = null; spoon.position.set(.55, .18, .08); feCoil.visible = S.met == 'fe'; naBall.visible = cup.visible = S.met == 'na'; feM.emissiveIntensity = 0; naBall.material.emissiveIntensity = 0; fireL.intensity = 0; flame.material.opacity = 0; smoke.material.opacity = 0; sparks.visible = false; lamp.set(false); setGas(); }
 
 lab.onTick((dt, t) => {
   // natri chạy trên mặt nước
@@ -153,18 +156,23 @@ lab.onTick((dt, t) => {
   if (S.burn) {
     const b = S.burn; b.t += dt;
     if (b.t < 2.5) { spoon.position.set(.55, .18, .08); feM.emissiveIntensity = b.t / 2.5 * 1.5; naBall.material.emissiveIntensity = b.t / 2.5; }
-    else if (b.t < 3.4) { const k = (b.t - 2.5) / .9; spoon.position.set(.55 + .13 * k, .18 + .02 * Math.sin(k * Math.PI), .08 - .08 * k); }
+    else if (b.t < 3.4) { const k = (b.t - 2.5) / .9; spoon.position.set(.55 + .13 * k, .18 + .06 * Math.sin(k * Math.PI) - .08 * k * k, .08 - .08 * k); }
     else {
-      spoon.position.set(.68, .2, 0); const life = clamp((b.t - 3.4) / 10, 0, 1), on = life < 1;
-      fireL.intensity = on ? (S.met == 'na' ? .6 : .9) * (1 - life * .5) : 0; fireL.color.set(S.met == 'na' && S.gas == 'cl2' ? 0xffd04a : 0xfff0c0);
+      spoon.position.set(.68, .1, 0); const life = clamp((b.t - 3.4) / 10, 0, 1), on = life < 1;
+      fireL.intensity = on ? (S.met == 'na' ? .7 : 1.1) * (1 - life * .5) : 0; fireL.color.set(S.met == 'na' ? 0xffc21a : 0xfff2d0);
+      const isNa = S.met == 'na', fk = on ? (1 - life * .6) * (.8 + .2 * Math.sin(t * 37) * Math.sin(t * 13)) : 0;
+      flame.material.color.set(isNa ? 0xffa800 : 0xfff4dc); flame.material.blending = isNa ? THREE.NormalBlending : THREE.AdditiveBlending; flame.material.opacity = fk * (isNa ? .8 : .8);
+      flame.position.set(0, isNa ? .008 : -.02, 0); flame.scale.set(isNa ? .04 : .035, isNa ? .06 : .035, 1);
+      // khí chlorine (vàng lục) nhạt dần vì bị tiêu thụ
+      if (S.gas == 'cl2') { const gm = fl.g.children[0].material; gm.color.set(0xf2fbff).lerp(new THREE.Color(0xa8d040), 1 - life * .7); gm.opacity = .2 + .2 * (1 - life * .7); }
       feM.emissiveIntensity = on ? 3 : 0; naBall.material.emissiveIntensity = on ? 3 : 0; sparks.visible = on && S.met == 'fe';
-      smoke.material.color.set(S.gas == 'cl2' ? (S.met == 'fe' ? 0x8a3a12 : 0xf2f2ee) : (S.met == 'fe' ? 0x7a3b1c : 0xf2f2ee)); smoke.material.opacity = Math.min(.55, life * .8);
+      smoke.material.color.set(S.gas == 'cl2' ? (S.met == 'fe' ? 0x8a3a12 : 0xf2f2ee) : (S.met == 'fe' ? 0x3a2a22 : 0xf2f2ee)); smoke.material.opacity = Math.min(.55, life * .8);
       if (sparks.visible) { const o = feCoil.getWorldPosition(new THREE.Vector3()); spkV.forEach((s, i) => { if (s.life <= 0) { s.p.copy(o).add(new THREE.Vector3(0, -.02 * Math.random(), 0)); s.v.set((Math.random() - .5) * .3, Math.random() * .2 - .05, (Math.random() - .5) * .3); s.life = .2 + Math.random() * .4; } s.life -= dt; s.v.y -= .6 * dt; s.p.addScaledVector(s.v, dt); spk.set([s.p.x, s.p.y, s.p.z], i * 3); }); spG.attributes.position.needsUpdate = true; }
       if (S.met == 'fe') feCoil.scale.y = 1 - life * .6; else naBall.scale.setScalar(1 - life * .8);
       if (!b.done && life >= 1) { b.done = true; toast('Phản ứng kết thúc'); }
     }
     const txt = b.t < 2.5 ? (S.met == 'fe' ? 'Đốt nóng đỏ đầu dây sắt trên ngọn lửa đèn cồn…' : 'Đun nóng chảy mẩu natri…') : b.t < 3.4 ? 'Đưa nhanh vào bình khí…' :
-      ({ 'fe-o2': 'Sắt <b>cháy sáng chói</b>, có nhiều tia lửa bắn ra, tạo khói màu nâu đỏ. 3Fe + 2O₂ → Fe₃O₄', 'na-o2': 'Natri cháy với ngọn lửa màu vàng, tạo khói trắng. 4Na + O₂ → 2Na₂O', 'na-cl2': 'Natri <b>cháy sáng</b> trong khí chlorine tạo khói trắng – tinh thể muối ăn NaCl. 2Na + Cl₂ → 2NaCl', 'fe-cl2': 'Sắt cháy trong khí chlorine tạo <b>khói màu nâu đỏ</b> – muối iron(III) chloride. 2Fe + 3Cl₂ → 2FeCl₃' })[S.met + '-' + S.gas];
+      ({ 'fe-o2': 'Sắt <b>cháy sáng chói</b>, không có ngọn lửa, nhiều tia lửa bắn ra, tạo các hạt chất rắn <b>màu nâu đen</b> (iron(II,III) oxide). 3Fe + 2O₂ → Fe₃O₄', 'na-o2': 'Natri cháy với <b>ngọn lửa màu vàng</b>, tạo chất rắn/khói <b>màu trắng</b> (sodium oxide). 4Na + O₂ → 2Na₂O', 'na-cl2': 'Natri cháy với <b>ngọn lửa màu vàng</b> trong khí chlorine, tạo <b>khói trắng</b> – tinh thể muối ăn NaCl; màu vàng lục của khí chlorine nhạt dần. 2Na + Cl₂ → 2NaCl', 'fe-cl2': 'Sắt cháy sáng trong khí chlorine tạo <b>khói màu nâu đỏ</b> – muối iron(III) chloride; màu vàng lục của khí chlorine nhạt dần. 2Fe + 3Cl₂ → 2FeCl₃' })[S.met + '-' + S.gas];
     if (S.mode == 'burn') hud.innerHTML = txt;
   }
 });

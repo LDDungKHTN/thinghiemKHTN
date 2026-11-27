@@ -70,7 +70,7 @@ function react(it, heat, age) {
   if (!met) { s.notes.push('Dung dịch không màu.'); return s; }
   if (!w && !h && !ag) { s.notes.push('Chưa có dung dịch trong ống.'); return s; }
   const k = clamp(age / 20, 0, 1);
-  if (h && met == 'fe') { s.bubbles = .35; s.color = mix(0xeef6f8, 0xd8efd0, k * .8); s.notes.push('Có <b>bọt khí</b> thoát ra trên bề mặt đinh sắt: sắt đẩy được hydrogen ra khỏi acid.'); s.eq.push('Fe + 2HCl → FeCl₂ + H₂↑'); }
+  if (h && met == 'fe') { s.bubbles = .35; s.color = mix(0xeef6f8, 0x9fd49a, clamp(age / 15, 0, 1)); s.op = .32 + .2 * clamp(age / 15, 0, 1); s.notes.push('Có <b>bọt khí</b> thoát ra trên bề mặt đinh sắt: sắt đẩy được hydrogen ra khỏi acid.'); s.eq.push('Fe + 2HCl → FeCl₂ + H₂↑'); }
   else if (h && met == 'cu') s.notes.push('<b>Không có hiện tượng</b>: đồng không đẩy được hydrogen ra khỏi dung dịch acid.');
   else if (ag && met == 'cu') {
     s.color = mix(0xf4f4f4, 0x4f9be6, k); s.op = .32 + .25 * k;
