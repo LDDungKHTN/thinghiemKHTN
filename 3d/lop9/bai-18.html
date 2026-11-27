@@ -87,7 +87,7 @@ function react(it, heat, age) {
   if (!liq) { s.notes.push(`${mr.n} trong ống nghiệm khô: chưa có hiện tượng.`); return s; }
   const k = clamp(age / 25, 0, 1);
   if (hcl && met != 'cu') {
-    const rate = { mg: 1, zn: .55, fe: .32 }[met] * (heat ? 1.4 : 1), left = met == 'mg' ? 1 - clamp(age / 12, 0, 1) : 1;
+    const rate = { mg: 1, zn: .55, fe: .45 }[met] * (heat ? 1.4 : 1), left = met == 'mg' ? 1 - clamp(age / 12, 0, 1) : 1;
     s.bubbles = rate * (met == 'mg' ? left : 1);
     if (met == 'mg') { s.solid.amt = Math.max(0, left); s.gas = { c: 0xffffff, amt: .15 * left }; }
     if (met == 'fe') s.color = mix(s.color, 0xd8efd0, k * .8);
