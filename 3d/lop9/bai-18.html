@@ -20,7 +20,7 @@
 <p>Chọn ống nghiệm, bấm lọ hoá chất (trên bàn hoặc nút dưới đây) để cho vào ống. Quan sát hiện tượng.</p>
 
 
-<p class="sm">Gợi ý: cho đinh sắt, kẽm, đồng, magnesium vào dd HCl; cho đinh sắt vào dd CuSO₄; cho đồng vào dd HCl.</p>
+<p class="sm">Gợi ý: cho đinh sắt, kẽm, đồng, magnesium vào dd HCl; cho đinh sắt vào dd CuSO₄; cho dây đồng vào dd AgNO₃; cho đồng vào dd HCl. Bấm lại vào ống nghiệm đang chọn để nhấc lên quan sát.</p>
 <h3>2. Natri tác dụng với nước</h3><p>Bấm <b>“Natri + nước”</b> trên thanh công cụ.</p>
 <h3>3. Kim loại tác dụng với phi kim</h3><p>Bấm <b>“Đốt trong bình khí”</b>: chọn khí oxygen hoặc chlorine và kim loại.</p>
 
@@ -48,7 +48,7 @@ const stage = shell({
 <p>Chọn ống nghiệm, bấm lọ hoá chất (trên bàn hoặc nút dưới đây) để cho vào ống. Quan sát hiện tượng.</p>
 <div id="ui"></div>
 <div id="obs" class="note"></div>
-<p class="sm">Gợi ý: cho đinh sắt, kẽm, đồng, magnesium vào dd HCl; cho đinh sắt vào dd CuSO₄; cho đồng vào dd HCl.</p>
+<p class="sm">Gợi ý: cho đinh sắt, kẽm, đồng, magnesium vào dd HCl; cho đinh sắt vào dd CuSO₄; cho dây đồng vào dd AgNO₃; cho đồng vào dd HCl. Bấm lại vào ống nghiệm đang chọn để nhấc lên quan sát.</p>
 <h3>2. Natri tác dụng với nước</h3><p>Bấm <b>“Natri + nước”</b> trên thanh công cụ.</p>
 <h3>3. Kim loại tác dụng với phi kim</h3><p>Bấm <b>“Đốt trong bình khí”</b>: chọn khí oxygen hoặc chlorine và kim loại.</p>
 <div class="row"><b>Khí:</b><button class="btn on" data-gas="o2">Oxygen</button><button class="btn g" data-gas="cl2">Chlorine</button> <b>Kim loại:</b><button class="btn on" data-met="fe">Dây sắt</button><button class="btn g" data-met="na">Natri</button></div>
@@ -69,7 +69,7 @@ const S = { mode: 'bench', na: null, gas: 'o2', met: 'fe', burn: null };
 
 /* ===== Bàn ống nghiệm ===== */
 const REAG = [
-  { id: 'hcl', n: 'dd HCl', c: 0xeef6f8, k: 'liq' }, { id: 'cuso4', n: 'dd CuSO₄', c: 0x2f8fe0, k: 'liq', tag: '#e3f1ff' }, { id: 'h2o', n: 'Nước cất', c: 0xdff1fa, k: 'liq' },
+  { id: 'hcl', n: 'dd HCl', c: 0xeef6f8, k: 'liq' }, { id: 'cuso4', n: 'dd CuSO₄', c: 0x2f8fe0, k: 'liq', tag: '#e3f1ff' }, { id: 'h2o', n: 'Nước cất', c: 0xdff1fa, k: 'liq' }, { id: 'agno3', n: 'dd AgNO₃', c: 0xf4f4f4, k: 'liq', tag: '#f1e8ff' },
   { id: 'fe', n: 'Đinh sắt', c: 0x8f969c, k: 'sol', solid: { kind: 'nail', c: 0x8f969c, metal: true }, max: 1 },
   { id: 'zn', n: 'Kẽm viên', c: 0xb8bcc4, k: 'sol', solid: { kind: 'chunk', c: 0xb8bcc4, metal: true } },
   { id: 'mg', n: 'Mg (băng)', c: 0xcfd2d6, k: 'sol', solid: { kind: 'strip', c: 0xcfd2d6, metal: true }, max: 1 },
@@ -78,12 +78,12 @@ const has = (it, id) => it.find(x => x.id == id);
 const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), clamp(t, 0, 1)).getHex();
 function react(it, heat, age) {
   const s = { notes: [], eq: [] }; if (!it.length) return s;
-  const hcl = has(it, 'hcl'), cu2 = has(it, 'cuso4'), w = has(it, 'h2o'), liq = (hcl ? hcl.amt : 0) + (cu2 ? cu2.amt : 0) + (w ? w.amt : 0);
+  const hcl = has(it, 'hcl'), cu2 = has(it, 'cuso4'), w = has(it, 'h2o'), ag = has(it, 'agno3'), liq = (hcl ? hcl.amt : 0) + (cu2 ? cu2.amt : 0) + (w ? w.amt : 0) + (ag ? ag.amt : 0);
   const met = ['fe', 'zn', 'mg', 'cu'].find(m => has(it, m)), mr = met && REAG.find(r => r.id == met);
   s.color = 0xeef6f8; s.op = .35;
   if (cu2) { const f = cu2.amt / liq; s.color = mix(0xeef6f8, 0x1f74d6, f); s.op = .5 + .25 * f; }
   if (met) s.solid = { ...mr.solid, amt: has(it, met).amt };
-  if (!met) { if (cu2) s.notes.push('Dung dịch CuSO₄ có màu xanh lam.'); else s.notes.push('Dung dịch không màu.'); return s; }
+  if (!met) { if (cu2) s.notes.push('Dung dịch CuSO₄ có màu xanh lam.'); else s.notes.push(ag ? 'Dung dịch AgNO₃ không màu.' : 'Dung dịch không màu.'); return s; }
   if (!liq) { s.notes.push(`${mr.n} trong ống nghiệm khô: chưa có hiện tượng.`); return s; }
   const k = clamp(age / 25, 0, 1);
   if (hcl && met != 'cu') {
@@ -103,7 +103,15 @@ function react(it, heat, age) {
     s.eq.push({ fe: 'Fe + CuSO₄ → FeSO₄ + Cu', zn: 'Zn + CuSO₄ → ZnSO₄ + Cu', mg: 'Mg + CuSO₄ → MgSO₄ + Cu' }[met]);
   }
   if (cu2 && met == 'cu') s.notes.push('Đồng không tác dụng với dung dịch CuSO₄.');
-  if (w && !hcl && !cu2) s.notes.push(met == 'mg' && heat ? 'Đun nóng: có ít bọt khí thoát ra (Mg tác dụng chậm với nước nóng).' : `${mr.n} không tác dụng với nước ở nhiệt độ thường.`), (met == 'mg' && heat) && (s.bubbles = .1);
+  if (ag && !cu2 && !hcl) {   // kim loại đứng trước Ag đẩy bạc ra khỏi dung dịch muối
+    const g = clamp(age / 18, 0, 1), prod = { cu: 0x4f9be6, fe: 0xa8d8a0 }[met];
+    if (prod) { s.color = mix(0xf4f4f4, prod, g); s.op = .32 + .22 * g; } else { s.color = 0xf2f4f6; s.op = .3; }
+    s.solid.c = mix(mr.solid.c, 0xaeb4ba, clamp(age / 7, 0, 1)); s.solid.metal = true;
+    s.cloud = .2 * clamp(age / 4, 0, 1) * (1 - g * .6); s.cloudC = 0xc8ccd0;
+    s.notes.push(`Có <b>lớp chất rắn màu xám bạc</b> (bạc) bám trên bề mặt ${mr.n.toLowerCase()}${met == 'cu' ? '; dung dịch chuyển dần sang <b>màu xanh lam</b> (Cu(NO₃)₂)' : met == 'fe' ? '; dung dịch chuyển dần sang <b>màu lục nhạt</b>' : '; dung dịch vẫn không màu'}.`);
+    s.eq.push({ cu: 'Cu + 2AgNO₃ → Cu(NO₃)₂ + 2Ag↓', fe: 'Fe + 2AgNO₃ → Fe(NO₃)₂ + 2Ag↓', zn: 'Zn + 2AgNO₃ → Zn(NO₃)₂ + 2Ag↓', mg: 'Mg + 2AgNO₃ → Mg(NO₃)₂ + 2Ag↓' }[met]);
+  }
+  if (w && !hcl && !cu2 && !ag) s.notes.push(met == 'mg' && heat ? 'Đun nóng: có ít bọt khí thoát ra (Mg tác dụng chậm với nước nóng).' : `${mr.n} không tác dụng với nước ở nhiệt độ thường.`), (met == 'mg' && heat) && (s.bubbles = .1);
   return s;
 }
 const tubes = ['Ống 1', 'Ống 2', 'Ống 3', 'Ống 4'];
@@ -137,10 +145,17 @@ const NS = 120, spk = new Float32Array(NS * 3), spkV = []; const spG = new THREE
 const sparks = new THREE.Points(spG, new THREE.PointsMaterial({ color: 0xffd36a, size: .004, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); scene.add(sparks); sparks.visible = false;
 for (let i = 0; i < NS; i++) spkV.push({ p: new THREE.Vector3(), v: new THREE.Vector3(), life: 0 });
 const lamp = burner(lab, [.55, 0, .08]); lab.label(lamp.g, 'Đèn cồn', [0, .12, 0]);
+// nút cao su: một nút đậy kín bình khí; một nút gắn trên cán muỗng đốt để đậy kín bình khi đưa kim loại vào
+const rubber = new THREE.MeshStandardMaterial({ color: 0x3b3b3e, roughness: .85 });
+const stopGeo = new THREE.CylinderGeometry(.0185, .0148, .02, 28);
+const flStop = new THREE.Mesh(stopGeo, rubber); flStop.castShadow = true; scene.add(flStop);
+const FL_STOP = new THREE.Vector3(.68, .209, 0), FL_ASIDE = new THREE.Vector3(.77, .01, .06);
+const spStop = new THREE.Mesh(stopGeo, rubber); spStop.position.y = .109; spoon.add(spStop);
+lab.label(flStop, 'Nút cao su', [.03, .01, 0]);
 lab.label(fl.g, 'Bình khí', [0, .23, 0]);
 const smoke = new THREE.Mesh(new THREE.SphereGeometry(.05, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })); smoke.position.set(.68, .055, 0); smoke.renderOrder = 3; scene.add(smoke);
 function setGas() { fl.set({ level: 0, gas: null }); fl.g.children[0].material.color.set(S.gas == 'cl2' ? 0xa8d040 : 0xf2fbff); fl.g.children[0].material.opacity = S.gas == 'cl2' ? .4 : .2; }
-function resetBurn() { S.burn = null; spoon.position.set(.55, .18, .08); feCoil.visible = S.met == 'fe'; naBall.visible = cup.visible = S.met == 'na'; feM.emissiveIntensity = 0; naBall.material.emissiveIntensity = 0; fireL.intensity = 0; flame.material.opacity = 0; smoke.material.opacity = 0; sparks.visible = false; lamp.set(false); setGas(); }
+function resetBurn() { S.burn = null; flStop.position.copy(FL_STOP); flStop.rotation.x = 0; spoon.position.set(.55, .18, .08); feCoil.visible = S.met == 'fe'; naBall.visible = cup.visible = S.met == 'na'; feM.emissiveIntensity = 0; naBall.material.emissiveIntensity = 0; fireL.intensity = 0; flame.material.opacity = 0; smoke.material.opacity = 0; sparks.visible = false; lamp.set(false); setGas(); }
 
 lab.onTick((dt, t) => {
   // natri chạy trên mặt nước
@@ -155,6 +170,8 @@ lab.onTick((dt, t) => {
   // đốt kim loại
   if (S.burn) {
     const b = S.burn; b.t += dt;
+    // mở nút bình (đặt ngửa trên bàn) ngay trước khi đưa muỗng vào; nút trên cán muỗng sẽ đậy kín miệng bình
+    { const k = clamp((b.t - 2.1) / .4, 0, 1); flStop.position.lerpVectors(FL_STOP, FL_ASIDE, k); flStop.position.y += Math.sin(k * Math.PI) * .05; flStop.rotation.x = Math.PI * k; }
     if (b.t < 2.5) { spoon.position.set(.55, .18, .08); feM.emissiveIntensity = b.t / 2.5 * 1.5; naBall.material.emissiveIntensity = b.t / 2.5; }
     else if (b.t < 3.4) { const k = (b.t - 2.5) / .9; spoon.position.set(.55 + .13 * k, .18 + .06 * Math.sin(k * Math.PI) - .08 * k * k, .08 - .08 * k); }
     else {
