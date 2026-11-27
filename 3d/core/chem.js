@@ -284,6 +284,12 @@ export function paperPack(lab, pos, { name = '', color = 0x8e5bd6 } = {}) {
   return { g, name, strip, paper: true };
 }
 
+/** Lòng muỗng đốt hoá chất: bát nhỏ NGỬA LÊN (đáy ở y = 0, miệng ở y ≈ .008), bán kính miệng ≈ .0095 */
+export function spoonBowl(mat) {
+  const m = new THREE.Mesh(lathe([[0, 0], [.006, .0006], [.0088, .0035], [.0095, .008], [.0087, .008], [.0081, .0042], [.0055, .0014], [0, .0011]], 28), mat);
+  m.material.side = THREE.DoubleSide; m.castShadow = true; return m;
+}
+
 /** Đèn cồn */
 export function burner(lab, pos) {
   const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);

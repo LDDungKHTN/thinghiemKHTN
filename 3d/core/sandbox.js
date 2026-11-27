@@ -2,7 +2,7 @@
 // Người dùng lấy dụng cụ ra bàn, kéo thả, bấm trực tiếp để thao tác (mở nắp – châm lửa – đậy nắp đèn cồn,
 // cắm ống vào giá, đặt cốc lên kiềng để đun, rót hoá chất, cầm ống lên quan sát…).
 import { THREE, MAT, lathe, roundBox, canvasTex, clamp } from './lab3d.js';
-import { vessel, rack, bottle, solidDish, gasJar, paperPack, burner, thermometer, pourBase, liquidStream } from './chem.js';
+import { vessel, rack, bottle, solidDish, gasJar, paperPack, burner, thermometer, pourBase, liquidStream, spoonBowl } from './chem.js';
 import { stopwatch, balance } from './kit.js';
 import { supply, bulb, knife, meter, barMagnet, wire } from './elec.js';
 import { compass, field } from './magnet.js';
@@ -302,14 +302,16 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
     spoon(p) {
       // muỗng sắt cán dài, đầu là muỗng nhỏ đựng hoá chất; trên cán gắn sẵn nút cao su để đậy kín bình khi đưa vào đốt
       const g = new THREE.Group(); scene.add(g); const inner = new THREE.Group(); g.add(inner); const steel = MAT.metal(0x8a8f95, .4);
-      const rodM = new THREE.Mesh(new THREE.CylinderGeometry(.0015, .0015, .2, 8), steel); rodM.position.y = .1; inner.add(rodM);
-      const cup = new THREE.Mesh(new THREE.SphereGeometry(.008, 18, 8, 0, 6.3, Math.PI / 2, Math.PI / 2), steel); cup.rotation.x = Math.PI; cup.position.y = .007; inner.add(cup);
+      // cán thẳng đứng gắn vào MÉP muỗng; lòng muỗng ngửa lên, lệch sang một bên cán (giống muỗng đốt thật)
+      const CX = .0095;
+      const rodM = new THREE.Mesh(new THREE.CylinderGeometry(.0015, .0015, .192, 8), steel); rodM.position.y = .008 + .096; inner.add(rodM);
+      const cup = spoonBowl(steel.clone()); cup.position.x = CX; inner.add(cup);
       const st = new THREE.Mesh(STOP_GEO, RUBBER); st.position.y = .109; inner.add(st);
       const knob = new THREE.Mesh(new THREE.SphereGeometry(.004, 10, 8), MAT.plastic(0x222222, .5)); knob.position.y = .2; inner.add(knob);
       const smM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .7, emissive: 0xff5a10, emissiveIntensity: 0 });
-      const sample = new THREE.Mesh(new THREE.SphereGeometry(.0058, 14, 10), smM); sample.scale.y = .55; sample.position.y = .0035; sample.visible = false; inner.add(sample);
+      const sample = new THREE.Mesh(new THREE.SphereGeometry(.0058, 14, 10), smM); sample.scale.y = .55; sample.position.set(CX, .0045, 0); sample.visible = false; inner.add(sample);
       const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW(), color: 0xffa800, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); flame.renderOrder = 7; inner.add(flame);
-      const fl = new THREE.PointLight(0xffc070, 0, .6, 2); fl.position.y = .015; inner.add(fl);
+      const fl = new THREE.PointLight(0xffc070, 0, .6, 2); fl.position.set(CX, .015, 0); inner.add(fl);
       const NS = 60, spk = new Float32Array(NS * 3), sv = []; const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(spk, 3));
       const sparks = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffd36a, size: .004, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); sparks.visible = false; scene.add(sparks);
       for (let i = 0; i < NS; i++) sv.push({ p: V3(), v: V3(), life: 0 });
@@ -335,10 +337,10 @@ export function sandbox(lab, stage, { panel, onSelect } = {}) {
         smM.emissiveIntensity = glowK * (R && R.glow ? 2.5 : 1.2); sample.scale.set(1 - .5 * it.burnT, .55 * (1 - .5 * it.burnT), 1 - .5 * it.burnT);
         const fk = live * (.85 + .15 * Math.sin(t * 37) * Math.sin(t * 13));
         flame.material.color.set(R && R.fc || 0xffa800); flame.material.opacity = (R && !R.glow ? fk : fk * .5) * .9; flame.material.blending = R && (R.fc == 0xffa800 || R.fc == 0x4b55ff || R.fc == 0x7d8cff) ? THREE.NormalBlending : THREE.AdditiveBlending;
-        flame.position.y = .018 * fs + .006; flame.scale.set(.03 * fs, .05 * fs, 1);
+        flame.position.set(CX, .018 * fs + .008, 0); flame.scale.set(.03 * fs, .05 * fs, 1);
         fl.color.set(R && R.fc || 0xffa800); fl.intensity = live * fs * .8 + glowK * .1;
         const sp = R && R.sparks && (it.burning || (glowK > .5 && it.overB)) ? R.sparks : 0; sparks.visible = sp > 0;
-        if (sp) { const o = it.inner.localToWorld(V3(0, .006, 0)); sv.forEach((s, i) => { if (s.life <= 0 && Math.random() < sp) { s.p.copy(o); s.v.set((Math.random() - .5) * .3, Math.random() * .2 - .05, (Math.random() - .5) * .3); s.life = .2 + Math.random() * .4; } s.life -= dt; s.v.y -= .6 * dt; s.p.addScaledVector(s.v, dt); spk.set(s.life > 0 ? [s.p.x, s.p.y, s.p.z] : [0, -1, 0], i * 3); }); sg.attributes.position.needsUpdate = true; }
+        if (sp) { const o = it.inner.localToWorld(V3(CX, .006, 0)); sv.forEach((s, i) => { if (s.life <= 0 && Math.random() < sp) { s.p.copy(o); s.v.set((Math.random() - .5) * .3, Math.random() * .2 - .05, (Math.random() - .5) * .3); s.life = .2 + Math.random() * .4; } s.life -= dt; s.v.y -= .6 * dt; s.p.addScaledVector(s.v, dt); spk.set(s.life > 0 ? [s.p.x, s.p.y, s.p.z] : [0, -1, 0], i * 3); }); sg.attributes.position.needsUpdate = true; }
         // trong bình khí: khói sản phẩm dày dần, khí chlorine nhạt dần
         const f = it.inFlask; if (f && it.burning && env != 'air') { f.gasAmt = Math.max(0, f.gasAmt - dt / 12); if (R.smoke != null) { f.smokeC.set(R.smoke); f.smoke = Math.min(1, f.smoke + dt / 10); } f.drawGas(); }
         if (f && it.burning && env == 'air' && it.burnT > .25) { it.burning = false; it.done = true; it.chem = null; sample.visible = false; toast('Bình không chứa oxygen hay chlorine: oxygen trong không khí của bình nhanh chóng hết, ngọn lửa tắt.'); renderPanel(); }
