@@ -49,9 +49,27 @@ export function chemBench(lab, opt) {
   function draw(i) {
     const t = T[i], s = opt.react(t.items, t.heat, t.age, i, R) || {};
     if (s.level == null) s.level = level(t);
-    t.s = s; t.v.set({ level: s.level, color: s.color ?? 0xcfe8f3, op: s.op ?? .45, ppt: s.ppt || null, cloud: s.cloud || 0, cloudC: s.cloudC, bubbles: s.bubbles || 0, gas: s.gas || null, solid: s.solid || null, layer: s.layer || null, mirror: s.mirror || 0 });
+    t.s = s;
+    // màu đích; màu hiển thị đổi DẦN tới màu đích (xem fade() trong vòng lặp)
+    const tg = { c: new THREE.Color(s.color ?? 0xcfe8f3), op: s.op ?? .45, sc: s.solid ? new THREE.Color(s.solid.c) : null, pc: s.ppt ? new THREE.Color(s.ppt.c) : null, cc: new THREE.Color(s.cloudC ?? (s.ppt ? s.ppt.c : 0xffffff)) };
+    if (!t.cur || !t.items.length) t.cur = { c: tg.c.clone(), op: tg.op, sc: tg.sc && tg.sc.clone(), pc: tg.pc && tg.pc.clone(), cc: tg.cc.clone() };
+    if (tg.sc && !t.cur.sc) t.cur.sc = tg.sc.clone(); if (tg.pc && !t.cur.pc) t.cur.pc = tg.pc.clone();
+    t.tg = tg; applyCur(t);
+    if (!t.items.length) t.cur = null;
     if (i == sel) showObs();
     opt.onChange && opt.onChange(i, s, t);
+  }
+  function applyCur(t) {
+    const s = t.s || {}, c = t.cur || t.tg;
+    t.v.set({ level: s.level || 0, color: c.c.getHex(), op: c.op, ppt: s.ppt ? { ...s.ppt, c: (c.pc || t.tg.pc).getHex() } : null, cloud: s.cloud || 0, cloudC: c.cc.getHex(), bubbles: s.bubbles || 0, gas: s.gas || null, solid: s.solid ? { ...s.solid, c: (c.sc || t.tg.sc).getHex() } : null, layer: s.layer || null, mirror: s.mirror || 0 });
+  }
+  // đổi màu từ từ: mỗi giây tiến ~45% quãng còn lại (đổi hẳn sau khoảng 4–6 giây)
+  function fade(t, dt) {
+    if (!t.cur || !t.tg) return; const k = 1 - Math.exp(-dt / 1.6), c = t.cur, g = t.tg;
+    const d = c.c.clone().sub(g.c), diff = Math.abs(d.r) + Math.abs(d.g) + Math.abs(d.b) + Math.abs(c.op - g.op) + (g.sc && c.sc ? Math.abs(c.sc.r - g.sc.r) + Math.abs(c.sc.g - g.sc.g) + Math.abs(c.sc.b - g.sc.b) : 0) + (g.pc && c.pc ? Math.abs(c.pc.r - g.pc.r) + Math.abs(c.pc.g - g.pc.g) + Math.abs(c.pc.b - g.pc.b) : 0) + Math.abs(c.cc.r - g.cc.r) + Math.abs(c.cc.g - g.cc.g) + Math.abs(c.cc.b - g.cc.b);
+    if (diff < .004) return;
+    c.c.lerp(g.c, k); c.op += (g.op - c.op) * k; c.cc.lerp(g.cc, k); if (g.sc && c.sc) c.sc.lerp(g.sc, k); if (g.pc && c.pc) c.pc.lerp(g.pc, k);
+    applyCur(t);
   }
   function showObs() {
     const t = T[sel], s = t.s || {}, n = s.notes || [];
@@ -77,7 +95,7 @@ export function chemBench(lab, opt) {
   }
   lab.onTick((dt) => {
     place();
-    T.forEach((t, i) => { if (t.items.length && t.age < 40) { t.age += dt; if (((t.age * 8) | 0) != ((t.age - dt) * 8 | 0)) draw(i); } });
+    T.forEach((t, i) => { if (t.items.length && t.age < 40) { t.age += dt; if (((t.age * 8) | 0) != ((t.age - dt) * 8 | 0)) draw(i); } fade(t, dt); });
     if (anim) {
       const { b, t } = anim; anim.k += dt / anim.dur; const k = Math.min(1, anim.k), r = b.r;
       if (b.paper) {   // giấy chỉ thị: lấy một mẩu giấy từ đĩa, nhúng vào ống nghiệm

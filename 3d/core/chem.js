@@ -107,11 +107,11 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
       parts.material.color.set(pp ? pp.c : st.cloudC || 0xffffff);
       gasSp.forEach(sp => sp.material.color.set(st.gas ? st.gas.c : 0xffffff));
       // chất rắn
-      const sd = st.solid, key = sd ? sd.kind + sd.c + Math.round(sd.amt * 20) : '';
+      const sd = st.solid, key = sd ? sd.kind + (sd.metal ? 'm' : '') + Math.round(sd.amt * 20) : '';
       if (key != P.sk) {
         P.sk = key; while (solids.children.length) { const o = solids.children.pop(); o.traverse(x => x.geometry && x.geometry.dispose()); }
         if (sd && sd.amt > .02) {
-          _seed = 7; const m = new THREE.MeshStandardMaterial({ color: sd.c, metalness: sd.metal ? .9 : 0, roughness: sd.metal ? .35 : .8 });
+          _seed = 7; const m = P.sm = new THREE.MeshStandardMaterial({ color: sd.c, metalness: sd.metal ? .9 : 0, roughness: sd.metal ? .35 : .8 });
           if (sd.kind == 'wire') { const pts = []; for (let i = 0; i <= 160; i++) { const a = i / 160 * Math.PI * 14, y = wt + .004 + i / 160 * H * .45; pts.push(V3(Math.cos(a) * R * .5, y, Math.sin(a) * R * .5)); } pts.push(V3(R * .5, H * .7, 0), V3(R * .3, H * 1.05, 0)); solids.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 220, .0008, 6), m)); }
           else if (sd.kind == 'nail') { // đinh dài ~4,5 cm, nằm nghiêng tựa thành ống, mũi nhọn ở đáy
             const nl = Math.min(.03, H * .25), o = new THREE.Group(), tilt = Math.min(.18, Math.asin(Math.min(1, R * 1.1 / nl)));
@@ -125,6 +125,7 @@ export function vessel(lab, { kind = 'tube', R = .009, H = .15, neck = .008, lab
           solids.children.forEach(o => o.castShadow = true);
         }
       }
+      if (sd && P.sm) P.sm.color.set(sd.c);   // màu chất rắn đổi dần mà không phải dựng lại hình
     },
     tick(dt, t) {
       const L = P.L || 0;
@@ -194,9 +195,11 @@ export function rack(lab, pos, n = 4, gap = .04) {
 export function bottle(lab, pos, { name = '', color = 0xdff3ff, liquid = true, solidColor, tag = '#fff' } = {}) {
   const g = new THREE.Group(); g.position.set(...pos); lab.scene.add(g);
   const R = .016, H = .06;
-  const body = new THREE.Mesh(lathe([[0, 0], [R, 0], [R, H], [R * .55, H + .01], [R * .55, H + .018], [0, H + .018]], 32), new THREE.MeshPhysicalMaterial({ color: liquid ? 0x8a5a2b : 0xffffff, transparent: true, opacity: liquid ? .55 : .35, roughness: .1, clearcoat: 1, depthWrite: false }));
+  // lọ thuỷ tinh trong để thấy màu hoá chất; lọ nâu chỉ cho chất dễ bị ánh sáng phân huỷ (AgNO₃, KMnO₄, iodine, H₂O₂)
+  const dark = liquid && /AgNO|KMnO|iodine|H₂O₂/i.test(name);
+  const body = new THREE.Mesh(lathe([[0, 0], [R, 0], [R, H], [R * .55, H + .01], [R * .55, H + .018], [0, H + .018]], 32), new THREE.MeshPhysicalMaterial({ color: dark ? 0x8a5a2b : 0xf4fbff, transparent: true, opacity: dark ? .55 : .22, roughness: .05, clearcoat: 1, depthWrite: false, side: THREE.FrontSide }));
   body.renderOrder = 4; g.add(body);
-  const fill = new THREE.Mesh(new THREE.CylinderGeometry(R * .93, R * .93, H * .7, 24), new THREE.MeshStandardMaterial({ color: liquid ? color : (solidColor || color), roughness: liquid ? .2 : .9, transparent: liquid, opacity: liquid ? .8 : 1 }));
+  const fill = new THREE.Mesh(new THREE.CylinderGeometry(R * .93, R * .93, H * .7, 24), new THREE.MeshStandardMaterial({ color: liquid ? color : (solidColor || color), roughness: liquid ? .2 : .9, transparent: liquid, opacity: liquid ? .75 : 1 }));
   fill.position.y = H * .35 + .001; fill.renderOrder = 2; g.add(fill);
   const cap = new THREE.Mesh(new THREE.CylinderGeometry(R * .62, R * .62, .012, 24), MAT.plastic(0x2a2a2a, .4)); cap.position.y = H + .022; g.add(cap);
   const lb = new THREE.Mesh(new THREE.CylinderGeometry(R * 1.005, R * 1.005, .03, 32, 1, true, -.9, 1.8), new THREE.MeshStandardMaterial({ roughness: .7, map: canvasTex(256, 128, (c, w, h) => { c.fillStyle = tag; c.fillRect(0, 0, w, h); c.strokeStyle = '#999'; c.strokeRect(2, 2, w - 4, h - 4); c.fillStyle = '#111'; c.textAlign = 'center'; c.textBaseline = 'middle'; let fs = 46; c.font = `bold ${fs}px Arial`; while (c.measureText(name).width > w - 16 && fs > 18) { fs -= 2; c.font = `bold ${fs}px Arial`; } c.fillText(name, w / 2, h / 2); }) }));
