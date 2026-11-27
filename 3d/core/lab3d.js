@@ -185,8 +185,17 @@ export function createLab(host, o = {}) {
     const vis = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
     const all = [...drags, ...clicks].filter(d => d.enabled !== false && vis(d.obj)).flatMap(d => d.handles || [d.obj]);
     const hits = ray.intersectObjects(all, true);
-    for (const h of hits) { const d = owner(h.object, drags) || owner(h.object, clicks); if (d) return { d, h }; }
-    return null;
+    // Thuỷ tinh gần như trong suốt (thành ống nghiệm, lọ…) không được "che" vật ở phía sau:
+    // nếu tia bấm đi xuyên qua thuỷ tinh rồi trúng một vật khác có thể bấm được thì chọn vật đó.
+    const seeThru = o => { const m = o.material; return m && !Array.isArray(m) && m.transparent && m.opacity <= .35 && !m.map; };
+    let glass = null;
+    for (const h of hits) {
+      if (!vis(h.object)) continue;   // Raycaster vẫn trúng vật đang ẩn (vd. mặt chất lỏng của ống trống) → bỏ qua
+      const d = owner(h.object, drags) || owner(h.object, clicks); if (!d) continue;
+      if (seeThru(h.object)) { if (!glass) glass = { d, h }; continue; }
+      return { d, h };
+    }
+    return glass;
   }
   function axisPlane(d, pt) {
     const camDir = camera.getWorldDirection(V()), ax = d.axis;

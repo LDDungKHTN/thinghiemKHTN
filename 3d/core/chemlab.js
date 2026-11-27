@@ -21,8 +21,16 @@ export function chemBench(lab, opt) {
   // lọ hoá chất xếp hàng phía sau
   const nb = R.length, gap = Math.min(.075, .6 / nb);
   const isPaper = r => r.paper || (r.solid && r.solid.kind == 'strip' && !r.solid.metal);
-  const B = R.map((r, i) => { const b = isPaper(r) ? paperPack(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, color: r.solid ? r.solid.c : r.c })
-    : r.k == 'sol' && r.solid ? solidDish(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, kind: r.solid.kind, color: r.solid.c, metal: !!r.solid.metal }) : bottle(lab, [-(nb - 1) * gap / 2 + i * gap, 0, -.13], { name: r.n, color: r.c, liquid: r.k != 'sol', solidColor: r.solid ? r.solid.c : r.c, tag: r.tag || '#fffdf5' }); b.r = r; b.home = b.g.position.clone(); return b; });
+  // lọ (cao) xếp hàng sau giá; đĩa chất rắn & giấy chỉ thị (thấp, sẽ bị giá che nếu để sau giá) xếp 2 cột BÊN TRÁI giá
+  const flat = r => isPaper(r) || (r.k == 'sol' && r.solid);
+  const backR = R.filter(r => !flat(r)), frontR = R.filter(flat);
+  const rackHalf = (Math.max(N, 2) * .05 + .02) / 2;
+  const rowPos = r => {
+    if (flat(r)) { const i = frontR.indexOf(r); return [-rackHalf - .06 - (i % 2) * .066, 0, -.05 + Math.floor(i / 2) * .085]; }
+    const n = backR.length, gp = Math.min(.075, .6 / Math.max(n, 1)), i = backR.indexOf(r); return [-(n - 1) * gp / 2 + i * gp, 0, -.13];
+  };
+  const B = R.map((r, i) => { const b = isPaper(r) ? paperPack(lab, rowPos(r), { name: r.n, color: r.solid ? r.solid.c : r.c })
+    : r.k == 'sol' && r.solid ? solidDish(lab, rowPos(r), { name: r.n, kind: r.solid.kind, color: r.solid.c, metal: !!r.solid.metal }) : bottle(lab, rowPos(r), { name: r.n, color: r.c, liquid: r.k != 'sol', solidColor: r.solid ? r.solid.c : r.c, tag: r.tag || '#fffdf5' }); b.r = r; b.home = b.g.position.clone(); return b; });
   // đèn cồn + kẹp gỗ
   const lamp = opt.heat !== false ? burner(lab, [.3, 0, .06]) : null;
   if (lamp) lab.label(lamp.g, 'Đèn cồn', [0, .12, 0]);
